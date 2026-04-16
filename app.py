@@ -88,6 +88,15 @@ with st.sidebar:
         st.session_state.current_view_story = "三国·白门楼斩吕布"
         st.session_state.chat_history = [] 
         st.rerun()
+    # 在 app.py 侧边栏的三国目录下加上这两个：
+    if st.button("└─ 赤壁之战", key="nav_3k_chibi"):
+        st.session_state.current_view_story = "三国·赤壁之战"
+        st.session_state.chat_history = [] 
+        st.rerun()
+    if st.button("└─ 荆州惊变", key="nav_3k_jingzhou"):
+        st.session_state.current_view_story = "三国·荆州惊变（关羽之死）"
+        st.session_state.chat_history = [] 
+        st.rerun()
 
 # ==========================================
 # 📐 主页面布局 (渲染逻辑完全不用改！)
