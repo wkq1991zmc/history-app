@@ -1,8 +1,27 @@
 import streamlit as st
 from openai import OpenAI
+import json
+import os
 
 # 👈 架构升级：从你的专属数据库文件引入剧本！
 from data import EVENTS_DB 
+
+# ==========================================
+# 💾 新增：本地记忆库读取与保存逻辑
+# ==========================================
+HISTORY_FILE = "chat_records.json"
+
+def load_all_history():
+    # 如果硬盘上有这个档案本，就读出来；没有就给个空的
+    if os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_all_history(data):
+    # 把最新的聊天记录写进档案本里
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
 
 # ==========================================
 # 1. 网页基础设置
@@ -21,16 +40,26 @@ client = OpenAI(
 )
 
 # ==========================================
-# 📊 初始化核心状态
+# 📊 初始化核心状态 (架构升级：引入永久记忆)
 # ==========================================
-if "chat_history" not in st.session_state: st.session_state.chat_history = []
-if "temp_at_target" not in st.session_state: st.session_state.temp_at_target = ""
-if "current_view_story" not in st.session_state: st.session_state.current_view_story = "秦朝·沙丘之变"
+if "all_chats" not in st.session_state: 
+    st.session_state.all_chats = load_all_history() # 网页一开，先读硬盘
+if "temp_at_target" not in st.session_state: 
+    st.session_state.temp_at_target = ""
+if "current_view_story" not in st.session_state: 
+    st.session_state.current_view_story = list(EVENTS_DB.keys())[0]
 
 # 确保当前视图在数据库中存在
 if st.session_state.current_view_story not in EVENTS_DB:
     st.session_state.current_view_story = list(EVENTS_DB.keys())[0]
 CURRENT_DATA = EVENTS_DB[st.session_state.current_view_story]
+
+# 获取“当前这个事件”的专属聊天记录（如果没有，就新建一个空列表）
+if st.session_state.current_view_story not in st.session_state.all_chats:
+    st.session_state.all_chats[st.session_state.current_view_story] = []
+
+# 把当前事件的记录单独提出来，方便后面调用
+st.session_state.chat_history = st.session_state.all_chats[st.session_state.current_view_story]
 
 # ==========================================
 # 🎨 自定义 UI 样式 
@@ -75,27 +104,35 @@ with st.sidebar:
     st.markdown("📄 **秦朝档案**", unsafe_allow_html=True)
     if st.button("└─ 沙丘之变", key="nav_qin_shaqiu"):
         st.session_state.current_view_story = "秦朝·沙丘之变"
-        st.session_state.chat_history = [] 
         st.rerun()
         
     # --- 三国目录 ---
     st.markdown("<br>📄 **东汉/三国档案**", unsafe_allow_html=True)
     if st.button("└─ 衣带诏事件", key="nav_3k_yidai"):
         st.session_state.current_view_story = "三国·衣带诏事件"
-        st.session_state.chat_history = [] 
         st.rerun()
     if st.button("└─ 白门楼斩吕布", key="nav_3k_baimen"):
         st.session_state.current_view_story = "三国·白门楼斩吕布"
-        st.session_state.chat_history = [] 
         st.rerun()
     # 在 app.py 侧边栏的三国目录下加上这两个：
     if st.button("└─ 赤壁之战", key="nav_3k_chibi"):
         st.session_state.current_view_story = "三国·赤壁之战"
-        st.session_state.chat_history = [] 
         st.rerun()
     if st.button("└─ 荆州惊变", key="nav_3k_jingzhou"):
         st.session_state.current_view_story = "三国·荆州惊变（关羽之死）"
-        st.session_state.chat_history = [] 
+        st.rerun()
+        
+        
+    # --- 唐朝目录 ---
+    st.markdown("<br>📄 **唐朝档案**", unsafe_allow_html=True)
+    if st.button("└─ 玄武门之变", key="nav_tang_xuanwu"):
+        st.session_state.current_view_story = "唐朝·玄武门之变"
+        st.rerun()
+        
+    # --- 宋朝目录 ---
+    st.markdown("<br>📄 **宋朝档案**", unsafe_allow_html=True)
+    if st.button("└─ 岳飞之死", key="nav_song_yuefei"):
+        st.session_state.current_view_story = "宋朝·岳飞之死"
         st.rerun()
 
 # ==========================================
@@ -159,6 +196,7 @@ with col_chat:
             st.session_state.temp_at_target = "" 
 
         st.session_state.chat_history.append({"role": "user", "content": final_query, "target": target})
+        save_all_history(st.session_state.all_chats) # 👈 新增：你说完话，立刻存盘！
         st.rerun()
 
 # ==========================================
@@ -212,6 +250,7 @@ if len(st.session_state.chat_history) > 0 and st.session_state.chat_history[-1][
                     
                     st.markdown(reply_text)
                     st.session_state.chat_history.append({"role": "assistant", "content": reply_text, "target": "assistant"})
+                    save_all_history(st.session_state.all_chats) # 👈 新增：AI说完话，立刻存盘！
                     
                 except Exception as e:
                     st.error(f"通讯异常：{e}")
