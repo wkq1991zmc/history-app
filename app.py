@@ -12,12 +12,12 @@ st.set_page_config(page_title="跨时空听证会 3.0", page_icon="⚖️", layo
 # ==========================================
 # 🔑 你的火山引擎（豆包）配置
 # ==========================================
-MY_API_KEY = st.secrets["DOUBAO_API_KEY"]
-DOUBAO_ENDPOINT_ID = "doubao-1-5-pro-32k-250115" 
+MY_API_KEY = st.secrets["ROUTERLINK_API_KEY"]
+TARGET_MODEL = "world3-router-north-america/google/gemini-3.1-pro-preview"
 
 client = OpenAI(
     api_key=MY_API_KEY, 
-    base_url="https://ark.cn-beijing.volces.com/api/v3"
+    base_url="https://router-link.world3.ai/api/v1"
 )
 
 # ==========================================
@@ -203,8 +203,8 @@ if len(st.session_state.chat_history) > 0 and st.session_state.chat_history[-1][
                 
                 try:
                     response = client.chat.completions.create(
-                        model=DOUBAO_ENDPOINT_ID,
-                        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": "请回复。"}]
+                        model=TARGET_MODEL,
+                        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": "final_query"}]
                     )
                     
                     reply_text = response.choices[0].message.content
