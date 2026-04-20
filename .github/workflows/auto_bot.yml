@@ -1,0 +1,38 @@
+name: ⏳ 时空挂机引擎自动运行
+
+on:
+  # 触发条件 1：定时任务（此处设置为每隔 4 小时自动跑一次）
+  schedule:
+    - cron: '0 */4 * * *'
+  # 触发条件 2：允许你在 GitHub 网页上直接点个按钮手动触发
+  workflow_dispatch: 
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 配置 Python 环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 安装依赖包
+        run: pip install openai
+
+      - name: 运行挂机引擎 (bot.py)
+        env:
+          # 从 GitHub 的密码箱里读取你的 API 密钥传给代码
+          ROUTERLINK_API_KEY: ${{ secrets.ROUTERLINK_API_KEY }}
+        run: python bot.py
+
+      - name: 自动保存并推送到 GitHub
+        run: |
+          git config --global user.name "Spacetime-Bot"
+          git config --global user.email "bot@spacetime.com"
+          git add chat_records.json
+          # 如果文件有变化就提交，没变化就不管
+          git commit -m "🤖 自动挂机：古人又在群里吵架了" || exit 0
+          git push

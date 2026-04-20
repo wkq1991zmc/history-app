@@ -64,31 +64,87 @@ st.session_state.chat_history = st.session_state.all_chats[st.session_state.curr
 # ==========================================
 # 🎨 自定义 UI 样式 
 # ==========================================
+# ==========================================
+# 🎨 自定义 UI 样式 (国风卷宗主题大升级！)
+# ==========================================
 st.markdown("""
 <style>
-    [data-testid="stSidebar"] button { text-align: left !important; width: 100% !important; justify-content: flex-start !important; }
+    /* 1. 全局背景与字体 (纸张纹理与古典色) */
+    /* 我们使用一个在线的羊皮纸/古典纹理作为背景 */
+    .stApp {
+        background-image: url('https://www.transparenttextures.com/patterns/cream-paper.png');
+        background-color: #fdf6e3; /* 米白底色 */
+        color: #5d4037; /* 深棕色文字 */
+        font-family: 'Noto Serif SC', '华文宋体', serif;
+    }
+
+    /* 2. 侧边栏样式改造 (朱红边框) */
+    [data-testid="stSidebar"] {
+        background-color: rgba(238, 232, 213, 0.8) !important;
+        border-right: 3px solid #c62828 !important; /* 深红边框 */
+    }
     
+    /* 侧边栏按钮样式 */
+    [data-testid="stSidebar"] button { 
+        text-align: left !important; 
+        width: 100% !important; 
+        justify-content: flex-start !important;
+        color: #5d4037 !important;
+        border-radius: 4px !important;
+        transition: all 0.3s;
+        border-bottom: 1px dashed #d7ccc8 !important;
+    }
+    [data-testid="stSidebar"] button:hover {
+        background-color: rgba(198, 40, 40, 0.1) !important;
+        color: #c62828 !important; /* 悬浮变红 */
+        border-left: 4px solid #c62828 !important;
+    }
+
+    /* 3. 中间卷宗内容区卡片 */
     .story-card-wrapper {
-        background-color: var(--secondary-background-color); 
+        background-color: rgba(255, 255, 255, 0.6); 
         padding: 40px;
-        border-radius: 12px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); 
-        border: 1px solid var(--border-color);
-        line-height: 1.8;
+        border-radius: 4px;
+        border: 2px solid #c62828; /* 红框 */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); 
+        line-height: 2.0;
         margin-bottom: 30px;
+        font-size: 1.1rem;
     }
     
+    /* 强制所有大标题变深红色 */
+    h1, h2, h3 {
+        color: #c62828 !important;
+        font-family: 'Noto Serif SC', '华文宋体', serif !important;
+    }
+
+    /* 4. 元数据信息框 (案发地点等) */
     .metadata-box {
-        background-color: rgba(0, 0, 0, 0.03);
+        background-color: rgba(198, 40, 40, 0.05);
         padding: 15px 20px;
-        border-radius: 8px;
+        border-radius: 4px;
         margin-bottom: 25px;
-        font-size: 14px;
-        color: #666;
-        border-left: 4px solid #888;
+        font-size: 15px;
+        color: #c62828;
+        border-left: 4px solid #c62828; /* 深红左边距 */
+    }
+
+    /* 5. 聊天区气泡改造 (匹配宣纸质感) */
+    [data-testid="stChatMessage"] {
+        background-color: rgba(255, 255, 255, 0.6);
+        border: 1px solid #d7ccc8;
+        border-radius: 4px;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-left: 3px solid #ff9800; /* 聊天气泡左侧金色边条 */
     }
     
-    .at-btn-container button { border-radius: 20px !important; padding: 2px 15px !important; width: 100% !important; }
+    /* 快速@当事人按钮修饰 */
+    .at-btn-container button { 
+        border-radius: 4px !important; 
+        border: 1px solid #c62828 !important;
+        color: #c62828 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -133,6 +189,20 @@ with st.sidebar:
     st.markdown("<br>📄 **宋朝档案**", unsafe_allow_html=True)
     if st.button("└─ 岳飞之死", key="nav_song_yuefei"):
         st.session_state.current_view_story = "宋朝·岳飞之死"
+        st.rerun()
+
+    # --- 汉朝目录 ---
+    st.markdown("<br>📄 **汉朝档案**", unsafe_allow_html=True)
+    if st.button("└─ 长乐宫血案", key="nav_han_changlegong"):
+        st.session_state.current_view_story = "汉朝·长乐宫血案"
+        st.rerun()
+        
+    # (中间是你原本的三国、晋朝、唐朝、宋朝代码)
+    
+    # --- 明朝目录 ---
+    st.markdown("<br>📄 **明朝档案**", unsafe_allow_html=True)
+    if st.button("└─ 靖难之役", key="nav_ming_jingnan"):
+        st.session_state.current_view_story = "明朝·靖难之役"
         st.rerun()
 
 # ==========================================
@@ -202,55 +272,117 @@ with col_chat:
 # ==========================================
 # 🧠 AI 处理逻辑
 # ==========================================
+# ==========================================
+# 🧠 AI 处理逻辑 (多智能体群聊博弈引擎)
+# ==========================================
 if len(st.session_state.chat_history) > 0 and st.session_state.chat_history[-1]["role"] == "user":
     
     with chat_container:
-        with st.chat_message("assistant"):
-            last_msg = st.session_state.chat_history[-1]
-            target_char = last_msg["target"]
+        last_msg = st.session_state.chat_history[-1]
+        target_char = last_msg["target"]
+        final_query = last_msg["content"]
+        
+        # ----------------------------------------------------
+        # ⚔️ 模式 A：群聊互怼模式 (当法官没有特定@某人时触发)
+        # ----------------------------------------------------
+        if target_char == "所有参与人":
+            # 自动选出档案里的前两个核心人物进行 2 轮对线
+            # 让卷宗里的所有当事人（无论3个还是4个）全部按顺序轮流发言！
+            debate_speakers = CURRENT_DATA['characters']
             
-            with st.spinner("正在接通时空信号..."):
-                history_text = ""
-                for m in st.session_state.chat_history[-10:]:
-                    role_name = "我(质问者)" if m["role"] == "user" else "AI"
-                    history_text += f"{role_name}: {m['content']}\n"
+            for speaker in debate_speakers:
+                with st.chat_message("assistant"):
+                    with st.spinner(f"🔥 等待 {speaker} 拍案而起..."):
+                        
+                        # 1. 组装最新聊天记录（关键！让第二个人能看到第一个人刚说的话）
+                        history_text = ""
+                        for m in st.session_state.chat_history[-10:]:
+                            role_name = "【法官(我)】" if m["role"] == "user" else f"【{m.get('target', 'AI')}】"
+                            history_text += f"{role_name}: {m['content']}\n"
 
-                system_char_prompt = "请综合当前对话上下文进行回答。"
-                if target_char != "所有参与人":
-                    system_char_prompt = f"你现在是【{target_char}】。请极度还原你当时的性格和处境（如果是汉献帝，表现绝望与屈辱；如果是曹操，表现傲慢与多疑；如果是刘备，表现隐忍与圆滑；如果是吕布，表现贪生怕死）。"
-                
-                system_prompt = f"""
-                你是一个极其严谨的历史交互AI。当前事件：{st.session_state.current_view_story}。
-                
-                {system_char_prompt}
-                
-                【史实最高红线】：
-                你必须严格依据《三国志》、《资治通鉴》、《史记》等【正史】记载回答问题，绝不能使用《三国演义》等古典小说、影视剧或民间野史中的虚构设定！
-                例如：若你扮演吕布，必须明确你的妻子不是貂蝉（貂蝉为虚构），你只与董卓的无名侍女私通；若你扮演刘备，不能提及桃园三结义等小说情节。
-                如果用户问到了正史中没有记载的细节（如具体姓名、虚构事件），你必须以角色的口吻，直接指出该说法荒谬，或坦言不知。
+                        # 2. 定制多智能体互怼 Prompt
+                        system_prompt = f"""
+                        你是一个极其严谨的历史交互AI。当前事件：{st.session_state.current_view_story}。
+                        你现在的身份是【{speaker}】。你正在时空法庭上，面对法官（用户）的质问，或者你的死对头刚刚当面指责了你。请极度还原你当时的性格和处境
+                        
+                        {CURRENT_DATA.get('ai_notes', '')}
+                        
+                        以下是你们之前的对话记录：
+                        {history_text}
+                        
+                        请你以【{speaker}】的身份，针对最新的发言立刻进行辩护、甩锅或反击！若你认为自己确实理亏了,则坦言自己的错误并请求法官的宽恕；
+                        如果你觉得对方在污蔑你了，则愤怒反驳，甚至可以顺带攻击对方的弱点（比如刘备可以攻击曹操的多疑，曹操可以攻击刘备的隐忍）。
+                        你必须严格依据《三国志》、《资治通鉴》、《史记》等【正史】记载回答问题，绝不能使用《三国演义》等古典小说、影视剧或民间野史中的虚构设定！
+                        必须严格按照以下格式回答：
+                        
+                        **【角色原声】**：用半文半白的话回答，带入符合历史上的人物性格。
+                        
+                        **【白话解读】**：用现代大白话解释你上一句的意思。
+                        """
+                        
+                        try:
+                            # 发起 API 请求
+                            response = client.chat.completions.create(
+                                model=TARGET_MODEL,
+                                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": "轮到你发言了，请立刻反击！"}]
+                            )
+                            
+                            reply_text = response.choices[0].message.content
+                            reply_text = reply_text.replace("【角色原声】", "**【角色原声】**").replace("【白话解读】", "\n\n**【白话解读】**")
+                            
+                            # 渲染出是谁说的话
+                            final_display_text = f"### 🎭 {speaker}\n" + reply_text
+                            st.markdown(final_display_text)
+                            
+                            # 把当前角色的反击存入历史，以便下一个角色读取！
+                            st.session_state.chat_history.append({"role": "assistant", "content": reply_text, "target": speaker})
+                            save_all_history(st.session_state.all_chats)
+                            
+                        except Exception as e:
+                            st.error(f"{speaker} 的时空信号中断：{e}")
+            
+            # 两人对线完毕，刷新UI
+            st.rerun()
 
-                以下是你们之前的对话记录：
-                {history_text}
-                
-                请针对我最后说的话做出回应。必须严格按照以下格式回答，两段之间空一行：
-                
-                **【角色原声】**：用半文半白的话回答，带入强烈的角色当时情绪。
-                
-                **【白话解读】**：用现代大白话解释你上一句的意思。
-                """
-                
-                try:
-                    response = client.chat.completions.create(
-                        model=TARGET_MODEL,
-                        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": "final_query"}]
-                    )
+        # ----------------------------------------------------
+        # 🕵️‍♂️ 模式 B：单人审问模式 (保持原来的逻辑不变)
+        # ----------------------------------------------------
+        else:
+            with st.chat_message("assistant"):
+                with st.spinner(f"正在接通 {target_char} 的时空信号..."):
+                    history_text = ""
+                    for m in st.session_state.chat_history[-10:]:
+                        role_name = "我(法官)" if m["role"] == "user" else f"{m.get('target', 'AI')}"
+                        history_text += f"{role_name}: {m['content']}\n"
+
+                    system_prompt = f"""
+                    你是一个极其严谨的历史交互AI。当前事件：{st.session_state.current_view_story}。
+                    你现在是【{target_char}】。请极度还原你当时的性格和处境。
                     
-                    reply_text = response.choices[0].message.content
-                    reply_text = reply_text.replace("【角色原声】", "**【角色原声】**").replace("【白话解读】", "\n\n**【白话解读】**")
+                    {CURRENT_DATA.get('ai_notes', '')}
+
+                    以下是之前的对话记录：
+                    {history_text}
                     
-                    st.markdown(reply_text)
-                    st.session_state.chat_history.append({"role": "assistant", "content": reply_text, "target": "assistant"})
-                    save_all_history(st.session_state.all_chats) # 👈 新增：AI说完话，立刻存盘！
+                    必须严格按照以下格式回答：
+                    **【角色原声】**：用半文半白的话回答，带入强烈的角色当时情绪。
                     
-                except Exception as e:
-                    st.error(f"通讯异常：{e}")
+                    **【白话解读】**：用现代大白话解释你上一句的意思。
+                    """
+                    
+                    try:
+                        response = client.chat.completions.create(
+                            model=TARGET_MODEL,
+                            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": final_query}]
+                        )
+                        
+                        reply_text = response.choices[0].message.content
+                        reply_text = reply_text.replace("【角色原声】", "**【角色原声】**").replace("【白话解读】", "\n\n**【白话解读】**")
+                        
+                        final_display_text = f"### 🎭 {target_char}\n" + reply_text
+                        st.markdown(final_display_text)
+                        
+                        st.session_state.chat_history.append({"role": "assistant", "content": reply_text, "target": target_char})
+                        save_all_history(st.session_state.all_chats)
+                    except Exception as e:
+                        st.error(f"通讯异常：{e}")
