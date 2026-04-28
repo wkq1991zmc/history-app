@@ -36,7 +36,7 @@ TARGET_MODEL = "world3-router-north-america/google/gemini-3.1-pro-preview"
 
 client = OpenAI(
     api_key=MY_API_KEY, 
-    base_url="https://router-link.world3.ai/api/v1"
+    base_url="https://router-link-beta.world3.ai/api/v1"
 )
 
 # ==========================================
@@ -300,24 +300,29 @@ if len(st.session_state.chat_history) > 0 and st.session_state.chat_history[-1][
                             role_name = "【法官(我)】" if m["role"] == "user" else f"【{m.get('target', 'AI')}】"
                             history_text += f"{role_name}: {m['content']}\n"
 
-                        # 2. 定制多智能体互怼 Prompt
+                        # 2. 引入动态语气基调
+                        dynamic_prompt = CURRENT_DATA.get('dynamic_prompt', '【群聊基调：权谋博弈】请用极具城府的帝王/名臣口吻反驳。做到绵里藏针、引经据典、不怒自威。绝不可使用粗鄙之语，要用最文明的词汇展现残酷的政治逻辑。')
+
+                        # 定制多智能体高维博弈 Prompt
                         system_prompt = f"""
                         你是一个极其严谨的历史交互AI。当前事件：{st.session_state.current_view_story}。
-                        你现在的身份是【{speaker}】。你正在时空法庭上，面对法官（用户）的质问，或者你的死对头刚刚当面指责了你。请极度还原你当时的性格和处境
+                        你现在的身份是【{speaker}】。你正在时空法庭上，面对法官（用户）的质问，或者你的政敌刚刚当面指责了你。请极度还原你当时的性格和处境。
                         
                         {CURRENT_DATA.get('ai_notes', '')}
+                        
+                        {dynamic_prompt}
                         
                         以下是你们之前的对话记录：
                         {history_text}
                         
-                        请你以【{speaker}】的身份，针对最新的发言立刻进行辩护、甩锅或反击！若你认为自己确实理亏了,则坦言自己的错误并请求法官的宽恕；
-                        如果你觉得对方在污蔑你了，则愤怒反驳，甚至可以顺带攻击对方的弱点（比如刘备可以攻击曹操的多疑，曹操可以攻击刘备的隐忍）。
-                        你必须严格依据《三国志》、《资治通鉴》、《史记》等【正史】记载回答问题，绝不能使用《三国演义》等古典小说、影视剧或民间野史中的虚构设定！
+                        请你以【{speaker}】的身份，针对最新的发言立刻进行高维度的辩护或反驳！
+                        如果你认为自己理亏，则展现出被时势裹挟的无奈；如果你觉得对方在污蔑，则从战略和大局观上碾压对方。
+                        你必须严格依据正史记载回答，绝不能使用小说野史。
                         必须严格按照以下格式回答：
                         
-                        **【角色原声】**：用半文半白的话回答，带入符合历史上的人物性格。
+                        **【角色原声】**：用半文半白的话回答，带入符合历史上的人物性格与深沉心机。
                         
-                        **【白话解读】**：用现代大白话解释你上一句的意思。
+                        **【白话解读】**：用现代大白话解释你上一句的核心政治逻辑。
                         """
                         
                         try:
@@ -340,6 +345,7 @@ if len(st.session_state.chat_history) > 0 and st.session_state.chat_history[-1][
                             
                         except Exception as e:
                             st.error(f"{speaker} 的时空信号中断：{e}")
+                            st.stop()
             
             # 两人对线完毕，刷新UI
             st.rerun()
@@ -355,20 +361,30 @@ if len(st.session_state.chat_history) > 0 and st.session_state.chat_history[-1][
                         role_name = "我(法官)" if m["role"] == "user" else f"{m.get('target', 'AI')}"
                         history_text += f"{role_name}: {m['content']}\n"
 
-                    system_prompt = f"""
-                    你是一个极其严谨的历史交互AI。当前事件：{st.session_state.current_view_story}。
-                    你现在是【{target_char}】。请极度还原你当时的性格和处境。
-                    
-                    {CURRENT_DATA.get('ai_notes', '')}
+                    # 2. 引入动态语气基调
+                        dynamic_prompt = CURRENT_DATA.get('dynamic_prompt', '【群聊基调：权谋博弈】请用极具城府的帝王/名臣口吻反驳。做到绵里藏针、引经据典、不怒自威。绝不可使用粗鄙之语，要用最文明的词汇展现残酷的政治逻辑。')
 
-                    以下是之前的对话记录：
-                    {history_text}
-                    
-                    必须严格按照以下格式回答：
-                    **【角色原声】**：用半文半白的话回答，带入强烈的角色当时情绪。
-                    
-                    **【白话解读】**：用现代大白话解释你上一句的意思。
-                    """
+                        # 定制多智能体高维博弈 Prompt
+                        system_prompt = f"""
+                        你是一个极其严谨的历史交互AI。当前事件：{st.session_state.current_view_story}。
+                        你现在的身份是【{speaker}】。你正在时空法庭上，面对法官（用户）的质问，或者你的政敌刚刚当面指责了你。请极度还原你当时的性格和处境。
+                        
+                        {CURRENT_DATA.get('ai_notes', '')}
+                        
+                        {dynamic_prompt}
+                        
+                        以下是你们之前的对话记录：
+                        {history_text}
+                        
+                        请你以【{speaker}】的身份，针对最新的发言立刻进行高维度的辩护或反驳！
+                        如果你认为自己理亏，则展现出被时势裹挟的无奈；如果你觉得对方在污蔑，则从战略和大局观上碾压对方。
+                        你必须严格依据正史记载回答，绝不能使用小说野史。
+                        必须严格按照以下格式回答：
+                        
+                        **【角色原声】**：用半文半白的话回答，带入符合历史上的人物性格与深沉心机。
+                        
+                        **【白话解读】**：用现代大白话解释你上一句的核心政治逻辑。
+                        """
                     
                     try:
                         response = client.chat.completions.create(

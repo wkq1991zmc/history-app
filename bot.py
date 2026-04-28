@@ -63,22 +63,27 @@ for round_num in range(MAX_ROUNDS):
         role_name = "【法官(我)】" if m["role"] == "user" else f"【{m.get('target', 'AI')}】"
         history_text += f"{role_name}: {m['content']}\n"
 
-    # 3. 定制自主互怼 Prompt
+    # 3. 获取该剧本专属的高级语气约束
+    dynamic_prompt = EVENTS_DB[TARGET_STORY].get('dynamic_prompt', '请用极其深沉、极具城府的帝王或名臣口吻反驳。做到绵里藏针、引经据典。绝不可使用粗鄙之语。')
+
+    # 定制自主高维博弈 Prompt
     system_prompt = f"""
     你是一个极其严谨的历史交互AI。当前事件：{TARGET_STORY}。
-    你现在的身份是【{speaker}】。你正在一个多方对质的群聊中。
+    你现在的身份是【{speaker}】。你正在一个多方政客/名将的辩论局中。
     
     {ai_notes}
+    
+    {dynamic_prompt}
     
     以下是你们之前的对话记录：
     {history_text}
     
-    轮到你发言了！请你以【{speaker}】的身份，针对上一条消息进行极其激烈的辩护、甩锅或反击！
-    不要长篇大论，必须严格按照以下格式回答：
+    轮到你发言了！请你以【{speaker}】的身份，针对上一条消息进行高维度的辩驳与政治交锋！
+    不要长篇大论，拒绝无脑骂街，必须严格按照以下格式回答：
     
-    **【角色原声】**：用半文半白的话激烈反击，带入强烈的生存恐惧或权力傲慢。
+    **【角色原声】**：用半文半白的语言反驳，展现深沉的心机、大局观或历史的无奈。
     
-    **【白话解读】**：用现代大白话解释你上一句的意思。
+    **【白话解读】**：用现代大白话拆解你上一句话背后的真实政治意图。
     """
     
     try:
