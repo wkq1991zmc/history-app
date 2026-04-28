@@ -367,7 +367,7 @@ if len(st.session_state.chat_history) > 0 and st.session_state.chat_history[-1][
                         # 定制多智能体高维博弈 Prompt
                         system_prompt = f"""
                         你是一个极其严谨的历史交互AI。当前事件：{st.session_state.current_view_story}。
-                        你现在的身份是【{speaker}】。你正在时空法庭上，面对法官（用户）的质问，或者你的政敌刚刚当面指责了你。请极度还原你当时的性格和处境。
+                        你现在的身份是【{target_char}】。你正在时空法庭上，面对法官（用户）的质问，或者你的政敌刚刚当面指责了你。请极度还原你当时的性格和处境。
                         
                         {CURRENT_DATA.get('ai_notes', '')}
                         
@@ -376,7 +376,7 @@ if len(st.session_state.chat_history) > 0 and st.session_state.chat_history[-1][
                         以下是你们之前的对话记录：
                         {history_text}
                         
-                        请你以【{speaker}】的身份，针对最新的发言立刻进行高维度的辩护或反驳！
+                        请你以【{target_char}】的身份，针对最新的发言立刻进行高维度的辩护或反驳！
                         如果你认为自己理亏，则展现出被时势裹挟的无奈；如果你觉得对方在污蔑，则从战略和大局观上碾压对方。
                         你必须严格依据正史记载回答，绝不能使用小说野史。
                         必须严格按照以下格式回答：
