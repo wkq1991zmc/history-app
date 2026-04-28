@@ -2,8 +2,8 @@ name: ⏳ 时空挂机引擎自动运行
 
 on:
   # 触发条件 1：定时任务（此处设置为每隔 4 小时自动跑一次）
-  schedule:
-    - cron: '0 */4 * * *'
+  #schedule:
+   # - cron: '0 */4 * * *'
   # 触发条件 2：允许你在 GitHub 网页上直接点个按钮手动触发
   workflow_dispatch: 
 
