@@ -228,8 +228,23 @@ with col_history:
 
 with col_chat:
     st.markdown("<div style='color: #888; font-size: 14px; letter-spacing: 2px; margin-bottom: 10px;'>I N T E R A C T I O N</div>", unsafe_allow_html=True)
-    st.subheader("实时对话区")
-    st.divider() 
+    
+    # 🆕 新增：用两列布局把标题和清空按钮放在同一行
+    header_col1, header_col2 = st.columns([3, 1])
+    with header_col1:
+        st.subheader("实时对话区")
+    with header_col2:
+        # 添加清空按钮，点击后执行清理逻辑
+        if st.button("🗑️ 重新开庭", use_container_width=True, help="清空当前事件的所有聊天记录"):
+            # 1. 把当前剧本的聊天记录列表清空
+            st.session_state.all_chats[st.session_state.current_view_story] = []
+            st.session_state.chat_history = st.session_state.all_chats[st.session_state.current_view_story]
+            # 2. 立刻保存进硬盘（覆盖之前的记录）
+            save_all_history(st.session_state.all_chats)
+            # 3. 刷新页面，让清空立刻生效
+            st.rerun()
+            
+    st.divider()
 
     chat_container = st.container(height=500)
     with chat_container:
