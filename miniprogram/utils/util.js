@@ -1,5 +1,5 @@
 // 本地调试模式：与 app.js 保持一致
-const API_BASE_URL = 'http://192.168.2.47:8000';
+const API_BASE_URL = 'https://history-app-a766.onrender.com';
 
 function request(url, method = 'GET', data = {}) {
   return new Promise((resolve, reject) => {
