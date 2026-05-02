@@ -4,7 +4,7 @@ import os
 from openai import OpenAI
 
 # 引入你的剧本库
-from data import EVENTS_DB
+from load_data import EVENTS_DB
 
 # ==========================================
 # ⚙️ 核心配置区 (防破产保险)

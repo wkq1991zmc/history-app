@@ -1,0 +1,134 @@
+<view class="container">
+  <!-- 背景层 -->
+  <view class="background-layer">
+    <image class="background-image" src="https://s3.bmp.ovh/2026/05/02/gXNeH2RC.png" mode="aspectFill"></image>
+    <view class="background-overlay"></view>
+  </view>
+
+  <!-- 内容层 -->
+  <view class="content-layer">
+    <!-- 返回按钮 -->
+    <view class="back-btn" bindtap="onBack">
+      <text class="back-icon">‹</text>
+    </view>
+
+    <!-- 顶部标题区 -->
+    <view class="header-section">
+      <view class="header-content">
+        <text class="page-label">历史大事件</text>
+        <text class="main-title">{{eventData.title}}</text>
+        <text class="sub-title">{{eventData.time}} · {{eventData.subtitle}}</text>
+      </view>
+      <view class="header-fade"></view>
+    </view>
+
+    <!-- 事件故事 -->
+    <view class="section-card">
+      <view class="section-title-bar">
+        <text class="section-title">事件故事</text>
+      </view>
+      <rich-text class="story-content" nodes="{{eventData.story}}"></rich-text>
+    </view>
+
+    <!-- 对话区域（合并人物选择和对话） -->
+    <view class="section-card chat-section">
+      <view class="section-title-bar">
+        <text class="section-title">时空对话</text>
+        <text class="clear-btn" bindtap="onClearChat" wx:if="{{messages.length > 0}}">清空记录</text>
+      </view>
+      
+      <!-- 使用提示 -->
+      <view class="chat-tips" wx:if="{{messages.length === 0}}">
+        <view class="tip-item">
+          <text class="tip-icon">👆</text>
+          <text class="tip-text">点击人物头像可单独对话</text>
+        </view>
+        <view class="tip-item">
+          <text class="tip-icon">💬</text>
+          <text class="tip-text">直接输入问题开启群聊模式</text>
+        </view>
+      </view>
+      
+      <!-- 人物选择栏 -->
+      <view class="character-select-bar">
+        <view 
+          class="char-tag {{selectedCharacter === '' ? 'char-tag-active' : ''}}"
+          bindtap="onSelectCharacter"
+          data-char=""
+        >
+          <text>群聊</text>
+        </view>
+        <view 
+          class="char-tag {{selectedCharacter === char ? 'char-tag-active' : ''}}"
+          wx:for="{{eventData.characters}}" 
+          wx:for-item="char"
+          wx:key="index"
+          bindtap="onSelectCharacter"
+          data-char="{{char}}"
+        >
+          <text>{{char}}</text>
+        </view>
+      </view>
+      
+      <scroll-view class="chat-messages" scroll-y scroll-into-view="{{scrollToViewId}}" scroll-with-animation>
+        <view 
+          wx:for="{{messages}}" 
+          wx:key="id" 
+          id="msg-{{item.id}}"
+          class="chat-item {{item.role === 'user' ? 'chat-user' : 'chat-assistant'}}"
+        >
+          <view class="chat-avatar">
+            <text class="chat-avatar-text">{{item.role === 'user' ? '⚖️' : ''}}</text>
+          </view>
+          <view class="chat-bubble">
+            <text class="chat-sender" wx:if="{{item.role === 'assistant'}}">{{item.target}}</text>
+            
+            <!-- 角色原声 -->
+            <view class="role-original" wx:if="{{item.original_voice}}">
+              <rich-text class="chat-text" nodes="{{item.original_voice}}"></rich-text>
+            </view>
+            
+            <!-- 白话解读 -->
+            <view class="modern-explanation" wx:if="{{item.modern_explain}}">
+              <rich-text class="chat-text" nodes="{{item.modern_explain}}"></rich-text>
+            </view>
+            
+            <!-- 兼容旧数据 -->
+            <rich-text class="chat-text" wx:if="{{!item.original_voice && !item.modern_explain}}" nodes="{{item.content}}"></rich-text>
+          </view>
+        </view>
+
+        <view wx:if="{{loading}}" class="chat-item chat-assistant">
+          <view class="chat-avatar">
+            <text class="chat-avatar-text">🎭</text>
+          </view>
+          <view class="chat-bubble loading-bubble">
+            <text>正在思考中...</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 底部输入区 -->
+    <view class="input-section">
+      <view class="selected-target" wx:if="{{selectedCharacter}}">
+        <text class="target-label">正在质问：</text>
+        <text class="target-name">@{{selectedCharacter}}</text>
+        <text class="target-clear" bindtap="onClearTarget">✕</text>
+      </view>
+      <view class="input-wrapper">
+        <input 
+          class="chat-input" 
+          value="{{inputValue}}"
+          bindinput="onInputChange"
+          bindconfirm="onSendMessage"
+          placeholder="输入你想问的问题..."
+          confirm-type="send"
+        />
+        <view class="send-btn" bindtap="onSendMessage">
+          <text class="send-icon">➤</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

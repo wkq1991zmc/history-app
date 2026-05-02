@@ -1,0 +1,62 @@
+<view class="container">
+  <!-- 背景层 -->
+  <view class="background-layer">
+    <image class="background-image" src="https://s3.bmp.ovh/2026/05/02/1y3Rqfow.png" mode="aspectFill"></image>
+    <view class="background-overlay"></view>
+  </view>
+
+  <!-- 内容层 -->
+  <view class="content-layer">
+    <!-- 朝代长河 -->
+    <view class="dynasty-section">
+      <view class="section-header">
+        <text class="section-title">朝代长河</text>
+        <text class="section-more">全览中国历史 ››</text>
+      </view>
+      <scroll-view class="dynasty-scroll" scroll-x="true">
+        <view class="dynasty-list">
+          <view 
+            class="dynasty-card {{selectedDynasty === item.id ? 'active' : ''}}"
+            wx:for="{{dynasties}}" 
+            wx:key="id"
+            bindtap="onSelectDynasty"
+            data-dynasty="{{item}}"
+          >
+            <view class="dynasty-icon">{{item.icon}}</view>
+            <text class="dynasty-name">{{item.name}}</text>
+            <text class="dynasty-year">{{item.year}}</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 大事件时间轴 -->
+    <view class="events-section">
+      <view class="section-header">
+        <text class="section-title">大事件时间轴</text>
+      </view>
+      <view class="events-list">
+        <view 
+          class="event-card" 
+          wx:for="{{filteredEvents}}" 
+          wx:key="id"
+          bindtap="onEventTap"
+          data-event="{{item}}"
+        >
+          <view class="event-image">
+            <image wx:if="{{item.isImage}}" class="event-image-real" src="{{item.image}}" mode="aspectFill"></image>
+            <text wx:else class="event-image-text">{{item.image}}</text>
+          </view>
+          <view class="event-info">
+            <view class="event-title-row">
+              <text class="event-title">{{item.title}}</text>
+              <text class="event-dynasty-tag">{{item.dynasty}}</text>
+            </view>
+            <text class="event-desc">{{item.desc}}</text>
+            <text class="event-year">{{item.year}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,158 @@
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #fdf6e3;
+}
+
+.event-header {
+  background-color: rgba(255, 255, 255, 0.6);
+  padding: 20rpx;
+  border-bottom: 2rpx solid #d7ccc8;
+}
+
+.event-name {
+  display: block;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #c62828;
+  margin-bottom: 15rpx;
+}
+
+.character-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.character-btn {
+  background-color: transparent;
+  color: #c62828;
+  border: 2rpx solid #c62828;
+  border-radius: 8rpx;
+  padding: 10rpx 20rpx;
+  font-size: 24rpx;
+}
+
+.character-btn.active {
+  background-color: #c62828;
+  color: #fff;
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 20rpx;
+  overflow-y: auto;
+}
+
+.empty-chat {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 100rpx 0;
+  color: #888;
+  font-size: 28rpx;
+}
+
+.message {
+  margin-bottom: 20rpx;
+}
+
+.message-user {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.message-assistant {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.message-bubble {
+  max-width: 80%;
+  padding: 20rpx;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+.message-user .message-bubble {
+  background-color: #c62828;
+  color: #fff;
+}
+
+.message-assistant .message-bubble {
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 2rpx solid #d7ccc8;
+  border-left: 6rpx solid #ff9800;
+  color: #5d4037;
+}
+
+.message-sender {
+  margin-bottom: 10rpx;
+}
+
+.sender-name {
+  font-size: 24rpx;
+  color: #c62828;
+  font-weight: bold;
+}
+
+.message-content {
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+.message-content b {
+  color: #c62828;
+}
+
+.loading-bubble {
+  color: #888;
+}
+
+.chat-input-area {
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 20rpx;
+  border-top: 2rpx solid #d7ccc8;
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.chat-input {
+  flex: 1;
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 2rpx solid #d7ccc8;
+  border-radius: 8rpx;
+  padding: 20rpx;
+  font-size: 28rpx;
+}
+
+.send-btn {
+  background-color: #c62828;
+  color: #fff;
+  border: none;
+  border-radius: 8rpx;
+  padding: 20rpx 30rpx;
+  font-size: 28rpx;
+}
+
+.send-btn[disabled] {
+  background-color: #ccc;
+}
+
+.action-buttons {
+  margin-top: 10rpx;
+  text-align: center;
+}
+
+.clear-btn {
+  background-color: transparent;
+  color: #888;
+  border: 2rpx solid #d7ccc8;
+  font-size: 24rpx;
+}

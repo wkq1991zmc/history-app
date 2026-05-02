@@ -1,0 +1,60 @@
+<view class="chat-container">
+  <view class="event-header" wx:if="{{currentEvent}}">
+    <text class="event-name">{{currentEvent.title}}</text>
+    <view class="character-buttons">
+      <view 
+        class="character-btn {{selectedCharacter === item ? 'active' : ''}}" 
+        wx:for="{{currentEvent.characters}}" 
+        wx:for-item="item"
+        wx:key="index"
+        bindtap="onSelectCharacter"
+        data-char="{{item}}"
+      >
+        @{{item}}
+      </view>
+    </view>
+  </view>
+
+  <scroll-view class="chat-messages" scroll-y scroll-into-view="{{scrollToViewId}}" scroll-with-animation>
+    <view wx:if="{{messages.length === 0}}" class="empty-chat">
+      <text>等待提问... 请选择质问对象，然后输入问题</text>
+    </view>
+
+    <view 
+      wx:for="{{messages}}" 
+      wx:key="id" 
+      id="msg-{{item.id}}"
+      class="message {{item.role === 'user' ? 'message-user' : 'message-assistant'}}"
+    >
+      <view class="message-bubble">
+        <view class="message-sender" wx:if="{{item.role === 'assistant'}}">
+          <text class="sender-name">🎭 {{item.target}}</text>
+        </view>
+        <rich-text class="message-content" nodes="{{item.content}}"></rich-text>
+      </view>
+    </view>
+
+    <view wx:if="{{loading}}" class="message message-assistant">
+      <view class="message-bubble loading-bubble">
+        <text>正在思考中...</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="chat-input-area">
+    <view class="input-wrapper">
+      <input 
+        class="chat-input" 
+        value="{{inputValue}}"
+        bindinput="onInputChange"
+        bindconfirm="onSendMessage"
+        placeholder="{{selectedCharacter ? '正在质问 @' + selectedCharacter + '，请输入...' : '输入问题...'}}"
+        confirm-type="send"
+      />
+      <button class="send-btn" bindtap="onSendMessage" disabled="{{!inputValue || loading}}">发送</button>
+    </view>
+    <view class="action-buttons">
+      <button class="clear-btn" bindtap="onClearChat" size="mini">🗑️ 重新开庭</button>
+    </view>
+  </view>
+</view>

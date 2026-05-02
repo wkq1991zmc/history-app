@@ -1,0 +1,29 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/detail/detail",
+    "pages/chat/chat"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#c62828",
+    "navigationBarTitleText": "跨时空听证会",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#fdf6e3"
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "你的位置信息将用于获取历史事件的地理位置"
+    }
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "rendererOptions": {
+    "skyline": {
+      "defaultDisplayBlock": true,
+      "disableABTest": true,
+      "sdkVersionBegin": "3.0.0",
+      "sdkVersionEnd": "15.255.255"
+    }
+  }
+}

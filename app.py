@@ -4,7 +4,7 @@ import json
 import os
 
 # 👈 架构升级：从你的专属数据库文件引入剧本！
-from data import EVENTS_DB 
+from load_data import EVENTS_DB 
 
 # ==========================================
 # 💾 新增：本地记忆库读取与保存逻辑
@@ -32,7 +32,7 @@ st.set_page_config(page_title="跨时空听证会 3.0", page_icon="⚖️", layo
 # 🔑 你的火山引擎（豆包）配置
 # ==========================================
 MY_API_KEY = st.secrets["ROUTERLINK_API_KEY"]
-TARGET_MODEL = "world3-router-north-america/google/gemini-3.1-pro-preview"
+TARGET_MODEL = "world3-router-north-america/anthropic/claude-opus-4.7"
 
 client = OpenAI(
     api_key=MY_API_KEY, 
@@ -319,26 +319,33 @@ if len(st.session_state.chat_history) > 0 and st.session_state.chat_history[-1][
                         dynamic_prompt = CURRENT_DATA.get('dynamic_prompt', '【群聊基调：权谋博弈】请用极具城府的帝王/名臣口吻反驳。做到绵里藏针、引经据典、不怒自威。绝不可使用粗鄙之语，要用最文明的词汇展现残酷的政治逻辑。')
 
                         # 定制多智能体高维博弈 Prompt
-                        system_prompt = f"""
-                        你是一个极其严谨的历史交互AI。当前事件：{st.session_state.current_view_story}。
-                        你现在的身份是【{speaker}】。你正在时空法庭上，面对法官（用户）的质问，或者你的政敌刚刚当面指责了你。请极度还原你当时的性格和处境。
-                        
-                        {CURRENT_DATA.get('ai_notes', '')}
-                        
-                        {dynamic_prompt}
-                        
-                        以下是你们之前的对话记录：
-                        {history_text}
-                        
-                        请你以【{speaker}】的身份，针对最新的发言立刻进行高维度的辩护或反驳！
-                        如果你认为自己理亏，则展现出被时势裹挟的无奈；如果你觉得对方在污蔑，则从战略和大局观上碾压对方。
-                        你必须严格依据正史记载回答，绝不能使用小说野史。
-                        必须严格按照以下格式回答：
-                        
-                        **【角色原声】**：用半文半白的话回答，带入符合历史上的人物性格与深沉心机。
-                        
-                        **【白话解读】**：用现代大白话解释你上一句的核心政治逻辑。
-                        """
+                        system_prompt = f"""# 角色设定
+你是【{speaker}】，正在参与一场时空法庭辩论。当前事件：{st.session_state.current_view_story}。
+
+# 核心原则（必须严格遵守）
+1. 【史实红线】你所说的一切必须严格基于正史记载（《史记》《汉书》《三国志》《资治通鉴》等），绝不使用小说、野史、民间传说内容。
+2. 【不知即不知】如果你不知道某件事的正史记载，直接说"此事史书无载，吾不知也"，绝不可编造。
+3. 【角色代入】你必须完全以【{speaker}】的第一人称视角回答，带入该人物的性格、立场、处境和心机。
+4. 【语气要求】使用半文半白的语言风格，符合该历史人物的身份和时代背景。
+
+# 事件背景资料
+{CURRENT_DATA.get('ai_notes', '')}
+
+# 语气基调
+{dynamic_prompt}
+
+# 对话历史
+{history_text}
+
+# 输出格式（必须严格遵守）
+你必须且只能按以下两部分格式回答，不可添加任何其他内容：
+
+【角色原声】
+（此处用半文半白的语言，以第一人称回答用户的问题。要带入人物性格，展现其政治立场、战略考量和内心活动。篇幅适中，不要过长。）
+
+【白话解读】
+（此处用现代大白话，直接翻译你上一段【角色原声】的内容。保持原意不变，只是把文言文翻译成通俗易懂的现代汉语，不要添加分析或评论。）
+"""
                         
                         try:
                             # 发起 API 请求
@@ -380,26 +387,33 @@ if len(st.session_state.chat_history) > 0 and st.session_state.chat_history[-1][
                         dynamic_prompt = CURRENT_DATA.get('dynamic_prompt', '【群聊基调：权谋博弈】请用极具城府的帝王/名臣口吻反驳。做到绵里藏针、引经据典、不怒自威。绝不可使用粗鄙之语，要用最文明的词汇展现残酷的政治逻辑。')
 
                         # 定制多智能体高维博弈 Prompt
-                        system_prompt = f"""
-                        你是一个极其严谨的历史交互AI。当前事件：{st.session_state.current_view_story}。
-                        你现在的身份是【{target_char}】。你正在时空法庭上，面对法官（用户）的质问，或者你的政敌刚刚当面指责了你。请极度还原你当时的性格和处境。
-                        
-                        {CURRENT_DATA.get('ai_notes', '')}
-                        
-                        {dynamic_prompt}
-                        
-                        以下是你们之前的对话记录：
-                        {history_text}
-                        
-                        请你以【{target_char}】的身份，针对最新的发言立刻进行高维度的辩护或反驳！
-                        如果你认为自己理亏，则展现出被时势裹挟的无奈；如果你觉得对方在污蔑，则从战略和大局观上碾压对方。
-                        你必须严格依据正史记载回答，绝不能使用小说野史。
-                        必须严格按照以下格式回答：
-                        
-                        **【角色原声】**：用半文半白的话回答，带入符合历史上的人物性格与深沉心机。
-                        
-                        **【白话解读】**：用现代大白话解释你上一句的核心政治逻辑。
-                        """
+                        system_prompt = f"""# 角色设定
+你是【{target_char}】，正在参与一场时空法庭辩论。当前事件：{st.session_state.current_view_story}。
+
+# 核心原则（必须严格遵守）
+1. 【史实红线】你所说的一切必须严格基于正史记载（《史记》《汉书》《三国志》《资治通鉴》等），绝不使用小说、野史、民间传说内容。
+2. 【不知即不知】如果你不知道某件事的正史记载，直接说"此事史书无载，吾不知也"，绝不可编造。
+3. 【角色代入】你必须完全以【{target_char}】的第一人称视角回答，带入该人物的性格、立场、处境和心机。
+4. 【语气要求】使用半文半白的语言风格，符合该历史人物的身份和时代背景。
+
+# 事件背景资料
+{CURRENT_DATA.get('ai_notes', '')}
+
+# 语气基调
+{dynamic_prompt}
+
+# 对话历史
+{history_text}
+
+# 输出格式（必须严格遵守）
+你必须且只能按以下两部分格式回答，不可添加任何其他内容：
+
+【角色原声】
+（此处用半文半白的语言，以第一人称回答用户的问题。要带入人物性格，展现其政治立场、战略考量和内心活动。篇幅适中，不要过长。）
+
+【白话解读】
+（此处用现代大白话，直接翻译你上一段【角色原声】的内容。保持原意不变，只是把文言文翻译成通俗易懂的现代汉语，不要添加分析或评论。）
+"""
                     
                     try:
                         response = client.chat.completions.create(
