@@ -220,11 +220,20 @@ async def get_events_list():
         # 从 full_name (如 "秦朝·焚书坑儒") 中提取直观原名 (如 "焚书坑儒") 取代花哨的 title
         simple_title = full_name.split('·')[-1] if '·' in full_name else full_name
         
+        # 处理王朝特殊名称映射：防止"南北朝"被切成"南北"
+        dyn_id = dynasty
+        if dynasty == "五代":
+            dyn_id = "五代十国"
+        elif dynasty == "南北朝":
+            dyn_id = "南北朝"
+        else:
+            dyn_id = dynasty.replace("朝", "")
+            
         event_item = {
             "id": full_name,
             "title": simple_title,
             "dynasty": dynasty,
-            "dynastyId": dynasty if dynasty == "五代十国" else (dynasty.replace("朝", "") if dynasty != "五代" else "五代十国"), 
+            "dynastyId": dyn_id, 
             "year": year or time_str.split('（')[0], 
             "desc": desc,
             "image": matched_image,
