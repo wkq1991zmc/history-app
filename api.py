@@ -213,9 +213,12 @@ async def get_events_list():
         if not matched_image:
              matched_image = default_dynasty_images.get(dynasty, 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png')
         
+        # 从 full_name (如 "秦朝·焚书坑儒") 中提取直观原名 (如 "焚书坑儒") 取代花哨的 title
+        simple_title = full_name.split('·')[-1] if '·' in full_name else full_name
+        
         event_item = {
             "id": full_name,
-            "title": data.get('title', full_name.split('·')[-1] if '·' in full_name else full_name),
+            "title": simple_title,
             "dynasty": dynasty,
             "dynastyId": dynasty.replace("朝", ""), 
             "year": year or time_str.split('（')[0], 
