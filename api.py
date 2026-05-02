@@ -142,3 +142,63 @@ async def get_event_details(name: str):
     # 如果没找到（比如周公制礼作乐），就返回失败
     print(f"未找到卷宗: {name}")
     return {"success": False}
+
+@app.get("/events_list")
+async def get_events_list():
+    """获取所有事件列表，供小程序首页展示"""
+    print("前端请求全量事件列表")
+    events_list = []
+    
+    # 默认图片映射，后续可以在 yaml 中配置，如果没有就根据朝代给默认
+    default_images = {
+        '秦朝': 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png',
+        '汉朝': 'https://s3.bmp.ovh/2026/05/02/25Jdw1zU.png',
+        '三国': 'https://s3.bmp.ovh/2026/05/02/mSMeN7nU.png',
+        '唐朝': 'https://s3.bmp.ovh/2026/05/02/O2VZcip9.png',
+        '宋朝': 'https://s3.bmp.ovh/2026/05/02/wV9LhXQy.png',
+        '明朝': 'https://s3.bmp.ovh/2026/05/02/T7JAULil.png'
+    }
+    
+    for full_name, data in EVENTS_DB.items():
+        # 解析朝代，例如 "秦朝·焚书坑儒" -> dynasty: "秦朝"
+        parts = full_name.split('·')
+        dynasty = parts[0] if len(parts) > 1 else '未知'
+        
+        # 提取年份简写 (例如从 "正统十四年（公元1449年）" 提取 1449年)
+        time_str = data.get('time', '')
+        year = ''
+        if '公元前' in time_str:
+            import re
+            match = re.search(r'公元前(\d+)-?(\d+)?年', time_str)
+            if match:
+                year = f"前{match.group(1)}年"
+        elif '公元' in time_str:
+            import re
+            match = re.search(r'公元(\d+)-?(\d+)?年', time_str)
+            if match:
+                year = f"{match.group(1)}年"
+                
+        # 尝试从 story 中提取纯文本摘要 (取前第一段)
+        story = data.get('story', '')
+        # 简单去除 html 标签
+        import re
+        desc = re.sub(r'<[^>]+>', '', story)
+        # 截取前 50 个字
+        desc = desc[:50] + '...' if len(desc) > 50 else desc
+        
+        event_item = {
+            "id": full_name,
+            "title": data.get('title', full_name.split('·')[-1] if '·' in full_name else full_name),
+            "dynasty": dynasty,
+            "dynastyId": dynasty.replace("朝", ""), # 配合前端已有的过滤器字典
+            "year": year or time_str.split('（')[0], 
+            "desc": desc,
+            "image": default_images.get(dynasty, 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png'),
+            "isImage": True
+        }
+        events_list.append(event_item)
+        
+    return {
+        "success": True,
+        "data": events_list
+    }
