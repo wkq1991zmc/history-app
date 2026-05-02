@@ -160,13 +160,16 @@ async def get_events_list():
         '三国·白门楼斩吕布': 'https://s3.bmp.ovh/2026/05/02/FUuDq4Lk.png',
         '三国·赤壁之战': 'https://s3.bmp.ovh/2026/05/02/mSMeN7nU.png',
         '三国·荆州惊变（关羽之死）': 'https://s3.bmp.ovh/2026/05/02/O2VZcip9.png',
-        '唐朝·安史之乱': 'https://s3.bmp.ovh/2026/05/02/wXnZLQGj.png',
-        '唐朝·玄武门之变': 'https://s3.bmp.ovh/2026/05/02/PjINtYhZ.png',
-        '宋朝·靖康之耻': 'https://s3.bmp.ovh/2026/05/02/3xR12X2l.png',  # 替换失效的图
-        '宋朝·岳飞之死': 'https://s3.bmp.ovh/2026/05/02/H27V9k5t.png',
-        '宋朝·崖山海战': 'https://s3.bmp.ovh/2026/05/02/A9v1kR6w.png',
-        '明朝·土木堡之变': 'https://s3.bmp.ovh/2026/05/02/H27V9k5t.png',
-        '明朝·靖难之役': 'https://s3.bmp.ovh/2026/05/02/T7JAULil.png'
+        '唐朝·安史之乱': 'https://s3.bmp.ovh/2026/05/02/Egh95bJe.png',   # 更新
+        '唐朝·玄武门之变': 'https://s3.bmp.ovh/2026/05/02/GotSpOAm.png', # 更新
+        '五代·陈桥兵变': 'https://s3.bmp.ovh/2026/05/02/23zixxLe.png',   # 补充丢失
+        '五代·儿皇帝石敬瑭': 'https://s3.bmp.ovh/2026/05/02/XRfVFBTi.png',# 补充丢失
+        '五代·后周世宗北伐': 'https://s3.bmp.ovh/2026/05/02/b0OMZT2v.png',# 补充丢失
+        '宋朝·澶渊之盟': 'https://s3.bmp.ovh/2026/05/02/NW1Qac8J.png',   # 需要与事件库里的名字匹配，如果是别的名字会用回退
+        '宋朝·王安石变法': 'https://s3.bmp.ovh/2026/05/02/ycv0UM2j.png', 
+        '宋朝·岳飞之死': 'https://s3.bmp.ovh/2026/05/02/3xR12X2l.png',   # 更新
+        '明朝·土木堡之变': 'https://s3.bmp.ovh/2026/05/02/4kG7vN4T.png', # 更新
+        '明朝·靖难之役': 'https://s3.bmp.ovh/2026/05/02/T7JAULil.png'    # 更新
     }
     
     # 作为补底的朝代默认图
