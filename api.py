@@ -172,7 +172,8 @@ async def get_events_list():
         '明朝·靖难之役': 'https://s3.bmp.ovh/2026/05/02/T7JAULil.png'    # 更新
     }
     
-        # 作为补底的朝代默认图
+    # 作为补底的朝代默认图
+    default_dynasty_images = {
         '秦朝': 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png',
         '汉朝': 'https://s3.bmp.ovh/2026/05/02/25Jdw1zU.png',
         '三国': 'https://s3.bmp.ovh/2026/05/02/mSMeN7nU.png',
