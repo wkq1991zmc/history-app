@@ -149,13 +149,35 @@ async def get_events_list():
     print("前端请求全量事件列表")
     events_list = []
     
-    # 默认图片映射，后续可以在 yaml 中配置，如果没有就根据朝代给默认
-    default_images = {
+    # 建立事件独有的图片映射（恢复之前的不同图片！）
+    event_images = {
+        '秦朝·焚书坑儒': 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png',
+        '秦朝·大泽乡起义': 'https://s3.bmp.ovh/2026/05/02/ATUNZQN8.png',
+        '秦朝·沙丘之变': 'https://s3.bmp.ovh/2026/05/02/FhmUeY27.png',
+        '汉朝·巫蛊之祸': 'https://s3.bmp.ovh/2026/05/02/25Jdw1zU.png',
+        '汉朝·长乐宫血案': 'https://s3.bmp.ovh/2026/05/02/O2VZcip9.png',
+        '三国·衣带诏事件': 'https://s3.bmp.ovh/2026/05/02/AljlTL4k.png',
+        '三国·白门楼斩吕布': 'https://s3.bmp.ovh/2026/05/02/FUuDq4Lk.png',
+        '三国·赤壁之战': 'https://s3.bmp.ovh/2026/05/02/mSMeN7nU.png',
+        '三国·荆州惊变（关羽之死）': 'https://s3.bmp.ovh/2026/05/02/O2VZcip9.png',
+        '唐朝·安史之乱': 'https://s3.bmp.ovh/2026/05/02/wXnZLQGj.png',
+        '唐朝·玄武门之变': 'https://s3.bmp.ovh/2026/05/02/PjINtYhZ.png',
+        '宋朝·靖康之耻': 'https://s3.bmp.ovh/2026/05/02/3xR12X2l.png',  # 替换失效的图
+        '宋朝·岳飞之死': 'https://s3.bmp.ovh/2026/05/02/H27V9k5t.png',
+        '宋朝·崖山海战': 'https://s3.bmp.ovh/2026/05/02/A9v1kR6w.png',
+        '明朝·土木堡之变': 'https://s3.bmp.ovh/2026/05/02/H27V9k5t.png',
+        '明朝·靖难之役': 'https://s3.bmp.ovh/2026/05/02/T7JAULil.png'
+    }
+    
+    # 作为补底的朝代默认图
+    default_dynasty_images = {
         '秦朝': 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png',
         '汉朝': 'https://s3.bmp.ovh/2026/05/02/25Jdw1zU.png',
         '三国': 'https://s3.bmp.ovh/2026/05/02/mSMeN7nU.png',
-        '唐朝': 'https://s3.bmp.ovh/2026/05/02/O2VZcip9.png',
-        '宋朝': 'https://s3.bmp.ovh/2026/05/02/wV9LhXQy.png',
+        '唐朝': 'https://s3.bmp.ovh/2026/05/02/Egh95bJe.png',
+        '宋朝': 'https://s3.bmp.ovh/2026/05/02/3xR12X2l.png', 
+        '五代': 'https://s3.bmp.ovh/2026/05/02/23zixxLe.png',
+        '五代十国': 'https://s3.bmp.ovh/2026/05/02/b0OMZT2v.png',
         '明朝': 'https://s3.bmp.ovh/2026/05/02/T7JAULil.png'
     }
     
@@ -164,7 +186,7 @@ async def get_events_list():
         parts = full_name.split('·')
         dynasty = parts[0] if len(parts) > 1 else '未知'
         
-        # 提取年份简写 (例如从 "正统十四年（公元1449年）" 提取 1449年)
+        # 提取年份简写
         time_str = data.get('time', '')
         year = ''
         if '公元前' in time_str:
@@ -178,22 +200,24 @@ async def get_events_list():
             if match:
                 year = f"{match.group(1)}年"
                 
-        # 尝试从 story 中提取纯文本摘要 (取前第一段)
         story = data.get('story', '')
-        # 简单去除 html 标签
         import re
         desc = re.sub(r'<[^>]+>', '', story)
-        # 截取前 50 个字
         desc = desc[:50] + '...' if len(desc) > 50 else desc
+
+        # 为这个事件获取匹配的封面图片
+        matched_image = event_images.get(full_name)
+        if not matched_image:
+             matched_image = default_dynasty_images.get(dynasty, 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png')
         
         event_item = {
             "id": full_name,
             "title": data.get('title', full_name.split('·')[-1] if '·' in full_name else full_name),
             "dynasty": dynasty,
-            "dynastyId": dynasty.replace("朝", ""), # 配合前端已有的过滤器字典
+            "dynastyId": dynasty.replace("朝", ""), 
             "year": year or time_str.split('（')[0], 
             "desc": desc,
-            "image": default_images.get(dynasty, 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png'),
+            "image": matched_image,
             "isImage": True
         }
         events_list.append(event_item)
