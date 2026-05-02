@@ -220,13 +220,37 @@ async def get_events_list():
             "id": full_name,
             "title": simple_title,
             "dynasty": dynasty,
-            "dynastyId": dynasty.replace("朝", ""), 
+            "dynastyId": dynasty if dynasty == "五代十国" else (dynasty.replace("朝", "") if dynasty != "五代" else "五代十国"), 
             "year": year or time_str.split('（')[0], 
             "desc": desc,
             "image": matched_image,
             "isImage": True
         }
         events_list.append(event_item)
+        
+    # === 开始：添加按时间点智能排序的算法 ===
+    def get_sort_weight(year_str):
+        if not year_str: # 如果解析失败的垫底
+            return 9999
+        import re
+        weight = 0
+        # 寻找连续的数字
+        match = re.search(r'\d+', year_str)
+        if match:
+            num = int(match.group(0))
+            if "前" in year_str:
+                # 公元前，数字越大，时间越早，给它负数权重
+                weight = -num
+            else:
+                # 公元后，正数权重
+                weight = num
+        else:
+            return 9999
+        return weight
+        
+    # 对 events_list 进行原地排序
+    events_list.sort(key=lambda x: get_sort_weight(x['year']))
+    # === 结束：排序算法 ===
         
     return {
         "success": True,
