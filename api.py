@@ -172,15 +172,18 @@ async def get_events_list():
         '明朝·靖难之役': 'https://s3.bmp.ovh/2026/05/02/T7JAULil.png'    # 更新
     }
     
-    # 作为补底的朝代默认图
-    default_dynasty_images = {
+        # 作为补底的朝代默认图
         '秦朝': 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png',
         '汉朝': 'https://s3.bmp.ovh/2026/05/02/25Jdw1zU.png',
         '三国': 'https://s3.bmp.ovh/2026/05/02/mSMeN7nU.png',
+        '晋朝': 'https://s3.bmp.ovh/2026/05/02/25Jdw1zU.png',  # 暂用汉朝占位
+        '南北朝': 'https://s3.bmp.ovh/2026/05/02/mSMeN7nU.png', # 暂用三国占位
+        '隋朝': 'https://s3.bmp.ovh/2026/05/02/Egh95bJe.png',  # 暂用唐代占位
         '唐朝': 'https://s3.bmp.ovh/2026/05/02/Egh95bJe.png',
         '宋朝': 'https://s3.bmp.ovh/2026/05/02/3xR12X2l.png', 
         '五代': 'https://s3.bmp.ovh/2026/05/02/23zixxLe.png',
         '五代十国': 'https://s3.bmp.ovh/2026/05/02/b0OMZT2v.png',
+        '元朝': 'https://s3.bmp.ovh/2026/05/02/4kG7vN4T.png',  # 暂用土木堡明军占位表示蒙古铁骑
         '明朝': 'https://s3.bmp.ovh/2026/05/02/T7JAULil.png'
     }
     
