@@ -1,20 +1,19 @@
 from fastapi import FastAPI, Header, Depends
 from pydantic import BaseModel
 from typing import List, Dict, Optional
-from openai import OpenAI
 import os
-import httpx # 引入 httpx 来代替旧的 requests 发送 HTTP 请求
+import httpx # 引入 httpx 来代替 openai sdk 发送纯净 HTTP 请求
+import json
+import re
 
 # 🌟 核心升级：把你的历史剧本库引进来！
 from load_data import EVENTS_DB 
 
 app = FastAPI()
 
-# 准备好 Claude Opus 4.7 引擎 
-client = OpenAI(
-    api_key=os.environ.get("ROUTERLINK_API_KEY"),  
-    base_url="https://router-link.world3.ai/api/v1"
-)
+ROUTERLINK_API_KEY = os.environ.get("ROUTERLINK_API_KEY")
+TARGET_MODEL = "world3-router-north-america/google/gemini-3.1-pro-preview"
+BASE_URL = "https://router-link.world3.ai/api/v1/chat/completions"
 
 # ======== 🌟 用户隔离系统全局配置 ========
 # 请在 Render 或 .env 里配置你的小程序密钥
@@ -102,19 +101,30 @@ async def ai_chat(request: ChatRequest):
 """
 
     try:
-        # 4. 呼叫大模型
-        # 注意：此处移除了 response_format={"type": "json_object"} 取消强约束底层校验
-        # 因为在接入某些像 Gemini 的模型或由第三方非直接网关代理时，它可能不支持该 OpenAI SDK 独有的底层参数并抛出报错 500。
-        # 我们用极其强壮的 System Prompt 足以让 Gemini 返回所需格式。
-        response = client.chat.completions.create(
-            model="world3-router-north-america/google/gemini-3.1-pro-preview",
-            messages=[
+        # 4. 呼叫大模型 (放弃易碎的 OpenAI SDK，改用原生 HTTP 适配一切刁钻模型)
+        headers = {
+            "Authorization": f"Bearer {ROUTERLINK_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": TARGET_MODEL,
+            "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": request.message}
             ]
-        )
+        }
         
-        reply_content = response.choices[0].message.content
+        async with httpx.AsyncClient(timeout=60.0) as fetch_client:
+            resp = await fetch_client.post(BASE_URL, headers=headers, json=payload)
+            
+        if resp.status_code != 200:
+            print(f"RouterLink 接口报错 {resp.status_code}: {resp.text}")
+            return {"reply": f"时空信号异常 (HTTP {resp.status_code})。请稍后再试。", "original_voice": "", "modern_explain": "", "character": request.character}
+            
+        result_data = resp.json()
+        reply_content = result_data['choices'][0]['message']['content']
+        
         print(f"[{request.character}] 原理级返回内容:\n{reply_content}")
         
         import json

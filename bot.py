@@ -24,8 +24,6 @@ MAX_ROUNDS = 5       # 挂机期间，最多允许他们自动聊多少句？（
 SLEEP_TIME = 60      # 每句话聊完，让他们休息多少秒？（60秒 = 1分钟）
 TARGET_STORY = "三国·赤壁之战" # 👈 你想让哪个房间的古人彻夜长谈？
 
-client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
-
 def load_history():
     if os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, "r", encoding="utf-8") as f:
