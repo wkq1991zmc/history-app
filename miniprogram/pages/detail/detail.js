@@ -169,7 +169,14 @@ Page({
     this.setData({ selectedCharacter: char });
   },
 
-  onClearTarget() {
+  onToggleTranslation(e) {
+    const index = e.currentTarget.dataset.index;
+    const key = `messages[${index}].showTranslation`;
+    this.setData({
+      [key]: !this.data.messages[index].showTranslation
+    });
+    this.saveChatHistory();
+  },onClearTarget() {
     this.setData({ selectedCharacter: '' });
   },
 
@@ -283,11 +290,14 @@ Page({
     
     let currentMessages = [...this.data.messages];
     
+    // 增加一个辅助函数用来延时缓冲，防止并发击穿 API 限流导致 500
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    
     for (const speaker of characters) {
       const history = currentMessages.slice(-10).map(msg => ({
         role: msg.role,
-        content: msg.content,
-        target: msg.target
+        content: msg.content || msg.original_voice || msg.modern_explain || '...',
+        target: msg.target || ''
       }));
 
       try {
@@ -295,13 +305,22 @@ Page({
           wx.request({
             url: `${API_BASE_URL}/chat`,
             method: 'POST',
+            header: {
+              'X-WX-OPENID': app.globalData.openId || wx.getStorageSync('userOpenId') || 'unknown'
+            },
             data: {
               event_name: eventId,
               character: speaker,
               message: '轮到你发言了，请立刻反击！',
               history: history
             },
-            success: (res) => resolve(res),
+            success: (res) => {
+              if (res.statusCode === 200 && res.data) {
+                resolve(res);
+              } else {
+                reject(new Error(`返回状态码异常: ${res.statusCode}`));
+              }
+            },
             fail: (err) => reject(err)
           });
         });
@@ -309,10 +328,11 @@ Page({
         const assistantMessage = {
           id: Date.now() + Math.random(),
           role: 'assistant',
-          content: res.data.reply,
-          original_voice: res.data.original_voice || '',
+          content: res.data.original_voice || res.data.reply || '',
+          original_voice: res.data.original_voice || res.data.reply || '',
           modern_explain: res.data.modern_explain || '',
-          target: res.data.character
+          showTranslation: false, // 默认收起
+          target: res.data.character || speaker
         };
 
         currentMessages = [...currentMessages, assistantMessage];
@@ -322,9 +342,14 @@ Page({
         });
         
         this.saveChatHistory();
+        
+        // 每次该人物发言完毕让程序休息 1.5 秒，模拟打字且缓冲并发
+        await sleep(1500);
+        
       } catch (error) {
-        console.error(`${speaker} 发言失败`, error);
-        break;
+        console.error(`${speaker} 发言失败或导致 500:`, error);
+        // 如果某个人物接口报错，不要中断所有，跳过继续让后面的人说
+        continue;
       }
     }
     

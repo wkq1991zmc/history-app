@@ -67,8 +67,11 @@ async def ai_chat(request: ChatRequest):
     # 2. 组装历史记忆 (把微信传来的 history 翻译给大模型听)
     history_text = ""
     for m in request.history[-10:]:  # 只取最近10条，省钱且防遗忘
-        role_name = "【法官(我)】" if m["role"] == "user" else f"【{m.get('target', 'AI')}】"
-        history_text += f"{role_name}: {m['content']}\n"
+        # 使用安全的 .get() 防止 KeyError
+        role_type = m.get("role", "user")
+        content_text = m.get("content", "")
+        role_name = "【法官(我)】" if role_type == "user" else f"【{m.get('target', 'AI')}】"
+        history_text += f"{role_name}: {content_text}\n"
 
     # 3. 融合生成终极 System Prompt
     system_prompt = f"""# 角色设定

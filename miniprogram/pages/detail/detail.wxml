@@ -81,16 +81,26 @@
             <text class="chat-avatar-text">{{item.role === 'user' ? '⚖️' : ''}}</text>
           </view>
           <view class="chat-bubble">
-            <text class="chat-sender" wx:if="{{item.role === 'assistant'}}">{{item.target}}</text>
+            <view class="bubble-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <text class="chat-sender" wx:if="{{item.role === 'assistant'}}">{{item.target}}</text>
+              <!-- 译文开关 -->
+              <view wx:if="{{item.modern_explain}}" 
+                    class="translate-btn {{item.showTranslation ? 'active' : ''}}" 
+                    bindtap="onToggleTranslation" 
+                    data-index="{{index}}">
+                 译
+              </view>
+            </view>
             
             <!-- 角色原声 -->
             <view class="role-original" wx:if="{{item.original_voice}}">
               <rich-text class="chat-text" nodes="{{item.original_voice}}"></rich-text>
             </view>
             
-            <!-- 白话解读 -->
-            <view class="modern-explanation" wx:if="{{item.modern_explain}}">
-              <rich-text class="chat-text" nodes="{{item.modern_explain}}"></rich-text>
+            <!-- 白话解读折叠区 -->
+            <view class="translation-box" wx:if="{{item.role === 'assistant' && item.modern_explain && item.showTranslation}}">
+              <text class="translation-title">解：</text>
+              <text class="translation-text">{{item.modern_explain}}</text>
             </view>
             
             <!-- 兼容旧数据 -->
