@@ -98,7 +98,51 @@
   font-weight: bold;
 }
 
-.message-content {
+.message-sender {
+  margin-bottom: 10rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 新增交互翻译按钮样式 */
+.translate-btn {
+  font-size: 22rpx;
+  color: #8d6e63;
+  border: 1px solid #d7ccc8;
+  border-radius: 4px;
+  padding: 2rpx 10rpx;
+  background-color: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.translate-btn.active {
+  background-color: #c62828;
+  color: #fff;
+  border-color: #c62828;
+}
+
+/* 新增白话文翻译区样式 */
+.translation-box {
+  margin-top: 15rpx;
+  padding-top: 15rpx;
+  border-top: 1px dashed #d7ccc8;
+  font-size: 26rpx;
+  color: #5d4037;
+  line-height: 1.6;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.translation-title {
+  color: #c62828;
+  font-weight: bold;
+  margin-right: 5rpx;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
   font-size: 28rpx;
   line-height: 1.6;
 }

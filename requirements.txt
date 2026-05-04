@@ -3,3 +3,4 @@ uvicorn
 pyyaml
 openai
 streamlit
+httpx

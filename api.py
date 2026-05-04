@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, Depends
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Optional
 from openai import OpenAI
 import os
+import httpx # 引入 httpx 来代替旧的 requests 发送 HTTP 请求
 
 # 🌟 核心升级：把你的历史剧本库引进来！
 from load_data import EVENTS_DB 
@@ -14,6 +15,37 @@ client = OpenAI(
     api_key=os.environ.get("ROUTERLINK_API_KEY"),  
     base_url="https://router-link.world3.ai/api/v1"
 )
+
+# ======== 🌟 用户隔离系统全局配置 ========
+# 请在 Render 或 .env 里配置你的小程序密钥
+WX_APP_ID = os.environ.get("WX_APP_ID", "")
+WX_APP_SECRET = os.environ.get("WX_APP_SECRET", "")
+
+class LoginRequest(BaseModel):
+    code: str
+
+@app.post("/login")
+async def wx_login(req: LoginRequest):
+    """
+    通过前端 wx.login() 给的 code，去腾讯服务器换取 openid
+    """
+    if not WX_APP_ID or not WX_APP_SECRET:
+        # 如果开发者还没配置真正的密钥，为了不卡死流程，提供一个假装成功的伪 OpenID
+        print("未配置微信 AppID/Secret，生成模拟 OpenID")
+        return {"success": True, "openid": f"mock_user_{req.code[-6:]}"}
+
+    url = f"https://api.weixin.qq.com/sns/jscode2session?appid={WX_APP_ID}&secret={WX_APP_SECRET}&js_code={req.code}&grant_type=authorization_code"
+    
+    async with httpx.AsyncClient() as x_client:
+        try:
+            resp = await x_client.get(url)
+            data = resp.json()
+            if "openid" in data:
+                return {"success": True, "openid": data["openid"]}
+            else:
+                return {"success": False, "msg": data.get("errmsg", "微信置换失败")}
+        except Exception as e:
+            return {"success": False, "msg": str(e)}
 
 # 🌟 核心升级：重新定义微信发过来的“快递盒”格式
 class ChatRequest(BaseModel):
@@ -58,13 +90,12 @@ async def ai_chat(request: ChatRequest):
 {history_text}
 
 # 输出格式（必须严格遵守）
-你必须且只能按以下两部分格式回答，不可添加任何其他内容：
+你必须且只能按以下 JSON 格式返回，不要包含其他解释或 Markdown 标记。确保 JSON 是合法可解析的：
 
-【角色原声】
-（此处用半文半白的语言，以第一人称回答用户的问题。要带入人物性格，展现其政治立场、战略考量和内心活动。篇幅适中，不要过长。）
-
-【白话解读】
-（此处用现代大白话，直接翻译你上一段【角色原声】的内容。保持原意不变，只是把文言文翻译成通俗易懂的现代汉语，不要添加分析或评论。）
+{
+  "original_voice": "（此处用半文半白的语言，以第一人称回答用户的问题。要带入人物性格，展现其政治立场、战略考量和内心活动。篇幅适中，不要过长。）",
+  "modern_explain": "（此处用现代大白话，直接翻译你上一段【角色原声】的内容。保持原意不变，只是把文言文翻译成通俗易懂的现代汉语，不要添加分析或评论。）"
+}
 """
 
     try:
@@ -74,44 +105,33 @@ async def ai_chat(request: ChatRequest):
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": request.message}
-            ]
+            ],
+            response_format={ "type": "json_object" } # 强制要求返回 JSON 格式
         )
         
-        reply = response.choices[0].message.content
+        reply_content = response.choices[0].message.content
+        print(f"[{request.character}] 原理级返回内容:\n{reply_content}")
+        
+        # 解析返回的 JSON 结构
+        import json
+        try:
+            parsed_reply = json.loads(reply_content)
+            original_voice = parsed_reply.get("original_voice", reply_content)
+            modern_explain = parsed_reply.get("modern_explain", "")
+        except json.JSONDecodeError:
+            # 如果大模型抽风没有返回标准JSON的兜底
+            print("警告: 返回不是标准 JSON, 尝试兜底解析")
+            original_voice = reply_content
+            modern_explain = ""
+
         print(f"[{request.character}] 辩护完毕。")
-        
-        # 解析回复，分离角色原声和白话解读
-        original_voice = ""
-        modern_explain = ""
-        
-        # 尝试多种可能的标记格式
-        patterns = [
-            ("【角色原声】", "【白话解读】"),
-            ("**【角色原声】**", "**【白话解读】**"),
-            ("**角色原声**", "**白话解读**"),
-        ]
-        
-        found = False
-        for orig_mark, mod_mark in patterns:
-            if orig_mark in reply and mod_mark in reply:
-                parts = reply.split(mod_mark)
-                original_part = parts[0].replace(orig_mark, "").strip().strip("*").strip()
-                modern_part = parts[1].strip().strip("*").strip() if len(parts) > 1 else ""
-                original_voice = original_part
-                modern_explain = modern_part
-                found = True
-                break
-        
-        if not found:
-            original_voice = reply
-        
         print(f"解析结果 - 原声长度: {len(original_voice)}, 解读长度: {len(modern_explain)}")
         
         # 5. 打包寄回给微信
         return {
-            "reply": reply,
-            "original_voice": original_voice,
-            "modern_explain": modern_explain,
+            "reply": original_voice, # 现在主内容只返回原声，方便老代码兼容
+            "original_voice": original_voice.strip(),
+            "modern_explain": modern_explain.strip(),
             "character": request.character
         }
         

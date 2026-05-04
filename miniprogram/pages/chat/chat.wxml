@@ -29,8 +29,22 @@
       <view class="message-bubble">
         <view class="message-sender" wx:if="{{item.role === 'assistant'}}">
           <text class="sender-name">🎭 {{item.target}}</text>
+          
+          <!-- 新增：翻译按钮图标 (只在AI且有翻译内容时出现) -->
+          <view wx:if="{{item.modern_explain}}" 
+                class="translate-btn {{item.showTranslation ? 'active' : ''}}" 
+                bindtap="onToggleTranslation" 
+                data-index="{{index}}">
+             译
+          </view>
         </view>
         <rich-text class="message-content" nodes="{{item.content}}"></rich-text>
+        
+        <!-- 新增：白话解读折叠区 -->
+        <view wx:if="{{item.role === 'assistant' && item.modern_explain && item.showTranslation}}" class="translation-box">
+          <text class="translation-title">解：</text>
+          <text class="translation-text">{{item.modern_explain}}</text>
+        </view>
       </view>
     </view>
 

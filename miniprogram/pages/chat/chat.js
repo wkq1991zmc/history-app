@@ -41,6 +41,16 @@ Page({
     this.setData({ inputValue: e.detail.value });
   },
 
+  onToggleTranslation(e) {
+    const index = e.currentTarget.dataset.index;
+    const key = `messages[${index}].showTranslation`;
+    this.setData({
+      [key]: !this.data.messages[index].showTranslation
+    });
+    // 折叠展开也算一种状态记录，存下来，不然重开小程序折叠状态就没了
+    this.saveChatHistory();
+  },
+
   async onSendMessage() {
     const { inputValue, selectedCharacter, loading, messages } = this.data;
     
@@ -94,6 +104,10 @@ Page({
       wx.request({
         url: `${API_BASE_URL}/chat`,
         method: 'POST',
+        // 🌟 将身份卡夹在快递单里
+        header: {
+          'X-WX-OPENID': app.globalData.openId || wx.getStorageSync('userOpenId') || 'unknown'
+        },
         data: {
           event_name: eventId,
           character: target,
@@ -108,7 +122,9 @@ Page({
     const assistantMessage = {
       id: Date.now(),
       role: 'assistant',
-      content: res.data.reply,
+      content: res.data.original_voice || res.data.reply, // 优先用剥离干净的原声
+      modern_explain: res.data.modern_explain || '',      // 存入白话解读
+      showTranslation: false,                             // 默认闭合状态
       target: res.data.character
     };
 
@@ -154,7 +170,9 @@ Page({
         const assistantMessage = {
           id: Date.now() + Math.random(),
           role: 'assistant',
-          content: res.data.reply,
+          content: res.data.original_voice || res.data.reply,
+          modern_explain: res.data.modern_explain || '',
+          showTranslation: false,
           target: res.data.character
         };
 
