@@ -101,7 +101,7 @@ async def ai_chat(request: ChatRequest):
     try:
         # 4. 呼叫大模型
         response = client.chat.completions.create(
-            model="world3-router-north-america/anthropic/claude-opus-4.7",
+            model="world3-router-north-america/google/gemini-3.1-pro-preview",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": request.message}

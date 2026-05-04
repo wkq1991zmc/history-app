@@ -32,7 +32,7 @@ st.set_page_config(page_title="跨时空听证会 3.0", page_icon="⚖️", layo
 # 🔑 你的火山引擎（豆包）配置
 # ==========================================
 MY_API_KEY = st.secrets["ROUTERLINK_API_KEY"]
-TARGET_MODEL = "world3-router-north-america/anthropic/claude-opus-4.7"
+TARGET_MODEL = "world3-router-north-america/google/gemini-3.1-pro-preview"
 
 client = OpenAI(
     api_key=MY_API_KEY, 
