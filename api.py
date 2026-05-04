@@ -2,11 +2,12 @@ from fastapi import FastAPI, Header, Depends
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 import os
-import httpx # 引入 httpx 来代替 openai sdk 发送纯净 HTTP 请求
+import httpx
 import json
 import re
+import time
+from collections import defaultdict
 
-# 🌟 核心升级：把你的历史剧本库引进来！
 from load_data import EVENTS_DB 
 
 app = FastAPI()
@@ -14,6 +15,20 @@ app = FastAPI()
 ROUTERLINK_API_KEY = os.environ.get("ROUTERLINK_API_KEY")
 TARGET_MODEL = "world3-router-north-america/google/gemini-3.1-pro-preview"
 BASE_URL = "https://router-link.world3.ai/api/v1/chat/completions"
+
+# ======== API 限流保护 ========
+rate_limit_store = defaultdict(list)
+RATE_LIMIT_WINDOW = 60
+RATE_LIMIT_MAX = 30
+
+def check_rate_limit(player_id: str) -> bool:
+    now = time.time()
+    window_start = now - RATE_LIMIT_WINDOW
+    rate_limit_store[player_id] = [t for t in rate_limit_store[player_id] if t > window_start]
+    if len(rate_limit_store[player_id]) >= RATE_LIMIT_MAX:
+        return False
+    rate_limit_store[player_id].append(now)
+    return True
 
 # ======== 🌟 用户隔离系统全局配置 ========
 # 请在 Render 或 .env 里配置你的小程序密钥
@@ -57,6 +72,10 @@ class ChatRequest(BaseModel):
 async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None, alias="X-WX-OPENID")):
     try:
         player_id = x_wx_openid if x_wx_openid else "unknown_player"
+        
+        if not check_rate_limit(player_id):
+            return {"reply": "发言太快了，请稍等片刻再问。", "original_voice": "", "modern_explain": "", "character": request.character}
+        
         print(f"\n=== 收到微信提审请求 ===")
         print(f"玩家: {player_id} | 案件: {request.event_name} | 被告: {request.character}")
         
@@ -201,51 +220,10 @@ async def get_events_list():
     print("前端请求全量事件列表")
     events_list = []
     
-    # 建立事件独有的图片映射（恢复之前的不同图片！）
-    event_images = {
-        '秦朝·焚书坑儒': 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png',
-        '秦朝·大泽乡起义': 'https://s3.bmp.ovh/2026/05/02/ATUNZQN8.png',
-        '秦朝·沙丘之变': 'https://s3.bmp.ovh/2026/05/02/FhmUeY27.png',
-        '汉朝·巫蛊之祸': 'https://s3.bmp.ovh/2026/05/02/25Jdw1zU.png',
-        '汉朝·长乐宫血案': 'https://s3.bmp.ovh/2026/05/02/O2VZcip9.png',
-        '三国·衣带诏事件': 'https://s3.bmp.ovh/2026/05/02/AljlTL4k.png',
-        '三国·白门楼斩吕布': 'https://s3.bmp.ovh/2026/05/02/FUuDq4Lk.png',
-        '三国·赤壁之战': 'https://s3.bmp.ovh/2026/05/02/mSMeN7nU.png',
-        '三国·荆州惊变（关羽之死）': 'https://s3.bmp.ovh/2026/05/02/O2VZcip9.png',
-        '唐朝·安史之乱': 'https://s3.bmp.ovh/2026/05/02/Egh95bJe.png',   # 更新
-        '唐朝·玄武门之变': 'https://s3.bmp.ovh/2026/05/02/GotSpOAm.png', # 更新
-        '五代·陈桥兵变': 'https://s3.bmp.ovh/2026/05/02/23zixxLe.png',   # 补充丢失
-        '五代·儿皇帝石敬瑭': 'https://s3.bmp.ovh/2026/05/02/XRfVFBTi.png',# 补充丢失
-        '五代·后周世宗北伐': 'https://s3.bmp.ovh/2026/05/02/b0OMZT2v.png',# 补充丢失
-        '宋朝·澶渊之盟': 'https://s3.bmp.ovh/2026/05/02/NW1Qac8J.png',   # 需要与事件库里的名字匹配，如果是别的名字会用回退
-        '宋朝·王安石变法': 'https://s3.bmp.ovh/2026/05/02/ycv0UM2j.png', 
-        '宋朝·岳飞之死': 'https://s3.bmp.ovh/2026/05/02/3xR12X2l.png',   # 更新
-        '明朝·土木堡之变': 'https://s3.bmp.ovh/2026/05/02/4kG7vN4T.png', # 更新
-        '明朝·靖难之役': 'https://s3.bmp.ovh/2026/05/02/T7JAULil.png'    # 更新
-    }
-    
-    # 作为补底的朝代默认图
-    default_dynasty_images = {
-        '秦朝': 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png',
-        '汉朝': 'https://s3.bmp.ovh/2026/05/02/25Jdw1zU.png',
-        '三国': 'https://s3.bmp.ovh/2026/05/02/mSMeN7nU.png',
-        '晋朝': 'https://s3.bmp.ovh/2026/05/02/25Jdw1zU.png',  # 暂用汉朝占位
-        '南北朝': 'https://s3.bmp.ovh/2026/05/02/mSMeN7nU.png', # 暂用三国占位
-        '隋朝': 'https://s3.bmp.ovh/2026/05/02/Egh95bJe.png',  # 暂用唐代占位
-        '唐朝': 'https://s3.bmp.ovh/2026/05/02/Egh95bJe.png',
-        '宋朝': 'https://s3.bmp.ovh/2026/05/02/3xR12X2l.png', 
-        '五代': 'https://s3.bmp.ovh/2026/05/02/23zixxLe.png',
-        '五代十国': 'https://s3.bmp.ovh/2026/05/02/b0OMZT2v.png',
-        '元朝': 'https://s3.bmp.ovh/2026/05/02/4kG7vN4T.png',  # 暂用土木堡明军占位表示蒙古铁骑
-        '明朝': 'https://s3.bmp.ovh/2026/05/02/T7JAULil.png'
-    }
-    
     for full_name, data in EVENTS_DB.items():
-        # 解析朝代，例如 "秦朝·焚书坑儒" -> dynasty: "秦朝"
         parts = full_name.split('·')
         dynasty = parts[0] if len(parts) > 1 else '未知'
         
-        # 提取年份简写
         time_str = data.get('time', '')
         year = ''
         if '公元前' in time_str:
@@ -264,15 +242,10 @@ async def get_events_list():
         desc = re.sub(r'<[^>]+>', '', story)
         desc = desc[:50] + '...' if len(desc) > 50 else desc
 
-        # 为这个事件获取匹配的封面图片
-        matched_image = event_images.get(full_name)
-        if not matched_image:
-             matched_image = default_dynasty_images.get(dynasty, 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png')
+        matched_image = data.get('image', 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png')
         
-        # 从 full_name (如 "秦朝·焚书坑儒") 中提取直观原名 (如 "焚书坑儒") 取代花哨的 title
         simple_title = full_name.split('·')[-1] if '·' in full_name else full_name
         
-        # 处理王朝特殊名称映射：防止"南北朝"被切成"南北"
         dyn_id = dynasty
         if dynasty == "五代":
             dyn_id = "五代十国"

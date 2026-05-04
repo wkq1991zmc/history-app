@@ -92,15 +92,14 @@
               </view>
             </view>
             
-            <!-- 角色原声 -->
-            <view class="role-original" wx:if="{{item.original_voice}}">
+            <!-- 角色原声（未翻译时显示） -->
+            <view class="role-original" wx:if="{{item.original_voice && !item.showTranslation}}">
               <rich-text class="chat-text" nodes="{{item.original_voice}}"></rich-text>
             </view>
             
-            <!-- 白话解读折叠区 -->
-            <view class="translation-box" wx:if="{{item.role === 'assistant' && item.modern_explain && item.showTranslation}}">
-              <text class="translation-title">解：</text>
-              <text class="translation-text">{{item.modern_explain}}</text>
+            <!-- 白话解读（翻译后替换显示） -->
+            <view class="modern-explanation" wx:if="{{item.role === 'assistant' && item.modern_explain && item.showTranslation}}">
+              <rich-text class="chat-text" nodes="{{item.modern_explain}}"></rich-text>
             </view>
             
             <!-- 兼容旧数据 -->

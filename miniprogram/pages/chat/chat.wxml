@@ -38,11 +38,9 @@
              译
           </view>
         </view>
-        <rich-text class="message-content" nodes="{{item.content}}"></rich-text>
+        <rich-text class="message-content" nodes="{{item.content}}" wx:if="{{!item.showTranslation}}"></rich-text>
         
-        <!-- 新增：白话解读折叠区 -->
         <view wx:if="{{item.role === 'assistant' && item.modern_explain && item.showTranslation}}" class="translation-box">
-          <text class="translation-title">解：</text>
           <text class="translation-text">{{item.modern_explain}}</text>
         </view>
       </view>

@@ -1,5 +1,5 @@
 import streamlit as st
-from openai import OpenAI
+import httpx
 import json
 import os
 
@@ -33,11 +33,7 @@ st.set_page_config(page_title="跨时空听证会 3.0", page_icon="⚖️", layo
 # ==========================================
 MY_API_KEY = st.secrets["ROUTERLINK_API_KEY"]
 TARGET_MODEL = "world3-router-north-america/google/gemini-3.1-pro-preview"
-
-client = OpenAI(
-    api_key=MY_API_KEY, 
-    base_url="https://router-link-beta.world3.ai/api/v1"
-)
+BASE_URL = "https://router-link.world3.ai/api/v1/chat/completions"
 
 # ==========================================
 # 📊 初始化核心状态 (架构升级：引入永久记忆)
@@ -348,13 +344,18 @@ if len(st.session_state.chat_history) > 0 and st.session_state.chat_history[-1][
 """
                         
                         try:
-                            # 发起 API 请求
-                            response = client.chat.completions.create(
-                                model=TARGET_MODEL,
-                                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": "轮到你发言了，请立刻反击！"}]
-                            )
-                            
-                            reply_text = response.choices[0].message.content
+                            headers = {
+                                "Authorization": f"Bearer {MY_API_KEY}",
+                                "Content-Type": "application/json"
+                            }
+                            payload = {
+                                "model": TARGET_MODEL,
+                                "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": "轮到你发言了，请立刻反击！"}]
+                            }
+                            resp = httpx.post(BASE_URL, headers=headers, json=payload, timeout=60.0)
+                            if resp.status_code != 200:
+                                raise Exception(f"接口 HTTP {resp.status_code}: {resp.text}")
+                            reply_text = resp.json()['choices'][0]['message']['content']
                             reply_text = reply_text.replace("【角色原声】", "**【角色原声】**").replace("【白话解读】", "\n\n**【白话解读】**")
                             
                             # 渲染出是谁说的话
@@ -416,12 +417,18 @@ if len(st.session_state.chat_history) > 0 and st.session_state.chat_history[-1][
 """
                     
                     try:
-                        response = client.chat.completions.create(
-                            model=TARGET_MODEL,
-                            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": final_query}]
-                        )
-                        
-                        reply_text = response.choices[0].message.content
+                        headers = {
+                            "Authorization": f"Bearer {MY_API_KEY}",
+                            "Content-Type": "application/json"
+                        }
+                        payload = {
+                            "model": TARGET_MODEL,
+                            "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": final_query}]
+                        }
+                        resp = httpx.post(BASE_URL, headers=headers, json=payload, timeout=60.0)
+                        if resp.status_code != 200:
+                            raise Exception(f"接口 HTTP {resp.status_code}: {resp.text}")
+                        reply_text = resp.json()['choices'][0]['message']['content']
                         reply_text = reply_text.replace("【角色原声】", "**【角色原声】**").replace("【白话解读】", "\n\n**【白话解读】**")
                         
                         final_display_text = f"### 🎭 {target_char}\n" + reply_text

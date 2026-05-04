@@ -104,7 +104,7 @@ Page({
       wx.request({
         url: `${API_BASE_URL}/chat`,
         method: 'POST',
-        // 🌟 将身份卡夹在快递单里
+        timeout: 60000,
         header: {
           'X-WX-OPENID': app.globalData.openId || wx.getStorageSync('userOpenId') || 'unknown'
         },
@@ -143,6 +143,7 @@ Page({
     const characters = currentEvent.characters;
     
     let currentMessages = [...this.data.messages];
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
     
     for (const speaker of characters) {
       const history = currentMessages.slice(-10).map(msg => ({
@@ -156,6 +157,10 @@ Page({
           wx.request({
             url: `${API_BASE_URL}/chat`,
             method: 'POST',
+            timeout: 60000,
+            header: {
+              'X-WX-OPENID': app.globalData.openId || wx.getStorageSync('userOpenId') || 'unknown'
+            },
             data: {
               event_name: eventId,
               character: speaker,
@@ -183,9 +188,11 @@ Page({
         });
         
         this.saveChatHistory();
+        
+        await sleep(1500);
       } catch (error) {
         console.error(`${speaker} 发言失败`, error);
-        break;
+        continue;
       }
     }
     
