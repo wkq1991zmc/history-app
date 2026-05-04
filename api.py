@@ -103,22 +103,34 @@ async def ai_chat(request: ChatRequest):
 
     try:
         # 4. 呼叫大模型
+        # 注意：此处移除了 response_format={"type": "json_object"} 取消强约束底层校验
+        # 因为在接入某些像 Gemini 的模型或由第三方非直接网关代理时，它可能不支持该 OpenAI SDK 独有的底层参数并抛出报错 500。
+        # 我们用极其强壮的 System Prompt 足以让 Gemini 返回所需格式。
         response = client.chat.completions.create(
             model="world3-router-north-america/google/gemini-3.1-pro-preview",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": request.message}
-            ],
-            response_format={ "type": "json_object" } # 强制要求返回 JSON 格式
+            ]
         )
         
         reply_content = response.choices[0].message.content
         print(f"[{request.character}] 原理级返回内容:\n{reply_content}")
         
-        # 解析返回的 JSON 结构
         import json
+        import re
+        
+        # 尝试清理可能被某些模型多此一举包上的 ```json ``` markdown 代码块
+        # 并从中剥出干净的 {} 内容
+        raw_content = reply_content.strip()
+        match = re.search(r'\{.*\}', raw_content, re.DOTALL)
+        if match:
+            clean_json_str = match.group(0)
+        else:
+            clean_json_str = raw_content
+
         try:
-            parsed_reply = json.loads(reply_content)
+            parsed_reply = json.loads(clean_json_str)
             original_voice = parsed_reply.get("original_voice", reply_content)
             modern_explain = parsed_reply.get("modern_explain", "")
         except json.JSONDecodeError:
