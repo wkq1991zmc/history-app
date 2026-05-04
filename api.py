@@ -12,9 +12,9 @@ from load_data import EVENTS_DB
 
 app = FastAPI()
 
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
-TARGET_MODEL = "deepseek-chat"
-BASE_URL = "https://api.deepseek.com/v1/chat/completions"
+ROUTERLINK_API_KEY = os.environ.get("ROUTERLINK_API_KEY")
+TARGET_MODEL = "world3-router-north-america/google/gemini-3.1-pro-preview"
+BASE_URL = "https://router-link.world3.ai/api/v1/chat/completions"
 
 # ======== API 限流保护 ========
 rate_limit_store = defaultdict(list)
@@ -128,7 +128,7 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
 
         # 4. 呼叫大模型 (放弃易碎的 OpenAI SDK，改用原生 HTTP 适配一切刁钻模型)
         headers = {
-            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+            "Authorization": f"Bearer {ROUTERLINK_API_KEY}",
             "Content-Type": "application/json"
         }
         
@@ -137,15 +137,14 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
         
         payload = {
             "model": TARGET_MODEL,
-            "messages": final_messages,
-            "response_format": {"type": "json_object"}
+            "messages": final_messages
         }
         
         async with httpx.AsyncClient(timeout=60.0) as fetch_client:
             resp = await fetch_client.post(BASE_URL, headers=headers, json=payload)
             
         if resp.status_code != 200:
-            print(f"大模型接口报错 {resp.status_code}: {resp.text}")
+            print(f"RouterLink 接口报错 {resp.status_code}: {resp.text}")
             return {"reply": f"时空信号异常 (HTTP {resp.status_code})。请稍后再试。", "original_voice": "", "modern_explain": "", "character": request.character}
             
         result_data = resp.json()
