@@ -140,3 +140,128 @@ h1, h2, h3, h4, h5, h6 {
     content: "\2026";
     width: 0px;
 }
+
+/* ======== 移动端响应式布局 ======== */
+@media (max-width: 1023px) {
+    #mobile-topbar {
+        display: flex !important;
+    }
+
+    #mobile-tabs {
+        display: flex !important;
+    }
+
+    #main-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 45;
+        transform: translateX(-100%);
+        width: 260px;
+    }
+
+    #main-sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    #mobile-sidebar-overlay.mobile-open {
+        display: block !important;
+    }
+
+    #story-section,
+    #chat-section {
+        display: none;
+        position: absolute;
+        top: 52px;
+        left: 0;
+        right: 0;
+        bottom: 48px;
+        width: 100%;
+    }
+
+    #story-section.mobile-active,
+    #chat-section.mobile-active {
+        display: flex;
+    }
+
+    #story-section.mobile-active {
+        display: block;
+    }
+
+    #story-section .max-w-4xl {
+        padding: 1.5rem 1rem 5rem 1rem !important;
+    }
+
+    #story-title {
+        font-size: 1.5rem !important;
+    }
+
+    #story-image-container {
+        height: 12rem !important;
+    }
+
+    .story-prose {
+        font-size: 15px !important;
+    }
+
+    .story-prose p > b:first-child {
+        font-size: 1.1rem !important;
+    }
+
+    #chat-section header {
+        padding: 1rem 1rem 0.75rem 1rem !important;
+    }
+
+    #chat-section header h2 {
+        font-size: 1.25rem !important;
+    }
+
+    #chat-history-container {
+        padding: 1rem !important;
+    }
+
+    #chat-section footer {
+        padding: 0.75rem !important;
+    }
+
+    #chat-form {
+        gap: 0.5rem !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    #chat-input {
+        padding: 0.6rem 0.75rem !important;
+        font-size: 0.875rem !important;
+    }
+
+    #chat-submit {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+        font-size: 0.75rem !important;
+    }
+
+    #character-buttons {
+        gap: 0.375rem !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    #character-buttons button {
+        padding: 0.25rem 0.625rem !important;
+        font-size: 0.7rem !important;
+    }
+
+    #btn-clear-chat {
+        padding: 0.25rem 0.625rem !important;
+        font-size: 0.65rem !important;
+    }
+
+    .chat-bubble-user,
+    .chat-bubble-ai {
+        max-width: 92% !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 0.875rem !important;
+    }
+}

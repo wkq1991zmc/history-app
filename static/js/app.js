@@ -1,9 +1,20 @@
+// 用户身份标识（UUID，首次访问自动生成，存于 localStorage）
+function getUserId() {
+    let uid = localStorage.getItem('traeHistoryUserId');
+    if (!uid) {
+        uid = crypto.randomUUID ? crypto.randomUUID() : 'uid-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('traeHistoryUserId', uid);
+    }
+    return uid;
+}
+const USER_ID = getUserId();
+
 // 全局状态管理
 const state = {
     eventsList: [],
     currentEventId: null,
     currentEventData: null,
-    chatHistory: {}, // 记忆：{ "三国·赤壁之战": [{role, content, target}] }
+    chatHistory: {},
     currentTarget: "所有参与人",
     isLoading: false
 };
@@ -62,42 +73,32 @@ async function apiPost(endpoint, data) {
 // ================= 初始化与导航 =================
 
 async function init() {
-    // 从本地存储恢复记忆
-    const savedChats = localStorage.getItem('traeHistoryAppChats');
-    if(savedChats) {
-        state.chatHistory = JSON.parse(savedChats);
-    }
-
     // 1. 获取导航目录
     const res = await apiGet('/events_list');
     if(res && res.success) {
         state.eventsList = res.data;
         renderNav(res.data);
         
-        // 如果有hash值，自动选中
         const hash = decodeURIComponent(window.location.hash.substring(1));
         if(hash) {
             loadEvent(hash);
         } else if (res.data.length > 0) {
-            // 默认加载第一个
             loadEvent(res.data[0].id);
         }
     } else {
         elements.navContainer.innerHTML = '<div class="text-red-500 text-center text-sm p-4">无法加载中央档案，请刷新重试。</div>';
     }
     
-    // 监听表单
     elements.chatForm.addEventListener('submit', (e) => {
         e.preventDefault();
         handleUserSubmit();
     });
 
-    // 监听清空
     elements.btnClear.addEventListener('click', () => {
         if(!state.currentEventId) return;
         if(confirm(`确定要销毁【${state.currentEventId}】的所有档案记录并重新开庭吗？`)) {
             state.chatHistory[state.currentEventId] = [];
-            saveChatToLocal();
+            saveChatToServer();
             renderChat();
         }
     });
@@ -159,11 +160,9 @@ async function loadEvent(eventId) {
     if(state.isLoading) return;
     state.isLoading = true;
     
-    // 更新 URL Hash 不会导致页面刷新
     window.location.hash = eventId;
     updateNavHighlight(eventId);
     
-    // 清空当前页面假象
     elements.storySplash.classList.remove('hidden');
     elements.storyContent.classList.add('hidden');
     
@@ -172,21 +171,18 @@ async function loadEvent(eventId) {
         state.currentEventId = res.full_name;
         state.currentEventData = res.data;
         
-        // 渲染左侧卷宗
         renderStory(res.data);
         
-        // 初始化专属聊天记录数组
         if(!state.chatHistory[state.currentEventId]) {
-            state.chatHistory[state.currentEventId] = [];
+            const historyRes = await apiGet(`/chat_history?user_id=${USER_ID}&event_name=${encodeURIComponent(state.currentEventId)}`);
+            state.chatHistory[state.currentEventId] = (historyRes && historyRes.messages) ? historyRes.messages : [];
         }
         
-        // 渲染重置@状态
         state.currentTarget = "所有参与人";
         elements.currentAtBadge.classList.add('hidden');
         renderChatControls();
         renderChat();
         
-        // 开放输入能力
         elements.chatInput.disabled = false;
         elements.chatSubmit.disabled = false;
         
@@ -236,7 +232,7 @@ function renderChatControls() {
     
     // 取消@群体模式钮
     const isAll = state.currentTarget === "所有参与人";
-    html += `<button type="button" onclick="setAtTarget('所有参与人')" class="px-3 py-1.5 rounded-full text-sm transition-all border whitespace-nowrap flex-shrink-0 tracking-wide ${isAll ? 'bg-transparent border-[#8c7a66] text-[#8c7a66]' : 'bg-transparent text-[#bcaea1] border-[#d4c3af] hover:text-[#8c7a66]'}">八王之乱...</button>`;
+    html += `<button type="button" onclick="setAtTarget('所有参与人')" class="px-3 py-1.5 rounded-full text-sm transition-all border whitespace-nowrap flex-shrink-0 tracking-wide ${isAll ? 'bg-transparent border-[#8c7a66] text-[#8c7a66]' : 'bg-transparent text-[#bcaea1] border-[#d4c3af] hover:text-[#8c7a66]'}">群聊模式</button>`;
 
     elements.charBtnsContainer.innerHTML = html;
     
@@ -301,8 +297,14 @@ function renderChat() {
     elements.chatHistoryWrapper.scrollTop = elements.chatHistoryWrapper.scrollHeight;
 }
 
-function saveChatToLocal() {
-    localStorage.setItem('traeHistoryAppChats', JSON.stringify(state.chatHistory));
+async function saveChatToServer() {
+    if (!state.currentEventId) return;
+    const messages = state.chatHistory[state.currentEventId] || [];
+    await apiPost('/chat_history', {
+        user_id: USER_ID,
+        event_name: state.currentEventId,
+        messages: messages
+    });
 }
 
 function escapeHtml(unsafe) {
@@ -335,7 +337,7 @@ async function handleUserSubmit() {
     renderChat();
     elements.chatInput.value = '';
     
-    saveChatToLocal(); // 存盘
+    saveChatToServer();
     
     try {
         // 2. 如果是群发，需不需要轮流触发（为了简化并复用小程序的单点API逻辑，我们让网页端直接分别调api即可）
@@ -392,7 +394,7 @@ async function handleUserSubmit() {
                     target: speaker
                 });
                 renderChat();
-                saveChatToLocal();
+                saveChatToServer();
             } else {
                 alert(`与 ${speaker} 的连线失败`);
             }
@@ -410,5 +412,65 @@ async function handleUserSubmit() {
     }
 }
 
+// ================= 移动端交互 =================
+function initMobile() {
+    const sidebar = document.getElementById('main-sidebar');
+    const overlay = document.getElementById('mobile-sidebar-overlay');
+    const menuBtn = document.getElementById('mobile-menu-btn');
+    const tabStory = document.getElementById('mobile-tab-story');
+    const tabChat = document.getElementById('mobile-tab-chat');
+    const storySection = document.getElementById('story-section');
+    const chatSection = document.getElementById('chat-section');
+
+    if (!menuBtn || !tabStory || !tabChat) return;
+
+    function openSidebar() {
+        sidebar.classList.add('mobile-open');
+        overlay.classList.add('mobile-open');
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('mobile-open');
+    }
+
+    menuBtn.addEventListener('click', openSidebar);
+    overlay.addEventListener('click', closeSidebar);
+
+    document.getElementById('nav-container').addEventListener('click', (e) => {
+        const link = e.target.closest('.nav-item');
+        if (link) {
+            closeSidebar();
+            switchToStory();
+        }
+    });
+
+    function switchToStory() {
+        storySection.classList.add('mobile-active');
+        chatSection.classList.remove('mobile-active');
+        tabStory.classList.add('text-[#f0c9a8]', 'border-[#c62828]');
+        tabStory.classList.remove('text-[#8c7a66]', 'border-transparent');
+        tabChat.classList.add('text-[#8c7a66]', 'border-transparent');
+        tabChat.classList.remove('text-[#f0c9a8]', 'border-[#c62828]');
+    }
+
+    function switchToChat() {
+        chatSection.classList.add('mobile-active');
+        storySection.classList.remove('mobile-active');
+        tabChat.classList.add('text-[#f0c9a8]', 'border-[#c62828]');
+        tabChat.classList.remove('text-[#8c7a66]', 'border-transparent');
+        tabStory.classList.add('text-[#8c7a66]', 'border-transparent');
+        tabStory.classList.remove('text-[#f0c9a8]', 'border-[#c62828]');
+    }
+
+    tabStory.addEventListener('click', switchToStory);
+    tabChat.addEventListener('click', switchToChat);
+
+    switchToStory();
+}
+
 // 启动入口
-window.onload = init;
+window.onload = function() {
+    init();
+    initMobile();
+};

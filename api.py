@@ -47,22 +47,20 @@ def check_rate_limit(player_id: str) -> bool:
     return True
 
 # ======== 🌟 用户隔离系统全局配置 ========
-# 请在 Render 或 .env 里配置你的小程序密钥
 WX_APP_ID = os.environ.get("WX_APP_ID", "")
 WX_APP_SECRET = os.environ.get("WX_APP_SECRET", "")
+DEV_MODE = os.environ.get("DEV_MODE", "").lower() in ("true", "1", "yes")
 
 class LoginRequest(BaseModel):
     code: str
 
 @app.post("/login")
 async def wx_login(req: LoginRequest):
-    """
-    通过前端 wx.login() 给的 code，去腾讯服务器换取 openid
-    """
     if not WX_APP_ID or not WX_APP_SECRET:
-        # 如果开发者还没配置真正的密钥，为了不卡死流程，提供一个假装成功的伪 OpenID
-        print("未配置微信 AppID/Secret，生成模拟 OpenID")
-        return {"success": True, "openid": f"mock_user_{req.code[-6:]}"}
+        if DEV_MODE:
+            print("开发模式：未配置微信 AppID/Secret，生成模拟 OpenID")
+            return {"success": True, "openid": f"mock_user_{req.code[-6:]}"}
+        return {"success": False, "msg": "服务器未配置微信登录，请联系管理员"}
 
     url = f"https://api.weixin.qq.com/sns/jscode2session?appid={WX_APP_ID}&secret={WX_APP_SECRET}&js_code={req.code}&grant_type=authorization_code"
     
@@ -310,3 +308,58 @@ async def get_events_list():
         "success": True,
         "data": events_list
     }
+
+# ======== 聊天记录服务端持久化（用户隔离） ========
+import uuid
+import re
+from pathlib import Path
+
+CHAT_DATA_DIR = Path("chat_data").resolve()
+CHAT_DATA_DIR.mkdir(exist_ok=True)
+
+USER_ID_PATTERN = re.compile(r'^[a-zA-Z0-9\-_]+$')
+
+def _safe_chat_path(user_id: str, event_name: str) -> Path:
+    if not USER_ID_PATTERN.match(user_id):
+        raise ValueError("非法用户ID")
+    if event_name not in EVENTS_DB:
+        raise ValueError("未知事件")
+    user_dir = CHAT_DATA_DIR / user_id
+    event_file = (user_dir / f"{event_name}.json").resolve()
+    if CHAT_DATA_DIR not in event_file.parents and event_file != CHAT_DATA_DIR:
+        raise ValueError("路径越界")
+    return event_file
+
+class ChatHistoryRequest(BaseModel):
+    user_id: str
+    event_name: str
+    messages: List[Dict]
+
+@app.get("/chat_history")
+async def get_chat_history(user_id: str, event_name: str):
+    try:
+        event_file = _safe_chat_path(user_id, event_name)
+    except ValueError:
+        return {"success": True, "messages": []}
+    if not event_file.exists():
+        return {"success": True, "messages": []}
+    try:
+        with open(event_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return {"success": True, "messages": data}
+    except Exception:
+        return {"success": True, "messages": []}
+
+@app.post("/chat_history")
+async def save_chat_history(request: ChatHistoryRequest):
+    try:
+        event_file = _safe_chat_path(request.user_id, request.event_name)
+    except ValueError as e:
+        return {"success": False, "error": str(e)}
+    event_file.parent.mkdir(exist_ok=True)
+    try:
+        with open(event_file, "w", encoding="utf-8") as f:
+            json.dump(request.messages, f, ensure_ascii=False, indent=2)
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
