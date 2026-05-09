@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>跨时空听证会</title>
+  
+  <!-- Tailwind CSS 核心通过 CDN 引入作为原子类工具 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- 引入自定义主题覆盖 -->
+  <link rel="stylesheet" href="/static/css/styles.css">
+  
+  <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet">
+</head>
+<body class="bg-scroll min-h-screen text-[#5d4037] antialiased overflow-x-hidden">
+  
+  <!-- 主容器：深色外框背景（模拟边缘暗影） -->
+  <div class="flex h-screen overflow-hidden bg-[#1a1412]">
+    
+    <!-- 左侧侧边栏：极黑风格底色，暗红选区 -->
+    <aside class="w-64 flex-shrink-0 bg-[#16110f] border-r-[1px] border-[#3e2c26] flex flex-col relative z-20 text-[#e8d5c4] shadow-2xl">
+      <!-- Logo 区 -->
+      <div class="p-6 pb-4 border-b border-dashed border-[#4a362f] text-center">
+        <!-- 如果你有印章Logo可以放这里，暂时用纯CSS排版模拟 -->
+        <h1 class="text-3xl font-bold text-[#f0c9a8] tracking-widest" style="font-family: 'Ma Shan Zheng', serif;">时空印证系统</h1>
+        <div class="text-[#b89a82] text-[10px] tracking-[4px] mt-1 font-sans">时 空 印 证 系 统</div>
+      </div>
+      
+      <!-- 导航抬头 -->
+      <div class="px-6 py-4 flex items-center gap-2 border-b border-[#3e2c26]/50">
+          <span class="text-sm">🏮</span>
+          <span class="text-sm font-bold tracking-widest text-[#e8c9a8]">导航与名录</span>
+      </div>
+
+      <!-- 动态目录容器 -->
+      <div id="nav-container" class="flex-1 overflow-y-auto pt-2 pb-4 space-y-2 custom-scrollbar nav-dark">
+        <!-- 目录项将通过 JS 渲染在这里 -->
+        <div class="animate-pulse flex items-center justify-center h-20 text-[#8c6753]">
+          获取机密卷宗中...
+        </div>
+      </div>
+    </aside>
+
+    <!-- 中间内容区（宣纸卷宗区） -->
+    <main class="flex-1 flex w-full relative z-10">
+      
+      <!-- 事件详情（卷宗本体） -->
+      <section class="flex-[3.5] xl:flex-[4] overflow-y-auto custom-scrollbar relative bg-paper shadow-[inset_0_0_80px_rgba(0,0,0,0.3)] border-r border-[#c2b19e]">
+        <div class="max-w-4xl mx-auto p-12 xl:p-16" id="story-container">
+          
+          <!-- 初始骨架屏/占位符 -->
+          <div id="story-splash" class="h-full flex flex-col items-center justify-center opacity-50 mt-32">
+             <h2 class="text-3xl font-bold text-[#6d1313] mb-2" style="font-family: 'Ma Shan Zheng', serif;">等待调阅卷宗</h2>
+             <p class="text-[#888]">在左侧名录中选取案件</p>
+          </div>
+
+          <!-- 真实内容将渲染到此处 -->
+          <div id="story-content" class="hidden relative">
+            <div id="manuscript-stamp" class="text-[#64523e] text-xs tracking-[5px] mb-6 font-sans font-bold uppercase"></div>
+            
+            <h1 id="story-title" class="text-3xl xl:text-[42px] font-bold text-[#5c1313] mb-3 leading-tight" style="font-family: 'Ma Shan Zheng', serif;"></h1>
+            <p class="text-[#64523e] text-sm mb-6 italic">第一版 · 历史现场档案</p>
+            
+            <!-- 大图占位，取消所有边框直接铺 -->
+            <div id="story-image-container" class="w-full h-80 xl:h-96 rounded-sm mb-6 overflow-hidden hidden shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+                <img id="story-image" src="" alt="事件画面" class="w-full h-full object-cover">
+            </div>
+
+            <!-- 元数据暗红底色框 -->
+            <div class="bg-[#1a1412]/[0.03] p-5 rounded-sm mb-8 border-l-2 border-[#5c1313] text-[#5c1313] text-sm space-y-2">
+                <div><b>🕒 发生时间：</b><span id="story-time"></span></div>
+                <div><b>📍 案发地点：</b><span id="story-location"></span></div>
+                <div><b>👥 卷宗涉案人：</b><span id="story-characters-list"></span></div>
+            </div>
+            
+            <!-- 正文区域 -->
+            <div id="story-details" class="story-prose text-[17px] leading-[2.2] pb-16 text-[#35251a]">
+                <!-- HTML 剧本正文 -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 聊天互动区（较浅色羊皮纸或者右侧偏纸质） -->
+      <section class="flex-[2] flex flex-col bg-[#e7dbce] shadow-[-10px_0_30px_rgba(0,0,0,0.15)] relative">
+        <header class="p-6 pt-10 border-b border-[#d4c3af] flex justify-between items-end backdrop-blur-sm">
+           <div>
+             <h2 class="text-2xl font-bold text-[#5c1313] flex items-center gap-2" style="font-family: 'Ma Shan Zheng', serif;">实时对话区 <span id="chat-spinner" class="hidden">...</span></h2>
+             <div class="text-[#8c7a66] text-[10px] tracking-[3px] mt-1 font-sans">交 互 与 质 询</div>
+           </div>
+           
+           <button id="btn-clear-chat" class="px-4 py-1.5 text-xs border border-[#5c1313] text-[#5c1313] rounded-full hover:bg-[#5c1313] hover:text-[#e7dbce] shadow-sm transition-colors duration-300 flex items-center gap-1">
+             <span class="font-bold">C</span> 重新开庭
+           </button>
+        </header>
+
+        <!-- 聊天记录滚动区 -->
+        <div id="chat-history-container" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+           <!-- 青铜鼎美术占位区 (CSS渲染或纯净留白) -->
+           <div class="w-full h-full flex flex-col items-center justify-center text-center text-[#8c7a66]" id="chat-empty-state">
+             <div class="w-32 h-32 mb-6 opacity-30 bg-[url('https://s3.bmp.ovh/2026/05/02/ZtZk0h59.png')] bg-contain bg-center bg-no-repeat rounded-full border border-[#8c7a66]">
+                 <!-- 这里预留您后续自行替换青铜鼎 PNG -->
+             </div>
+             <p class="font-bold text-lg mb-2 text-[#5c1313]" style="font-family: 'Ma Shan Zheng', serif;">等待提问...</p>
+             <p class="text-sm opacity-80 leading-relaxed px-4">请在下方输入您对历史事件、人物或背景<br>的任何问题，开启探索之旅。</p>
+           </div>
+           <!-- 气泡由 Javascript 渲染 -->
+        </div>
+
+        <!-- 聊天输入工具栏 -->
+        <footer class="p-4 bg-[#e7dbce] border-t border-[#d4c3af] shadow-[0_-5px_20px_rgba(0,0,0,0.05)] relative z-20">
+          <div class="mb-3 px-2 flex justify-between items-center text-xs text-[#8c7a66] font-bold">
+            <span>历史热词</span>
+            <span id="current-at-badge" class="hidden bg-[#5c1313] text-[#e7dbce] px-2 py-0.5 rounded-full"></span>
+          </div>
+          
+          <div id="character-buttons" class="flex flex-wrap gap-2 pb-2 px-2 custom-scrollbar-hide mb-3">
+            <!-- JS 渲染选项 -->
+          </div>
+
+          <form id="chat-form" class="flex gap-3 px-2 pb-2">
+            <input type="text" id="chat-input" autocomplete="off" 
+                   class="flex-1 px-4 py-3 bg-[#f5efe8] border focus:border-[#5c1313] border-[#d4c3af] rounded shadow-inner outline-none text-[#35251a] placeholder-[#bcaea1] transition-all text-sm" 
+                   placeholder="输入问题（全局对话中）..." disabled>
+            <button type="submit" id="chat-submit" disabled
+                    class="bg-[#8b2323] text-white px-6 shadow-md rounded hover:bg-[#5c1313] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm font-bold flex items-center justify-center gap-1">
+              <span>✈</span> 提问
+            </button>
+          </form>
+        </footer>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Loading 遮罩层（全局通信用） -->
+  <div id="global-loading" class="fixed inset-0 bg-[#fdf6e3]/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="text-center">
+      <div class="text-6xl animate-bounce mb-4">⚖️</div>
+      <h3 class="text-[#c62828] font-bold text-xl tracking-widest">连线时空网络...</h3>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

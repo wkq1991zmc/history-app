@@ -24,30 +24,53 @@ Page({
   },
 
   onLoad() {
-    this.fetchEventsList();
+    // 优先尝试从本地缓存加载数据，达到“秒开”体验
+    const cachedEvents = wx.getStorageSync('eventsListCache');
+    if (cachedEvents) {
+      this.setData({
+        events: cachedEvents,
+        filteredEvents: cachedEvents,
+        loading: false
+      });
+      // 后台静默刷新，不打扰用户
+      this.fetchEventsList(true);
+    } else {
+      this.fetchEventsList(false);
+    }
   },
 
-  async fetchEventsList() {
+  async fetchEventsList(silent = false) {
     try {
-      this.setData({ loading: true });
-      wx.showLoading({ title: '加载剧本中...' });
+      if (!silent) {
+        this.setData({ loading: true });
+        wx.showLoading({ title: '加载剧本中...' });
+      }
       
       const res = await util.request('/events_list');
       if (res && res.success) {
         this.setData({ 
           events: res.data,
-          filteredEvents: res.data,
+          // 如果用户已经选了朝代，不要覆盖，按照当前选的朝代重算一遍
+          filteredEvents: this.data.selectedDynasty === 'all' 
+            ? res.data 
+            : res.data.filter(event => event.dynastyId === this.data.selectedDynasty),
           loading: false
         });
+        // 将成功获取的列表持久化缓存
+        wx.setStorageSync('eventsListCache', res.data);
       }
     } catch (error) {
       console.error('加载事件列表失败:', error);
-      wx.showToast({
-        title: '加载失败',
-        icon: 'error'
-      });
+      if (!silent) {
+        wx.showToast({
+          title: '加载失败',
+          icon: 'error'
+        });
+      }
     } finally {
-      wx.hideLoading();
+      if (!silent) {
+        wx.hideLoading();
+      }
     }
   },
 

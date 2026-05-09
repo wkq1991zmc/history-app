@@ -223,7 +223,7 @@ with col_history:
     """, unsafe_allow_html=True)
 
 with col_chat:
-    st.markdown("<div style='color: #888; font-size: 14px; letter-spacing: 2px; margin-bottom: 10px;'>I N T E R A C T I O N</div>", unsafe_allow_html=True)
+    st.markdown("<div style='color: #888; font-size: 14px; letter-spacing: 2px; margin-bottom: 10px;'>交 互 与 质 询</div>", unsafe_allow_html=True)
     
     # 🆕 新增：用两列布局把标题和清空按钮放在同一行
     header_col1, header_col2 = st.columns([3, 1])

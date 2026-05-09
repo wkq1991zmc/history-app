@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Header, Depends
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 import os
@@ -7,13 +9,27 @@ import json
 import re
 import time
 from collections import defaultdict
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from load_data import EVENTS_DB 
 
 app = FastAPI()
 
+# 挂载前端静态文件目录 (这样 /static/xxx 就能访问了)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# 根路由抛出前端主页面
+@app.get("/")
+async def serve_frontend():
+    index_path = os.path.join("static", "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "找不到前端构建，请确保 static/index.html 存在"}
+
 ROUTERLINK_API_KEY = os.environ.get("ROUTERLINK_API_KEY")
-TARGET_MODEL = "world3-router-north-america/google/gemini-3.1-pro-preview"
+TARGET_MODEL = "world3-router-north-america/qwen/qwen3.6-plus" # User selected Qwen 3.6 plus via router
 BASE_URL = "https://router-link.world3.ai/api/v1/chat/completions"
 
 # ======== API 限流保护 ========

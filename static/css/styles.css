@@ -1,0 +1,142 @@
+/* 全新深黑红国风主题基调 */
+@import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;900&display=swap');
+
+body {
+    font-family: 'Noto Serif SC', 'STSong', serif;
+    background-color: #1a1412;
+}
+
+/* 模拟中间卷宗的复古纸张纹理与明暗过度 */
+.bg-paper {
+    background-color: #e3d2be;
+    background-image: 
+        radial-gradient(ellipse at center, rgba(255,255,255,0.4) 0%, rgba(0,0,0,0) 80%),
+        url('https://www.transparenttextures.com/patterns/cream-paper.png');
+}
+
+/* 标题用马山正书法体，导航用小薇体，正文用思源宋体 */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Ma Shan Zheng', 'ZCOOL XiaoWei', 'Noto Serif SC', serif !important;
+}
+
+/* 导航分类标题用小薇体 */
+.nav-dark h3 {
+    font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', serif !important;
+}
+
+/* 导航栏黑红质感定制 */
+.nav-dark::-webkit-scrollbar {
+    width: 3px;
+}
+.nav-dark::-webkit-scrollbar-thumb {
+    background: #3e2c26; 
+}
+
+/* 自定义整体滚动条风格（古铜色） */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(140, 103, 83, 0.4); 
+    border-radius: 0;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(140, 103, 83, 0.8); 
+}
+.custom-scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.custom-scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* 正文排版：模仿古书排布，去掉现代卡片阴影，用菱形标题点缀 */
+.story-prose p {
+    text-align: justify;
+    text-justify: inter-ideograph;
+    /* 覆盖掉数据源中可能带有的内联样式 */
+    margin-bottom: 1.5rem !important;
+    line-height: 2.2;
+    position: relative;
+    /* 增加段落首行缩进，更像中文排版 */
+    text-indent: 2em;
+}
+
+/* 修复加粗样式：只有单独成段的首个 <b> 才是标题，普通文本中的 <b> 只加粗不变色不带横线 */
+.story-prose b {
+    font-weight: bold;
+}
+
+/* 专门针对段落开头（或行首）的小标题样式 */
+.story-prose p > b:first-child {
+    display: block;
+    color: #5c1313;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+    margin-top: 1rem;
+    font-family: 'Ma Shan Zheng', serif;
+    border-bottom: 1px dotted rgba(92, 19, 19, 0.3);
+    padding-bottom: 0.3rem;
+    text-indent: 0; /* 标题不需要首行缩进 */
+}
+
+/* 隐藏数据源中自带的硬换行符，避免标题和正文之间空行 */
+.story-prose p > b:first-child + br {
+    display: none;
+}
+
+/* 用 CSS 伪元素画一个赤红色的复古菱形代替原始标题符号 */
+.story-prose p > b:first-child::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #8b2323;
+    transform: rotate(45deg);
+    margin-right: 12px;
+    vertical-align: middle;
+    margin-top: -2px;
+}
+
+/* 气泡样式重写（脱离色块感，融入整体背景） */
+.chat-bubble-user {
+    background: transparent !important;
+    border: 1px solid rgba(140, 103, 83, 0.3);
+    color: #35251a !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+}
+
+.chat-bubble-ai {
+    background: #fdfaf5 !important;
+    border: 1px solid rgba(92, 19, 19, 0.2) !important;
+    border-radius: 2px !important;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.02) !important;
+    color: #35251a !important;
+}
+
+/* 动画部分保持不变 */
+@keyframes fadeInSlideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.bubble-enter {
+    animation: fadeInSlideUp 0.3s ease-out forwards;
+}
+
+@keyframes ellipsis {
+  to { width: 1.25em; }
+}
+#chat-spinner.active {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    animation: ellipsis steps(4,end) 1.5s infinite;
+    content: "\2026";
+    width: 0px;
+}
