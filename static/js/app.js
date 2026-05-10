@@ -427,11 +427,13 @@ function initMobile() {
     function openSidebar() {
         sidebar.classList.add('mobile-open');
         overlay.classList.add('mobile-open');
+        document.body.style.overflow = 'hidden';
     }
 
     function closeSidebar() {
         sidebar.classList.remove('mobile-open');
         overlay.classList.remove('mobile-open');
+        document.body.style.overflow = '';
     }
 
     menuBtn.addEventListener('click', openSidebar);
