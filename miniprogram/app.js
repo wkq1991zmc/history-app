@@ -1,7 +1,6 @@
-// 本地调试模式：替换成你电脑的局域网 IP 地址
-// 查看方法：Windows 打开 cmd 输入 ipconfig，找到 IPv4 地址（如 192.168.1.100）
-// 注意：手机和电脑必须在同一 WiFi 下才能访问
-const API_BASE_URL = 'https://history-app-a766.onrender.com';
+// 本地调试：直连本机 API 服务（不走 Render）
+// 上线时改回：https://history-app-a766.onrender.com
+const API_BASE_URL = 'http://localhost:8000';
 
 App({
   globalData: {

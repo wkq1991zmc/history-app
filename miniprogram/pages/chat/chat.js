@@ -104,7 +104,7 @@ Page({
       wx.request({
         url: `${API_BASE_URL}/chat`,
         method: 'POST',
-        timeout: 60000,
+        timeout: 120000,
         header: {
           'X-WX-OPENID': app.globalData.openId || wx.getStorageSync('userOpenId') || 'unknown'
         },
@@ -157,7 +157,7 @@ Page({
           wx.request({
             url: `${API_BASE_URL}/chat`,
             method: 'POST',
-            timeout: 60000,
+            timeout: 120000,
             header: {
               'X-WX-OPENID': app.globalData.openId || wx.getStorageSync('userOpenId') || 'unknown'
             },

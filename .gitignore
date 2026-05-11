@@ -9,3 +9,6 @@ chat_data/
 node_modules/
 venv/
 .env.local
+*.log
+*.txt
+test_*.py

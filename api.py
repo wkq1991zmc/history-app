@@ -34,6 +34,7 @@ DASHSCOPE_MODEL = "qwen3.6-plus"
 dashscope_client = AsyncOpenAI(
     api_key=DASHSCOPE_API_KEY,
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+    timeout=httpx.Timeout(180.0, connect=10.0),
 )
 
 # ======== API 限流保护 ========
@@ -144,16 +145,24 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
 }}
 """
 
-        # 4. 呼叫百炼大模型
+        # 4. 呼叫百炼大模型（qwen3.6-plus 深度思考模型须流式调用）
         final_messages = [{"role": "system", "content": system_prompt}] + message_history + [{"role": "user", "content": request.message}]
         
-        completion = await dashscope_client.chat.completions.create(
+        stream = await dashscope_client.chat.completions.create(
             model=DASHSCOPE_MODEL,
             messages=final_messages,
-            timeout=120,
+            max_tokens=400,
+            stream=True,
+            extra_body={"enable_thinking": True},
         )
         
-        reply_content = completion.choices[0].message.content
+        reply_content = ""
+        async for chunk in stream:
+            if not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta
+            if delta.content:
+                reply_content += delta.content
         
         print(f"[{request.character}] 原理级返回内容:\n{reply_content}")
         
@@ -191,8 +200,13 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
 
     except Exception as e:
         import traceback
-        traceback.print_exc() # 极其重要：在日志打印出真正的奔溃行
+        tb = traceback.format_exc()
+        traceback.print_exc()
         print(f"服务端顶层拦截到未捕获错误: {e}")
+        with open("api_error.log", "a", encoding="utf-8") as ef:
+            ef.write(f"\n=== {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
+            ef.write(tb)
+            ef.write(f"\n")
         return {"reply": f"服务器开了个小差 (异常防爆网兜底)，请再发一遍~", "original_voice": "", "modern_explain": "", "character": request.character}
     
     # 🌟 新增接口：专门用于给微信小程序下发案卷故事
