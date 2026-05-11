@@ -436,7 +436,15 @@ function initMobile() {
         document.body.style.overflow = '';
     }
 
-    menuBtn.addEventListener('click', openSidebar);
+    function toggleSidebar() {
+        if (sidebar.classList.contains('mobile-open')) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
+    }
+
+    menuBtn.addEventListener('click', toggleSidebar);
     overlay.addEventListener('click', closeSidebar);
 
     document.getElementById('nav-container').addEventListener('click', (e) => {

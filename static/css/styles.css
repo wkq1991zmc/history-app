@@ -167,6 +167,7 @@ h1, h2, h3, h4, h5, h6 {
 
     #nav-container {
         overscroll-behavior: contain;
+        padding-bottom: 100px !important;
     }
 
     #mobile-sidebar-overlay.mobile-open {
