@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Dict, Optional
+from openai import AsyncOpenAI
 import os
 import httpx
 import json
@@ -28,9 +29,12 @@ async def serve_frontend():
         return FileResponse(index_path)
     return {"message": "找不到前端构建，请确保 static/index.html 存在"}
 
-ROUTERLINK_API_KEY = os.environ.get("ROUTERLINK_API_KEY")
-TARGET_MODEL = "world3-router-north-america/qwen/qwen3.6-plus" # User selected Qwen 3.6 plus via router
-BASE_URL = "https://router-link.world3.ai/api/v1/chat/completions"
+DASHSCOPE_API_KEY = os.environ.get("DASHSCOPE_API_KEY", "")
+DASHSCOPE_MODEL = "qwen3.6-plus"
+dashscope_client = AsyncOpenAI(
+    api_key=DASHSCOPE_API_KEY,
+    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+)
 
 # ======== API 限流保护 ========
 rate_limit_store = defaultdict(list)
@@ -140,29 +144,16 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
 }}
 """
 
-        # 4. 呼叫大模型 (放弃易碎的 OpenAI SDK，改用原生 HTTP 适配一切刁钻模型)
-        headers = {
-            "Authorization": f"Bearer {ROUTERLINK_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        
-        # 将 system prompt 和 历史记忆拼在一起传给大模型！
+        # 4. 呼叫百炼大模型
         final_messages = [{"role": "system", "content": system_prompt}] + message_history + [{"role": "user", "content": request.message}]
         
-        payload = {
-            "model": TARGET_MODEL,
-            "messages": final_messages
-        }
+        completion = await dashscope_client.chat.completions.create(
+            model=DASHSCOPE_MODEL,
+            messages=final_messages,
+            timeout=120,
+        )
         
-        async with httpx.AsyncClient(timeout=60.0) as fetch_client:
-            resp = await fetch_client.post(BASE_URL, headers=headers, json=payload)
-            
-        if resp.status_code != 200:
-            print(f"RouterLink 接口报错 {resp.status_code}: {resp.text}")
-            return {"reply": f"时空信号异常 (HTTP {resp.status_code})。请稍后再试。", "original_voice": "", "modern_explain": "", "character": request.character}
-            
-        result_data = resp.json()
-        reply_content = result_data['choices'][0]['message']['content']
+        reply_content = completion.choices[0].message.content
         
         print(f"[{request.character}] 原理级返回内容:\n{reply_content}")
         
