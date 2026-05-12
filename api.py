@@ -37,7 +37,7 @@ dashscope_client = AsyncOpenAI(
 )
 
 GEMINI_API_KEY = os.environ.get("DASHSCOPE_API_KEY")
-GEMINI_MODEL = os.environ.get("WEB_MODEL", "qwen-turbo") # 默认换成qwen的
+GEMINI_MODEL = os.environ.get("WEB_MODEL", "qwen3.6-plus") # 默认换成qwen的
 gemini_client = AsyncOpenAI(
     api_key=GEMINI_API_KEY,
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
