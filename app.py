@@ -35,8 +35,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-MY_API_KEY = os.environ.get("DASHSCOPE_API_KEY", "")
-TARGET_MODEL = os.environ.get("WEB_MODEL", "qwen-3.6-flash")
+MY_API_KEY = os.environ.get("DASHSCOPE_API_KEY")
+TARGET_MODEL = os.environ.get("WEB_MODEL", "qwen-turbo")
 BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
 
 # ==========================================
