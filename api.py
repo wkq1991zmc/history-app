@@ -28,16 +28,16 @@ async def serve_frontend():
         return FileResponse(index_path)
     return {"message": "找不到前端构建，请确保 static/index.html 存在"}
 
-DASHSCOPE_API_KEY = os.environ.get("DASHSCOPE_API_KEY", "")
-DASHSCOPE_MODEL = os.environ.get("MINIPROGRAM_MODEL", "qwen3.6-flash")
+DASHSCOPE_API_KEY = os.environ.get("DASHSCOPE_API_KEY")
+DASHSCOPE_MODEL = os.environ.get("MINIPROGRAM_MODEL", "qwen-turbo")
 dashscope_client = AsyncOpenAI(
     api_key=DASHSCOPE_API_KEY,
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
     timeout=httpx.Timeout(180.0, connect=10.0),
 )
 
-GEMINI_API_KEY = os.environ.get("DASHSCOPE_API_KEY", "")
-GEMINI_MODEL = os.environ.get("WEB_MODEL", "qwen-3.6-flash") # 默认换成qwen的
+GEMINI_API_KEY = os.environ.get("DASHSCOPE_API_KEY")
+GEMINI_MODEL = os.environ.get("WEB_MODEL", "qwen-turbo") # 默认换成qwen的
 gemini_client = AsyncOpenAI(
     api_key=GEMINI_API_KEY,
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",

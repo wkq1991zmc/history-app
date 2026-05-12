@@ -63,6 +63,10 @@ async function apiPost(endpoint, data) {
             headers: { 'Content-Type': 'application/json', 'X-CLIENT-ID': USER_ID },
             body: JSON.stringify(data)
         });
+        if (!res.ok) {
+            console.error('API POST HTTP Error:', res.status, res.statusText);
+            throw new Error(`HTTP ${res.status}`);
+        }
         return await res.json();
     } catch (e) {
         console.error('API POST Error:', e);
