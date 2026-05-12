@@ -1,5 +1,4 @@
-// 本地调试模式：与 app.js 保持一致
-const API_BASE_URL = 'https://history-app-a766.onrender.com';
+const { API_BASE_URL } = require('../config.js');
 
 function request(url, method = 'GET', data = {}) {
   return new Promise((resolve, reject) => {

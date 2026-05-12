@@ -1,6 +1,4 @@
-// 本地调试：直连本机 API 服务（不走 Render）
-// 上线时改回：https://history-app-a766.onrender.com
-const API_BASE_URL = 'http://localhost:8000';
+const { API_BASE_URL } = require('./config.js');
 
 App({
   globalData: {
@@ -50,6 +48,9 @@ App({
             }
           });
         }
+      },
+      fail: (err) => {
+        console.error('微信登录静默获取 code 失败:', err);
       }
     });
   },

@@ -10,6 +10,7 @@ import json
 import re
 import time
 from collections import defaultdict
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,10 +19,8 @@ from load_data import EVENTS_DB
 
 app = FastAPI()
 
-# 挂载前端静态文件目录 (这样 /static/xxx 就能访问了)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# 根路由抛出前端主页面
 @app.get("/")
 async def serve_frontend():
     index_path = os.path.join("static", "index.html")
@@ -30,9 +29,17 @@ async def serve_frontend():
     return {"message": "找不到前端构建，请确保 static/index.html 存在"}
 
 DASHSCOPE_API_KEY = os.environ.get("DASHSCOPE_API_KEY", "")
-DASHSCOPE_MODEL = "qwen3.6-plus"
+DASHSCOPE_MODEL = os.environ.get("MINIPROGRAM_MODEL", "qwen3.6-flash")
 dashscope_client = AsyncOpenAI(
     api_key=DASHSCOPE_API_KEY,
+    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+    timeout=httpx.Timeout(180.0, connect=10.0),
+)
+
+GEMINI_API_KEY = os.environ.get("DASHSCOPE_API_KEY", "")
+GEMINI_MODEL = os.environ.get("WEB_MODEL", "qwen-3.6-flash") # 默认换成qwen的
+gemini_client = AsyncOpenAI(
+    api_key=GEMINI_API_KEY,
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
     timeout=httpx.Timeout(180.0, connect=10.0),
 )
@@ -80,119 +87,185 @@ async def wx_login(req: LoginRequest):
         except Exception as e:
             return {"success": False, "msg": str(e)}
 
-# 🌟 核心升级：重新定义微信发过来的“快递盒”格式
+def _extract_json_fields(raw_text: str):
+    clean = raw_text.strip()
+    fence_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', clean, re.DOTALL)
+    if fence_match:
+        clean = fence_match.group(1).strip()
+    brace_match = re.search(r'\{.*\}', clean, re.DOTALL)
+    if brace_match:
+        clean = brace_match.group(0)
+
+    try:
+        parsed = json.loads(clean)
+        ov = parsed.get("original_voice") or parsed.get("originalVoice") or ""
+        me = parsed.get("modern_explain") or parsed.get("modernExplain") or ""
+        return ov.replace("\\n", "\n").replace("\\t", "\t"), me.replace("\\n", "\n").replace("\\t", "\t")
+    except json.JSONDecodeError:
+        pass
+
+    fixed_chars = []
+    in_str = False
+    esc = False
+    for ch in clean:
+        if esc:
+            fixed_chars.append(ch)
+            esc = False
+            continue
+        if ch == '\\' and in_str:
+            fixed_chars.append(ch)
+            esc = True
+            continue
+        if ch == '"':
+            in_str = not in_str
+            fixed_chars.append(ch)
+            continue
+        if in_str and ch == '\n':
+            fixed_chars.append('\\n')
+            continue
+        if in_str and ch == '\r':
+            continue
+        if in_str and ch == '\t':
+            fixed_chars.append('\\t')
+            continue
+        fixed_chars.append(ch)
+
+    try:
+        parsed = json.loads(''.join(fixed_chars))
+        ov = parsed.get("original_voice") or parsed.get("originalVoice") or ""
+        me = parsed.get("modern_explain") or parsed.get("modernExplain") or ""
+        return ov.replace("\\n", "\n").replace("\\t", "\t"), me.replace("\\n", "\n").replace("\\t", "\t")
+    except json.JSONDecodeError:
+        pass
+
+    def _extract_field(text, field_name):
+        parts = re.split(r'"' + field_name + r'"\s*:\s*"', text, 1)
+        if len(parts) < 2:
+            return ""
+        rest = parts[1]
+        
+        # 匹配到非转义的引号作为字符串结束
+        # 由于我们只想非贪婪地匹配到第一个非转义的引号且后面跟着逗号或大括号
+        end_match = re.search(r'^(.*?)(?<!\\)"\s*[,}]', rest, re.DOTALL)
+        if end_match:
+            return end_match.group(1)
+        return rest.rstrip('" \t\n\r}')
+
+    ov_text = _extract_field(clean, r'(?:original_voice|originalVoice)') or raw_text
+    me_text = _extract_field(clean, r'(?:modern_explain|modernExplain)')
+    if not me_text:
+        me_text = ov_text
+    ov_text = ov_text.replace("\\n", "\n").replace("\\t", "\t")
+    me_text = me_text.replace("\\n", "\n").replace("\\t", "\t")
+    return ov_text, me_text
+
+
 class ChatRequest(BaseModel):
     event_name: str      # 微信告诉我们当前在哪个案子 (例如: "三国·赤壁之战")
     character: str       # 微信告诉我们当前在审问谁 (例如: "曹操")
     message: str         # 微信发来的最新质问
     history: List[Dict]  # 🌟 微信传过来的历史聊天记录（给 AI 记忆！）
 
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "event_name": "三国·赤壁之战",
+                "character": "曹操",
+                "message": "你为何要南下？",
+                "history": []
+            }
+        }
+
+    def validate_inputs(self):
+        if len(self.message) > 500:
+            raise ValueError("消息过长，请控制在500字以内")
+        if len(self.history) > 20:
+            raise ValueError("历史记录过多，请清空后重试")
+        for msg in self.history:
+            if isinstance(msg, dict) and len(str(msg.get("content", ""))) > 1000:
+                raise ValueError("历史记录中存在过长消息")
+
 @app.post("/chat")
-async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None, alias="X-WX-OPENID")):
+async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None, alias="X-WX-OPENID"), x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
     try:
-        player_id = x_wx_openid if x_wx_openid else "unknown_player"
+        player_id = x_wx_openid if x_wx_openid else (x_client_id if x_client_id else "unknown_player")
+        is_miniprogram = bool(x_wx_openid and x_wx_openid.strip())
         
         if not check_rate_limit(player_id):
             return {"reply": "发言太快了，请稍等片刻再问。", "original_voice": "", "modern_explain": "", "character": request.character}
         
-        print(f"\n=== 收到微信提审请求 ===")
+        client_type = "小程序" if is_miniprogram else "网页"
+        print(f"\n=== 收到提审请求 [{client_type}] ===")
         print(f"玩家: {player_id} | 案件: {request.event_name} | 被告: {request.character}")
         
-        # 1. 从剧本库中提取该案件的专属设定
         event_data = EVENTS_DB.get(request.event_name, {})
-        ai_notes = event_data.get('ai_notes', '')
-        dynamic_prompt = event_data.get('dynamic_prompt', '请用符合历史人物性格的半文半白语气回答。')
+        raw_notes = event_data.get('ai_notes', '')
+        char_note = ""
+        for line in raw_notes.split('\n'):
+            if request.character in line:
+                char_note = raw_notes
+                break
 
-        # 2. 组装历史记忆 (把微信传来的 history 翻译给大模型听)
-        history_text = ""
-        # 新增：直接构造大模型的 payload array 让每次他都知道前文！
+        system_prompt = f"""你是【{request.character}】，正在时空法庭辩论。事件：{request.event_name}。
+原则：只据正史，不用野史小说，不知即说不知。以第一人称、半文半白回答。
+
+{char_note}
+
+{event_data.get('dynamic_prompt', '')}
+
+你必须返回纯JSON格式，包含以下两个字段：
+1. original_voice：你的文言回答（半文半白风格）
+2. modern_explain：将你的文言回答翻译成现代白话文（必须提供，不能为空）
+
+重要规则：
+- JSON值内部绝对不允许出现双引号「"」，请使用「」替代
+- 例如：要说「强干弱枝」而不能说"强干弱枝"
+- JSON值内可以有\\n表示换行
+
+示例格式：
+{{"original_voice":"吾乃曹操\\n今日在此与诸位辩论。","modern_explain":"我是曹操，今天在这里和大家辩论。"}}"""
+
         message_history = []
-        for m in request.history[-10:]:  # 只取最近10条，省钱且防遗忘
+        for m in request.history[-6:]:
             if not isinstance(m, dict):
                 continue
-            role_type = m.get("role", "user")
             content_text = m.get("content", "")
-            # 为了严谨也填入原生 message history 中发给模型！
-            message_history.append({"role": "user" if role_type == "user" else "assistant", "content": content_text})
-            
-            role_name = "【法官(我)】" if role_type == "user" else f"【{m.get('target', 'AI')}】"
-            history_text += f"{role_name}: {content_text}\n"
+            message_history.append({"role": "user" if m.get("role") == "user" else "assistant", "content": content_text})
 
-        # 3. 融合生成终极 System Prompt
-        system_prompt = f"""# 角色设定
-你是【{request.character}】，正在参与一场时空法庭辩论。当前事件：{request.event_name}。
-
-# 核心原则（必须严格遵守）
-1. 【史实红线】你所说的一切必须严格基于正史记载（《史记》《汉书》《三国志》《资治通鉴》等），绝不使用小说、野史、民间传说内容。
-2. 【不知即不知】如果你不知道某件事的正史记载，直接说"此事史书无载，吾不知也"，绝不可编造。
-3. 【角色代入】你必须完全以【{request.character}】的第一人称视角回答，带入该人物的性格、立场、处境和心机。
-4. 【语气要求】使用半文半白的语言风格，符合该历史人物的身份和时代背景。
-
-# 事件背景资料
-{ai_notes}
-
-# 语气基调
-{dynamic_prompt}
-
-# 最新案件问答文本参考
-{history_text}
-
-# 输出格式（必须严格遵守）
-你必须且只能按以下 JSON 格式返回，不要包含任何多余字母：
-{{
-  "original_voice": "此处半文半白的语言",
-  "modern_explain": "此处现代大白话"
-}}
-"""
-
-        # 4. 呼叫百炼大模型（qwen3.6-plus 深度思考模型须流式调用）
         final_messages = [{"role": "system", "content": system_prompt}] + message_history + [{"role": "user", "content": request.message}]
         
-        stream = await dashscope_client.chat.completions.create(
-            model=DASHSCOPE_MODEL,
-            messages=final_messages,
-            max_tokens=400,
-            stream=True,
-            extra_body={"enable_thinking": True},
-        )
-        
-        reply_content = ""
-        async for chunk in stream:
-            if not chunk.choices:
-                continue
-            delta = chunk.choices[0].delta
-            if delta.content:
-                reply_content += delta.content
+        if is_miniprogram:
+            stream = await dashscope_client.chat.completions.create(
+                model=DASHSCOPE_MODEL,
+                messages=final_messages,
+                max_tokens=2000,
+                temperature=0.7,
+                stream=True,
+            )
+            reply_content = ""
+            async for chunk in stream:
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta
+                if delta.content:
+                    reply_content += delta.content
+        else:
+            resp = await gemini_client.chat.completions.create(
+                model=GEMINI_MODEL,
+                messages=final_messages,
+                max_tokens=2000,
+                temperature=0.7,
+            )
+            reply_content = resp.choices[0].message.content
         
         print(f"[{request.character}] 原理级返回内容:\n{reply_content}")
         
-        import json
-        import re
-        
-        # 尝试清理可能被某些模型多此一举包上的 ```json ``` markdown 代码块
-        # 并从中剥出干净的 {} 内容
-        raw_content = reply_content.strip()
-        match = re.search(r'\{.*\}', raw_content, re.DOTALL)
-        if match:
-            clean_json_str = match.group(0)
-        else:
-            clean_json_str = raw_content
-
-        try:
-            parsed_reply = json.loads(clean_json_str)
-            original_voice = parsed_reply.get("original_voice", reply_content)
-            modern_explain = parsed_reply.get("modern_explain", "")
-        except json.JSONDecodeError:
-            # 如果大模型抽风没有返回标准JSON的兜底
-            print("警告: 返回不是标准 JSON, 尝试兜底解析")
-            original_voice = reply_content
-            modern_explain = ""
+        original_voice, modern_explain = _extract_json_fields(reply_content)
 
         print(f"[{request.character}] 辩护完毕。")
         
-        # 5. 打包寄回给微信
         return {
-            "reply": original_voice, # 现在主内容只返回原声，方便老代码兼容
+            "reply": original_voice,
             "original_voice": original_voice.strip(),
             "modern_explain": modern_explain.strip(),
             "character": request.character
@@ -246,18 +319,15 @@ async def get_events_list():
         time_str = data.get('time', '')
         year = ''
         if '公元前' in time_str:
-            import re
             match = re.search(r'公元前(\d+)-?(\d+)?年', time_str)
             if match:
                 year = f"前{match.group(1)}年"
         elif '公元' in time_str:
-            import re
             match = re.search(r'公元(\d+)-?(\d+)?年', time_str)
             if match:
                 year = f"{match.group(1)}年"
                 
         story = data.get('story', '')
-        import re
         desc = re.sub(r'<[^>]+>', '', story)
         desc = desc[:50] + '...' if len(desc) > 50 else desc
 
@@ -287,9 +357,8 @@ async def get_events_list():
         
     # === 开始：添加按时间点智能排序的算法 ===
     def get_sort_weight(year_str):
-        if not year_str: # 如果解析失败的垫底
+        if not year_str:
             return 9999
-        import re
         weight = 0
         # 寻找连续的数字
         match = re.search(r'\d+', year_str)
@@ -315,9 +384,6 @@ async def get_events_list():
     }
 
 # ======== 聊天记录服务端持久化（用户隔离） ========
-import uuid
-import re
-from pathlib import Path
 
 CHAT_DATA_DIR = Path("chat_data").resolve()
 CHAT_DATA_DIR.mkdir(exist_ok=True)

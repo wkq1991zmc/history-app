@@ -60,7 +60,7 @@ async function apiPost(endpoint, data) {
     try {
         const res = await fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CLIENT-ID': USER_ID },
             body: JSON.stringify(data)
         });
         return await res.json();

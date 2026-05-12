@@ -176,7 +176,9 @@ Page({
       [key]: !this.data.messages[index].showTranslation
     });
     this.saveChatHistory();
-  },onClearTarget() {
+  },
+
+  onClearTarget() {
     this.setData({ selectedCharacter: '' });
   },
 
@@ -273,8 +275,9 @@ Page({
       id: Date.now(),
       role: 'assistant',
       content: res.data.reply,
-      original_voice: res.data.original_voice || '',
-      modern_explain: res.data.modern_explain || '',
+      original_voice: (res.data.original_voice || '').replace(/\n/g, '<br>'),
+      modern_explain: (res.data.modern_explain || '').replace(/\n/g, '<br>'),
+      showTranslation: false,
       target: res.data.character
     };
 
@@ -294,10 +297,7 @@ Page({
     
     let currentMessages = [...this.data.messages];
     
-    // 增加一个辅助函数用来延时缓冲，防止并发击穿 API 限流导致 500
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-    
-    for (const speaker of characters) {
+    const chatPromises = characters.map(async (speaker) => {
       const history = currentMessages.slice(-10).map(msg => ({
         role: msg.role,
         content: msg.content || msg.original_voice || msg.modern_explain || '...',
@@ -334,29 +334,28 @@ Page({
           id: Date.now() + Math.random(),
           role: 'assistant',
           content: res.data.original_voice || res.data.reply || '',
-          original_voice: res.data.original_voice || res.data.reply || '',
-          modern_explain: res.data.modern_explain || '',
-          showTranslation: false, // 默认收起
+          original_voice: (res.data.original_voice || res.data.reply || '').replace(/\n/g, '<br>'),
+          modern_explain: (res.data.modern_explain || '').replace(/\n/g, '<br>'),
+          showTranslation: false,
           target: res.data.character || speaker
         };
 
         currentMessages = [...currentMessages, assistantMessage];
         this.setData({
-          messages: currentMessages,
+          messages: [...currentMessages],
           scrollToViewId: `msg-${assistantMessage.id}`
         });
         
         this.saveChatHistory();
         
-        // 每次该人物发言完毕让程序休息 1.5 秒，模拟打字且缓冲并发
-        await sleep(1500);
-        
+        return assistantMessage;
       } catch (error) {
         console.error(`${speaker} 发言失败或导致 500:`, error);
-        // 如果某个人物接口报错，不要中断所有，跳过继续让后面的人说
-        continue;
+        return null;
       }
-    }
+    });
+    
+    await Promise.all(chatPromises);
     
     this.setData({ loading: false });
   }

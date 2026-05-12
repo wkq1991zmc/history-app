@@ -84,7 +84,7 @@
             <view class="bubble-header" style="display:flex; justify-content:space-between; align-items:center;">
               <text class="chat-sender" wx:if="{{item.role === 'assistant'}}">{{item.target}}</text>
               <!-- 译文开关 -->
-              <view wx:if="{{item.modern_explain}}" 
+              <view wx:if="{{item.original_voice}}" 
                     class="translate-btn {{item.showTranslation ? 'active' : ''}}" 
                     bindtap="onToggleTranslation" 
                     data-index="{{index}}">
@@ -97,9 +97,9 @@
               <rich-text class="chat-text" nodes="{{item.original_voice}}"></rich-text>
             </view>
             
-            <!-- 白话解读（翻译后替换显示） -->
-            <view class="modern-explanation" wx:if="{{item.role === 'assistant' && item.modern_explain && item.showTranslation}}">
-              <rich-text class="chat-text" nodes="{{item.modern_explain}}"></rich-text>
+            <!-- 白话解读（翻译后显示，如果没有白话解释则显示原文） -->
+            <view class="modern-explanation" wx:if="{{item.role === 'assistant' && item.showTranslation}}">
+              <rich-text class="chat-text" nodes="{{item.modern_explain || item.original_voice}}"></rich-text>
             </view>
             
             <!-- 兼容旧数据 -->

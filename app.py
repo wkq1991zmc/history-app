@@ -29,11 +29,15 @@ def save_all_history(data):
 st.set_page_config(page_title="跨时空听证会 3.0", page_icon="⚖️", layout="wide")
 
 # ==========================================
-# 🔑 你的火山引擎（豆包）配置
+# 🔑 大模型配置
 # ==========================================
-MY_API_KEY = st.secrets["ROUTERLINK_API_KEY"]
-TARGET_MODEL = "world3-router-north-america/google/gemini-3.1-pro-preview"
-BASE_URL = "https://router-link.world3.ai/api/v1/chat/completions"
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+MY_API_KEY = os.environ.get("DASHSCOPE_API_KEY", "")
+TARGET_MODEL = os.environ.get("WEB_MODEL", "qwen-3.6-flash")
+BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
 
 # ==========================================
 # 📊 初始化核心状态 (架构升级：引入永久记忆)

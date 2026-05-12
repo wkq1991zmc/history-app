@@ -123,7 +123,8 @@ Page({
       id: Date.now(),
       role: 'assistant',
       content: res.data.original_voice || res.data.reply, // 优先用剥离干净的原声
-      modern_explain: res.data.modern_explain || '',      // 存入白话解读
+      original_voice: (res.data.original_voice || res.data.reply || '').replace(/\n/g, '<br>'),
+      modern_explain: (res.data.modern_explain || '').replace(/\n/g, '<br>'),
       showTranslation: false,                             // 默认闭合状态
       target: res.data.character
     };
@@ -140,12 +141,16 @@ Page({
 
   async sendGroupChat() {
     const { eventId, messages, currentEvent } = this.data;
+    if (!currentEvent || !currentEvent.characters || currentEvent.characters.length === 0) {
+      wx.showToast({ title: '未找到事件人物信息', icon: 'error' });
+      this.setData({ loading: false });
+      return;
+    }
     const characters = currentEvent.characters;
     
     let currentMessages = [...this.data.messages];
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
     
-    for (const speaker of characters) {
+    const chatPromises = characters.map(async (speaker) => {
       const history = currentMessages.slice(-10).map(msg => ({
         role: msg.role,
         content: msg.content,
@@ -183,18 +188,20 @@ Page({
 
         currentMessages = [...currentMessages, assistantMessage];
         this.setData({
-          messages: currentMessages,
+          messages: [...currentMessages],
           scrollToViewId: `msg-${assistantMessage.id}`
         });
         
         this.saveChatHistory();
         
-        await sleep(1500);
+        return assistantMessage;
       } catch (error) {
         console.error(`${speaker} 发言失败`, error);
-        continue;
+        return null;
       }
-    }
+    });
+    
+    await Promise.all(chatPromises);
     
     this.setData({ loading: false });
   },
