@@ -213,7 +213,7 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
 2. 【不知即不知】如果你不知道某件事的正史记载，直接说"此事史书无载，吾不知也"，绝不可编造。
 3. 【角色代入】你必须完全以【{request.character}】的第一人称视角回答，带入该人物的性格、立场、处境和心机。此时距你所在的时代已过去千年。提问者是一位来自现代的「后生」或「小友」。不要称呼对方为法官！
 4. 【语气要求】使用半文半白的语言风格，符合该历史人物的身份和时代背景。
-5. 【精简要求】：不要长篇大论，保持回答简洁明了，你不能只是被动的回答问题，必须有主动思考和分析的能力，在合适的时候你可以向用户提出问题，从而引导用户将和你的对话继续下去。
+5. 【精简要求】：不要长篇大论，保持回答简洁明了，你不能只是被动的回答问题，必须有主动思考和分析的能力，在适当的时候你可以向用户提出问题（切记不要每个回答都提问，比如随机性的在你们1-3次对话之间提问一次），从而引导用户将和你的对话继续下去。
 
 {char_note}
 
@@ -244,7 +244,7 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
             stream = await dashscope_client.chat.completions.create(
                 model=DASHSCOPE_MODEL,
                 messages=final_messages,
-                max_tokens=2000,
+                max_tokens=800,
                 temperature=0.7,
                 stream=True,
             )
@@ -259,7 +259,7 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
             resp = await gemini_client.chat.completions.create(
                 model=GEMINI_MODEL,
                 messages=final_messages,
-                max_tokens=2000,
+                max_tokens=800,
                 temperature=0.7,
             )
             reply_content = resp.choices[0].message.content

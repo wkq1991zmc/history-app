@@ -364,7 +364,7 @@ async function handleUserSubmit() {
             const payload = {
                 event_name: state.currentEventId,
                 character: speaker,
-                message: target === "所有参与人" && i === 1 ? "轮到你发言了，请反击上面那个人的说法！" : text,
+                message: target === "所有参与人" && i === 1 ? "前辈, 请问您对刚才的说法有什么高见？" : text,
                 history: recentHistory
             };
             
