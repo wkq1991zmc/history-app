@@ -350,7 +350,7 @@ async function handleUserSubmit() {
         let responsers = [];
         if(target === "所有参与人" && state.currentEventData.characters.length > 0) {
             // 取前两个重要当事人接招
-            responsers = state.currentEventData.characters.slice(0, 2);
+            responsers = state.currentEventData.characters;
         } else {
             responsers = [target];
         }
@@ -364,7 +364,7 @@ async function handleUserSubmit() {
             const payload = {
                 event_name: state.currentEventId,
                 character: speaker,
-                message: target === "所有参与人" && i === 1 ? "前辈, 请问您对刚才的说法有什么高见？" : text,
+                message: target === "所有参与人" && i > 0 ? "前辈, 请问您对刚才的说法有什么高见？" : text,
                 history: recentHistory
             };
             
