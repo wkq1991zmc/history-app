@@ -100,7 +100,7 @@ async function init() {
 
     elements.btnClear.addEventListener('click', () => {
         if(!state.currentEventId) return;
-        if(confirm(`确定要销毁【${state.currentEventId}】的所有档案记录并重新开庭吗？`)) {
+        if(confirm(`确定要销毁【${state.currentEventId}】的所有档案记录并重新访谈吗？`)) {
             state.chatHistory[state.currentEventId] = [];
             saveChatToServer();
             renderChat();
@@ -275,7 +275,7 @@ function renderChat() {
         if(msg.role === 'user') {
             html += `
             <div class="flex flex-col items-end mb-4 bubble-enter pr-2">
-                <span class="text-[10px] text-[#8c7a66] mb-1 uppercase tracking-widest">法官 (我)</span>
+                <span class="text-[10px] text-[#8c7a66] mb-1 uppercase tracking-widest">后生 (我)</span>
                 <div class="chat-bubble-user px-5 py-3 border border-[#8c7a66]/30 text-[#35251a] rounded max-w-[85%] whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.content)}</div>
             </div>`;
         } else {
@@ -406,7 +406,7 @@ async function handleUserSubmit() {
         
     } catch (e) {
         console.error("对话异常", e);
-        alert("法庭秩序混乱，请重试！");
+        alert("访谈信号混乱，请重试！");
     } finally {
         elements.chatInput.disabled = false;
         elements.chatSubmit.disabled = false;
