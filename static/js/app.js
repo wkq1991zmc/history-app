@@ -62,6 +62,8 @@ Object.assign(elements, {
     guessUserPerson: document.getElementById('guess-user-person'),
     guessStartBtn: document.getElementById('guess-start-btn'),
     guessResetBtn: document.getElementById('guess-reset-btn'),
+    guessRevealBtn: document.getElementById('guess-reveal-btn'),
+    guessMyPerson: document.getElementById('guess-my-person'),
     guessStatus: document.getElementById('guess-status'),
     guessLog: document.getElementById('guess-log'),
     guessInput: document.getElementById('guess-input'),
@@ -171,6 +173,7 @@ async function init() {
 
     elements.guessStartBtn.addEventListener('click', startGuessGame);
     elements.guessResetBtn.addEventListener('click', resetGuessGame);
+    elements.guessRevealBtn.addEventListener('click', revealGuessGameAnswer);
     elements.guessAskBtn.addEventListener('click', askGuessGameQuestion);
     elements.guessGuessBtn.addEventListener('click', guessAiPerson);
     elements.guessUserAnswer.addEventListener('click', handleUserYesNoAnswer);
@@ -374,6 +377,11 @@ function resetGuessGame() {
     elements.guessPlay.classList.add('hidden');
     elements.guessLog.innerHTML = '';
     elements.guessInput.value = '';
+    elements.guessMyPerson.textContent = '你的人物：未设定';
+    elements.guessRevealBtn.disabled = false;
+    elements.guessInput.disabled = false;
+    elements.guessAskBtn.disabled = false;
+    elements.guessGuessBtn.disabled = false;
     elements.guessUserAnswer.classList.add('hidden');
 }
 
@@ -399,7 +407,32 @@ async function startGuessGame() {
     elements.guessPlay.classList.remove('hidden');
     elements.guessLog.innerHTML = '';
     elements.guessStatus.textContent = res.message;
+    elements.guessMyPerson.textContent = `你的人物：${person}`;
+    elements.guessRevealBtn.disabled = false;
+    elements.guessInput.disabled = false;
+    elements.guessAskBtn.disabled = false;
+    elements.guessGuessBtn.disabled = false;
     appendGuessLog('system', `你的人物已锁定。AI 的人物也已锁定。`);
+}
+
+async function revealGuessGameAnswer() {
+    if (!state.guessGame.sessionId || state.guessGame.ended) return;
+    if (!confirm("确定要揭晓 AI 的人物并结束本轮吗？")) return;
+    const res = await apiPost('/guess_game/reveal', {
+        session_id: state.guessGame.sessionId
+    });
+    if (!res || !res.success) {
+        alert("揭晓失败，请重试。");
+        return;
+    }
+    state.guessGame.ended = true;
+    elements.guessStatus.textContent = `AI 的人物是 ${res.answer}。本轮已结束。`;
+    appendGuessLog('system', res.message);
+    elements.guessUserAnswer.classList.add('hidden');
+    elements.guessRevealBtn.disabled = true;
+    elements.guessInput.disabled = true;
+    elements.guessAskBtn.disabled = true;
+    elements.guessGuessBtn.disabled = true;
 }
 
 async function askGuessGameQuestion() {
@@ -413,6 +446,11 @@ async function askGuessGameQuestion() {
     });
     if (!res || !res.success) {
         alert("AI 回答失败，请重试。");
+        return;
+    }
+    if (res.valid === false) {
+        appendGuessLog('system', res.answer);
+        elements.guessStatus.textContent = "这次不算回合。请换成是/不是问题，或直接点击“猜答案”。";
         return;
     }
     appendGuessLog('ai', `AI 答：${res.answer}`);
@@ -437,6 +475,10 @@ async function guessAiPerson() {
     if (res.correct) {
         state.guessGame.ended = true;
         elements.guessStatus.textContent = `你猜中了，AI 的人物是 ${res.answer}。`;
+        elements.guessRevealBtn.disabled = true;
+        elements.guessInput.disabled = true;
+        elements.guessAskBtn.disabled = true;
+        elements.guessGuessBtn.disabled = true;
         return;
     }
     state.guessGame.transcript.push({ side: 'user_guess', text: guess, answer: '不是' });
@@ -478,6 +520,10 @@ function handleUserYesNoAnswer(e) {
             state.guessGame.ended = true;
             elements.guessStatus.textContent = `AI 猜中了，你的人物是 ${state.guessGame.userPerson}。`;
             appendGuessLog('system', `本轮结束：AI 猜中了。`);
+            elements.guessRevealBtn.disabled = true;
+            elements.guessInput.disabled = true;
+            elements.guessAskBtn.disabled = true;
+            elements.guessGuessBtn.disabled = true;
         } else {
             elements.guessStatus.textContent = "轮到你继续提问或猜答案。";
         }

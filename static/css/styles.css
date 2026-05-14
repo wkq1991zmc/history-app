@@ -274,6 +274,25 @@ h1, h2, h3, h4, h5, h6 {
     gap: 1rem;
 }
 
+.game-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.guess-my-person {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(140, 122, 102, 0.35);
+    background: rgba(253, 250, 245, 0.58);
+    color: #5c1313;
+    font-size: 0.86rem;
+    font-weight: 800;
+    padding: 0.35rem 0.6rem;
+    margin: 0.15rem 0 0.45rem;
+}
+
 .guess-log {
     min-height: 18rem;
     max-height: 26rem;
@@ -316,6 +335,12 @@ h1, h2, h3, h4, h5, h6 {
     gap: 0.6rem;
     justify-content: center;
     margin-bottom: 0.8rem;
+}
+
+.game-panel button:disabled,
+.guess-input-row input:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 /* 气泡样式重写（脱离色块感，融入整体背景） */
@@ -471,6 +496,14 @@ h1, h2, h3, h4, h5, h6 {
     .game-setup-row,
     .guess-input-row {
         grid-template-columns: 1fr;
+    }
+
+    .game-status-row {
+        display: grid;
+    }
+
+    .game-actions {
+        justify-content: flex-start;
     }
 
     #chat-input {

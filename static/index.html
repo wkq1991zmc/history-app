@@ -108,9 +108,13 @@
               <div class="game-status-row">
                 <div>
                   <div class="game-panel-title">本轮对局</div>
+                  <p id="guess-my-person" class="guess-my-person">你的人物：未设定</p>
                   <p id="guess-status" class="game-copy">AI 已经选好人物。你先问一个是/不是问题。</p>
                 </div>
-                <button id="guess-reset-btn" type="button" class="game-secondary-btn">重开</button>
+                <div class="game-actions">
+                  <button id="guess-reveal-btn" type="button" class="game-secondary-btn">揭晓答案</button>
+                  <button id="guess-reset-btn" type="button" class="game-secondary-btn">重开</button>
+                </div>
               </div>
               <div id="guess-log" class="guess-log"></div>
               <div id="guess-user-answer" class="guess-answer-actions hidden">

@@ -102,6 +102,9 @@ class GuessGameGuessRequest(BaseModel):
     session_id: str
     guess: str
 
+class GuessGameRevealRequest(BaseModel):
+    session_id: str
+
 def _normalize_person_name(name: str) -> str:
     return re.sub(r"[\s·・，。！？、,.!?《》〈〉“”\"'’‘]", "", name or "").lower()
 
@@ -122,6 +125,33 @@ def _is_specific_person_guess(text: str) -> bool:
         r"^(是不是|是否是|是).{2,12}[吗么？?]$",
     ]
     return any(re.search(pattern, compact) for pattern in guess_patterns)
+
+def _looks_like_yes_no_question(text: str) -> bool:
+    compact = re.sub(r"\s+", "", text or "")
+    if not compact:
+        return False
+    blocked = ("是谁", "叫什么", "答案", "设定的是谁", "告诉我", "透露", "我的是")
+    if any(word in compact for word in blocked):
+        return False
+    yes_no_markers = ("吗", "么", "是否", "是不是", "能否", "能不能", "有没有", "有没有可能", "是", "不是")
+    return any(marker in compact for marker in yes_no_markers)
+
+def _fallback_guess_question(transcript: List[Dict]) -> str:
+    used = {item.get("text", "") for item in transcript if item.get("side") == "ai_question"}
+    questions = [
+        "此人是否主要活跃在秦汉以后？",
+        "此人是否以政治或军事成就闻名？",
+        "此人是否生活在唐宋以前？",
+        "此人是否曾经掌握过国家最高权力？",
+        "此人是否更常被归为文臣或思想家？",
+        "此人是否和战争或军事指挥关系密切？",
+        "此人是否活跃在三国两晋南北朝附近？",
+        "此人是否主要活跃在明清时期？",
+    ]
+    for question in questions:
+        if question not in used:
+            return question
+    return "此人是否在中国历史上拥有很高知名度？"
 
 def _pick_guess_person(seed_text: str = "") -> str:
     seed = sum(ord(ch) for ch in (seed_text or str(time.time())))
@@ -153,6 +183,12 @@ async def guess_game_ask_ai(req: GuessGameAskRequest):
     question = req.question.strip()
     if not question or len(question) > 120:
         raise HTTPException(status_code=400, detail="问题不能为空，且不超过120字")
+    if not _looks_like_yes_no_question(question):
+        return {
+            "success": True,
+            "valid": False,
+            "answer": "请换成一个能回答“是/不是”的问题，或者用“猜答案”按钮直接猜人物。"
+        }
 
     prompt = f"""你正在玩猜中国历史人物游戏。
 你的秘密人物是：{session['ai_person']}。
@@ -169,7 +205,7 @@ async def guess_game_ask_ai(req: GuessGameAskRequest):
         temperature=0,
     )
     answer = _yes_no_only(resp.choices[0].message.content)
-    return {"success": True, "answer": answer}
+    return {"success": True, "valid": True, "answer": answer}
 
 @app.post("/guess_game/guess_ai")
 async def guess_game_guess_ai(req: GuessGameGuessRequest):
@@ -185,10 +221,24 @@ async def guess_game_guess_ai(req: GuessGameGuessRequest):
         "message": "猜中了，本轮结束。" if correct else "不是这个人。轮到我继续追问。"
     }
 
+@app.post("/guess_game/reveal")
+async def guess_game_reveal(req: GuessGameRevealRequest):
+    session = _get_guess_session(req.session_id)
+    return {
+        "success": True,
+        "answer": session["ai_person"],
+        "message": f"本轮揭晓：AI 设定的人物是 {session['ai_person']}。"
+    }
+
 @app.post("/guess_game/ai_turn")
 async def guess_game_ai_turn(req: GuessGameTurnRequest):
     _get_guess_session(req.session_id)
     transcript = req.transcript[-12:]
+    rejected_guesses = {
+        _normalize_person_name(item.get("text", ""))
+        for item in transcript
+        if item.get("side") == "ai_guess" and item.get("answer") == "不是"
+    }
     answered_ai_questions = sum(
         1 for item in transcript
         if item.get("side") == "ai_question" and item.get("answer") in ("是", "不是")
@@ -224,13 +274,15 @@ async def guess_game_ai_turn(req: GuessGameTurnRequest):
     try:
         data = json.loads(re.search(r"\{.*\}", raw, re.DOTALL).group(0))
     except Exception:
-        data = {"type": "question", "text": "此人是否生活在秦汉以后？"}
+        data = {"type": "question", "text": _fallback_guess_question(transcript)}
     if data.get("type") not in ("question", "guess"):
-        data = {"type": "question", "text": "此人是否以政治或军事成就闻名？"}
+        data = {"type": "question", "text": _fallback_guess_question(transcript)}
     if data.get("type") == "guess" and not can_guess:
-        data = {"type": "question", "text": "此人是否以政治或军事成就闻名？"}
+        data = {"type": "question", "text": _fallback_guess_question(transcript)}
+    if data.get("type") == "guess" and _normalize_person_name(data.get("text", "")) in rejected_guesses:
+        data = {"type": "question", "text": _fallback_guess_question(transcript)}
     if data.get("type") == "question" and not can_guess and _is_specific_person_guess(data.get("text", "")):
-        data = {"type": "question", "text": "此人是否主要活跃在宋代以前？"}
+        data = {"type": "question", "text": _fallback_guess_question(transcript)}
     return {"success": True, **data}
 
 @app.post("/login")
