@@ -408,11 +408,7 @@ function renderChat() {
                 <div class="chat-bubble-user px-5 py-3 border border-[#8c7a66]/30 text-[#35251a] rounded max-w-[85%] whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.content)}</div>
             </div>`;
         } else {
-            // 解析大模型返回的 markdown。简单的将 **xx** 变粗体
-            let formattedContent = escapeHtml(msg.content)
-                .replace(/\*\*(.*?)\*\*/g, '<b class="text-[#5c1313] font-black">$1</b>')
-                .replace(/### (.*?)\n/g, '<h3 class="text-xl font-bold text-[#5c1313] mb-2" style="font-family: \'Ma Shan Zheng\', serif;">$1</h3>');
-                
+            const formattedContent = formatChatContent(msg.content);
             let charName = msg.target || "涉案人";
             
             html += `
@@ -427,6 +423,19 @@ function renderChat() {
     
     elements.chatHistoryWrapper.innerHTML = `<div id="chat-empty-state" class="hidden"></div>` + html;
     // 滚动到底部
+    elements.chatHistoryWrapper.scrollTop = elements.chatHistoryWrapper.scrollHeight;
+}
+
+function formatChatContent(content) {
+    return escapeHtml(content || '')
+        .replace(/\*\*(.*?)\*\*/g, '<b class="text-[#5c1313] font-black">$1</b>')
+        .replace(/### (.*?)\n/g, '<h3 class="text-xl font-bold text-[#5c1313] mb-2" style="font-family: \'Ma Shan Zheng\', serif;">$1</h3>');
+}
+
+function updateAssistantBubble(messageIndex, content) {
+    const bubble = elements.chatHistoryWrapper.querySelector(`[data-message-index="${messageIndex}"] .chat-bubble-ai`);
+    if (!bubble) return;
+    bubble.innerHTML = formatChatContent(content);
     elements.chatHistoryWrapper.scrollTop = elements.chatHistoryWrapper.scrollHeight;
 }
 
@@ -524,12 +533,29 @@ async function handleUserSubmit() {
                 target: speaker
             };
             state.chatHistory[state.currentEventId].push(assistantMessage);
+            const assistantMessageIndex = state.chatHistory[state.currentEventId].length - 1;
             renderChat();
+            updateAssistantBubble(assistantMessageIndex, "正在连线时空信号...");
 
+            let hasFirstDelta = false;
+            let pendingStreamContent = "";
+            let streamRenderQueued = false;
             await apiStreamPost('/chat_stream', payload, (delta) => {
+                if (!hasFirstDelta) {
+                    assistantMessage.content = "";
+                    hasFirstDelta = true;
+                }
                 assistantMessage.content += delta;
-                renderChat();
+                pendingStreamContent = assistantMessage.content;
+                if (!streamRenderQueued) {
+                    streamRenderQueued = true;
+                    requestAnimationFrame(() => {
+                        updateAssistantBubble(assistantMessageIndex, pendingStreamContent);
+                        streamRenderQueued = false;
+                    });
+                }
             });
+            updateAssistantBubble(assistantMessageIndex, assistantMessage.content);
             saveChatToServer();
         }
         
