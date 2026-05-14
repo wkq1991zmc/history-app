@@ -10,6 +10,7 @@ import json
 import re
 import time
 import tempfile
+import uuid
 from collections import defaultdict
 from pathlib import Path
 from dotenv import load_dotenv
@@ -50,6 +51,13 @@ gemini_client = AsyncOpenAI(
 rate_limit_store = defaultdict(list)
 RATE_LIMIT_WINDOW = 60
 RATE_LIMIT_MAX = 30
+GUESS_GAME_PEOPLE = [
+    "秦始皇", "李斯", "扶苏", "项羽", "刘邦", "韩信", "张良", "汉武帝", "司马迁", "王莽",
+    "曹操", "刘备", "孙权", "诸葛亮", "周瑜", "司马懿", "王羲之", "谢安", "杨坚", "李世民",
+    "武则天", "玄奘", "安禄山", "郭子仪", "赵匡胤", "王安石", "苏轼", "岳飞", "成吉思汗", "忽必烈",
+    "朱元璋", "朱棣", "于谦", "王阳明", "张居正", "郑成功", "康熙", "乾隆", "林则徐", "曾国藩"
+]
+guess_game_sessions = {}
 
 def check_rate_limit(player_id: str) -> bool:
     now = time.time()
@@ -78,6 +86,118 @@ DEV_MODE = os.environ.get("DEV_MODE", "").lower() in ("true", "1", "yes")
 
 class LoginRequest(BaseModel):
     code: str
+
+class GuessGameStartRequest(BaseModel):
+    user_seed: Optional[str] = ""
+
+class GuessGameAskRequest(BaseModel):
+    session_id: str
+    question: str
+
+class GuessGameTurnRequest(BaseModel):
+    session_id: str
+    transcript: List[Dict]
+
+class GuessGameGuessRequest(BaseModel):
+    session_id: str
+    guess: str
+
+def _normalize_person_name(name: str) -> str:
+    return re.sub(r"[\s·・，。！？、,.!?《》〈〉“”\"'’‘]", "", name or "").lower()
+
+def _pick_guess_person(seed_text: str = "") -> str:
+    seed = sum(ord(ch) for ch in (seed_text or str(time.time())))
+    return GUESS_GAME_PEOPLE[seed % len(GUESS_GAME_PEOPLE)]
+
+def _get_guess_session(session_id: str) -> Dict:
+    session = guess_game_sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="游戏会话不存在，请重新开始")
+    return session
+
+@app.post("/guess_game/start")
+async def guess_game_start(req: GuessGameStartRequest):
+    session_id = str(uuid.uuid4())
+    ai_person = _pick_guess_person(req.user_seed)
+    guess_game_sessions[session_id] = {
+        "ai_person": ai_person,
+        "created_at": time.time(),
+    }
+    return {
+        "success": True,
+        "session_id": session_id,
+        "message": "我已经选好了一个中国历史人物。你可以先问我一个只能回答是或不是的问题。"
+    }
+
+@app.post("/guess_game/ask_ai")
+async def guess_game_ask_ai(req: GuessGameAskRequest):
+    session = _get_guess_session(req.session_id)
+    question = req.question.strip()
+    if not question or len(question) > 120:
+        raise HTTPException(status_code=400, detail="问题不能为空，且不超过120字")
+
+    prompt = f"""你正在玩猜中国历史人物游戏。
+你的秘密人物是：{session['ai_person']}。
+用户会问一个只能回答“是”或“不是”的问题。
+你必须只回答“是”或“不是”，可以在后面加一句不超过15字的极短提示，但绝不能透露人物姓名。
+
+用户问题：{question}
+"""
+    resp = await gemini_client.chat.completions.create(
+        model="qwen-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=40,
+        temperature=0.2,
+    )
+    answer = resp.choices[0].message.content.strip()
+    return {"success": True, "answer": answer}
+
+@app.post("/guess_game/guess_ai")
+async def guess_game_guess_ai(req: GuessGameGuessRequest):
+    session = _get_guess_session(req.session_id)
+    guess = req.guess.strip()
+    if not guess:
+        raise HTTPException(status_code=400, detail="请输入要猜的人物")
+    correct = _normalize_person_name(guess) == _normalize_person_name(session["ai_person"])
+    return {
+        "success": True,
+        "correct": correct,
+        "answer": session["ai_person"] if correct else "",
+        "message": "猜中了，本轮结束。" if correct else "不是这个人。轮到我继续追问。"
+    }
+
+@app.post("/guess_game/ai_turn")
+async def guess_game_ai_turn(req: GuessGameTurnRequest):
+    _get_guess_session(req.session_id)
+    transcript = req.transcript[-12:]
+    prompt = f"""你正在和用户玩猜中国历史人物游戏。
+你不知道用户心里的人物是谁，只能根据以下是/不是记录推理。
+你可以做两种事之一：
+1. 问一个只能回答“是”或“不是”的问题；
+2. 如果很有把握，猜一个具体中国历史人物。
+
+请返回纯JSON：
+{{"type":"question","text":"问题"}}
+或
+{{"type":"guess","text":"人物名"}}
+
+记录：
+{json.dumps(transcript, ensure_ascii=False)}
+"""
+    resp = await gemini_client.chat.completions.create(
+        model="qwen-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=120,
+        temperature=0.5,
+    )
+    raw = resp.choices[0].message.content.strip()
+    try:
+        data = json.loads(re.search(r"\{.*\}", raw, re.DOTALL).group(0))
+    except Exception:
+        data = {"type": "question", "text": "此人是否生活在秦汉以后？"}
+    if data.get("type") not in ("question", "guess"):
+        data = {"type": "question", "text": "此人是否以政治或军事成就闻名？"}
+    return {"success": True, **data}
 
 @app.post("/login")
 async def wx_login(req: LoginRequest):

@@ -17,6 +17,14 @@ const state = {
     chatHistory: {},
     currentTarget: "所有参与人",
     answerMode: localStorage.getItem('traeHistoryAnswerMode') || "fast",
+    currentMode: "story",
+    guessGame: {
+        sessionId: null,
+        userPerson: "",
+        transcript: [],
+        pendingAiGuess: "",
+        ended: false
+    },
     isLoading: false
 };
 
@@ -25,6 +33,7 @@ const elements = {
     navContainer: document.getElementById('nav-container'),
     storySplash: document.getElementById('story-splash'),
     storyContent: document.getElementById('story-content'),
+    guessGameContent: document.getElementById('guess-game-content'),
     storyTitle: document.getElementById('story-title'),
     manuscriptStamp: document.getElementById('manuscript-stamp'),
     storyTime: document.getElementById('story-time'),
@@ -35,6 +44,7 @@ const elements = {
     storyImg: document.getElementById('story-image'),
     
     chatHistoryWrapper: document.getElementById('chat-history-container'),
+    chatSection: document.getElementById('chat-section'),
     chatEmptyState: document.getElementById('chat-empty-state'),
     charBtnsContainer: document.getElementById('character-buttons'),
     chatInput: document.getElementById('chat-input'),
@@ -45,6 +55,20 @@ const elements = {
     answerModeOptions: document.getElementById('answer-mode-options'),
     chatSpinner: document.getElementById('chat-spinner')
 };
+
+Object.assign(elements, {
+    guessSetup: document.getElementById('guess-setup'),
+    guessPlay: document.getElementById('guess-play'),
+    guessUserPerson: document.getElementById('guess-user-person'),
+    guessStartBtn: document.getElementById('guess-start-btn'),
+    guessResetBtn: document.getElementById('guess-reset-btn'),
+    guessStatus: document.getElementById('guess-status'),
+    guessLog: document.getElementById('guess-log'),
+    guessInput: document.getElementById('guess-input'),
+    guessAskBtn: document.getElementById('guess-ask-btn'),
+    guessGuessBtn: document.getElementById('guess-guess-btn'),
+    guessUserAnswer: document.getElementById('guess-user-answer')
+});
 
 // ================= API 请求 =================
 async function apiGet(endpoint, options = {}) {
@@ -86,7 +110,9 @@ async function init() {
         renderNav(res.data);
         
         const hash = decodeURIComponent(window.location.hash.substring(1));
-        if(hash) {
+        if(hash === "guess-game") {
+            showGuessGame();
+        } else if(hash) {
             loadEvent(hash);
         } else if (res.data.length > 0) {
             loadEvent(res.data[0].id);
@@ -101,6 +127,18 @@ async function init() {
     });
 
     elements.navContainer.addEventListener('click', (e) => {
+        const gameLink = e.target.closest('[data-game]');
+        if (gameLink) {
+            e.preventDefault();
+            showGuessGame();
+            return;
+        }
+        const dynastyToggle = e.target.closest('[data-dynasty-toggle]');
+        if (dynastyToggle) {
+            e.preventDefault();
+            dynastyToggle.closest('.nav-dynasty-group')?.classList.toggle('collapsed');
+            return;
+        }
         const link = e.target.closest('.nav-item');
         if (!link) return;
         e.preventDefault();
@@ -130,6 +168,12 @@ async function init() {
             renderChat();
         }
     });
+
+    elements.guessStartBtn.addEventListener('click', startGuessGame);
+    elements.guessResetBtn.addEventListener('click', resetGuessGame);
+    elements.guessAskBtn.addEventListener('click', askGuessGameQuestion);
+    elements.guessGuessBtn.addEventListener('click', guessAiPerson);
+    elements.guessUserAnswer.addEventListener('click', handleUserYesNoAnswer);
 }
 
 // 使用 base64 编码来避免特殊字符影响 ID 选择器，更安全
@@ -145,14 +189,30 @@ function renderNav(events) {
         groupByDynasty[e.dynasty].push(e);
     });
 
-    let html = '';
-    for(const dynasty in groupByDynasty) {
-        html += `<div class="mb-6">
+    let html = `
+        <div class="mb-6">
             <h3 class="text-[#e8d5c4] font-bold text-sm mb-2 px-2 flex items-center gap-1">
                 <span class="w-1.5 h-4 bg-[#c62828] inline-block rounded-sm"></span>
-                ${escapeHtml(dynasty)}档案
+                互动游戏
             </h3>
             <ul class="space-y-1">
+                <li>
+                    <a href="#guess-game" data-game="guess-person"
+                       class="nav-item block px-4 py-2 text-sm text-[#d4c3af] hover:bg-[#c62828]/10 hover:text-[#f0c9a8] rounded border-l-2 border-transparent transition-all truncate">
+                       └─ 猜历史人物
+                    </a>
+                </li>
+            </ul>
+        </div>
+    `;
+    for(const dynasty in groupByDynasty) {
+        html += `<div class="nav-dynasty-group collapsed mb-3">
+            <button type="button" data-dynasty-toggle class="nav-dynasty-toggle text-[#e8d5c4] font-bold text-sm mb-2 px-2 flex items-center gap-1 w-full">
+                <span class="w-1.5 h-4 bg-[#c62828] inline-block rounded-sm"></span>
+                <span class="nav-caret">▸</span>
+                ${escapeHtml(dynasty)}档案
+            </button>
+            <ul class="nav-dynasty-list space-y-1">
         `;
         groupByDynasty[dynasty].forEach(ev => {
             html += `
@@ -190,10 +250,13 @@ async function loadEvent(eventId) {
     state.isLoading = true;
     
     window.location.hash = eventId;
+    state.currentMode = "story";
     updateNavHighlight(eventId);
     
     elements.storySplash.classList.remove('hidden');
     elements.storyContent.classList.add('hidden');
+    elements.guessGameContent.classList.add('hidden');
+    elements.chatSection?.classList?.remove('hidden');
     
     const res = await apiGet(`/event?name=${encodeURIComponent(eventId)}`);
     if(res && res.success) {
@@ -276,6 +339,156 @@ function renderChatControls() {
         elements.chatInput.placeholder = `正在连线 @${state.currentTarget}...`;
     }
 }
+
+function showGuessGame() {
+    state.currentMode = "guess";
+    window.location.hash = "guess-game";
+    document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('bg-[#c62828]/10', 'text-[#c62828]', 'border-[#c62828]', 'font-bold');
+        el.classList.add('border-transparent');
+    });
+    document.querySelector('[data-game="guess-person"]')?.classList.add('bg-[#c62828]/10', 'text-[#c62828]', 'border-[#c62828]', 'font-bold');
+    elements.storySplash.classList.add('hidden');
+    elements.storyContent.classList.add('hidden');
+    elements.guessGameContent.classList.remove('hidden');
+    elements.chatSection.classList.add('hidden');
+}
+
+function appendGuessLog(role, text) {
+    const item = document.createElement('div');
+    item.className = `guess-log-item ${role}`;
+    item.textContent = text;
+    elements.guessLog.appendChild(item);
+    elements.guessLog.scrollTop = elements.guessLog.scrollHeight;
+}
+
+function resetGuessGame() {
+    state.guessGame = {
+        sessionId: null,
+        userPerson: "",
+        transcript: [],
+        pendingAiGuess: "",
+        ended: false
+    };
+    elements.guessSetup.classList.remove('hidden');
+    elements.guessPlay.classList.add('hidden');
+    elements.guessLog.innerHTML = '';
+    elements.guessInput.value = '';
+    elements.guessUserAnswer.classList.add('hidden');
+}
+
+async function startGuessGame() {
+    const person = elements.guessUserPerson.value.trim();
+    if (!person) {
+        alert("请先写下你心里的人物。");
+        return;
+    }
+    const res = await apiPost('/guess_game/start', { user_seed: `${person}-${Date.now()}` });
+    if (!res || !res.success) {
+        alert("游戏启动失败，请重试。");
+        return;
+    }
+    state.guessGame = {
+        sessionId: res.session_id,
+        userPerson: person,
+        transcript: [],
+        pendingAiGuess: "",
+        ended: false
+    };
+    elements.guessSetup.classList.add('hidden');
+    elements.guessPlay.classList.remove('hidden');
+    elements.guessLog.innerHTML = '';
+    elements.guessStatus.textContent = res.message;
+    appendGuessLog('system', `你的人物已锁定。AI 的人物也已锁定。`);
+}
+
+async function askGuessGameQuestion() {
+    const question = elements.guessInput.value.trim();
+    if (!question || state.guessGame.ended) return;
+    elements.guessInput.value = '';
+    appendGuessLog('user', `你问：${question}`);
+    const res = await apiPost('/guess_game/ask_ai', {
+        session_id: state.guessGame.sessionId,
+        question
+    });
+    if (!res || !res.success) {
+        alert("AI 回答失败，请重试。");
+        return;
+    }
+    appendGuessLog('ai', `AI 答：${res.answer}`);
+    state.guessGame.transcript.push({ side: 'user_question', text: question, answer: res.answer });
+    await runAiGuessTurn();
+}
+
+async function guessAiPerson() {
+    const guess = elements.guessInput.value.trim();
+    if (!guess || state.guessGame.ended) return;
+    elements.guessInput.value = '';
+    appendGuessLog('user', `你猜：${guess}`);
+    const res = await apiPost('/guess_game/guess_ai', {
+        session_id: state.guessGame.sessionId,
+        guess
+    });
+    if (!res || !res.success) {
+        alert("猜测提交失败，请重试。");
+        return;
+    }
+    appendGuessLog(res.correct ? 'system' : 'ai', res.message);
+    if (res.correct) {
+        state.guessGame.ended = true;
+        elements.guessStatus.textContent = `你猜中了，AI 的人物是 ${res.answer}。`;
+        return;
+    }
+    state.guessGame.transcript.push({ side: 'user_guess', text: guess, answer: '不是' });
+    await runAiGuessTurn();
+}
+
+async function runAiGuessTurn() {
+    const res = await apiPost('/guess_game/ai_turn', {
+        session_id: state.guessGame.sessionId,
+        transcript: state.guessGame.transcript
+    });
+    if (!res || !res.success) {
+        alert("AI 提问失败，请重试。");
+        return;
+    }
+    if (res.type === 'guess') {
+        state.guessGame.pendingAiGuess = res.text;
+        appendGuessLog('ai', `AI 猜：${res.text}`);
+        elements.guessStatus.textContent = "AI 正在猜你的人物，请回答是或不是。";
+    } else {
+        state.guessGame.pendingAiGuess = "";
+        appendGuessLog('ai', `AI 问：${res.text}`);
+        elements.guessStatus.textContent = "请回答 AI 的问题。";
+    }
+    state.guessGame.pendingAiQuestion = res.text;
+    elements.guessUserAnswer.classList.remove('hidden');
+}
+
+function handleUserYesNoAnswer(e) {
+    const button = e.target.closest('[data-answer]');
+    if (!button || state.guessGame.ended) return;
+    const answer = button.dataset.answer;
+    elements.guessUserAnswer.classList.add('hidden');
+
+    if (state.guessGame.pendingAiGuess) {
+        appendGuessLog('user', `你答：${answer}`);
+        state.guessGame.transcript.push({ side: 'ai_guess', text: state.guessGame.pendingAiGuess, answer });
+        if (answer === '是') {
+            state.guessGame.ended = true;
+            elements.guessStatus.textContent = `AI 猜中了，你的人物是 ${state.guessGame.userPerson}。`;
+            appendGuessLog('system', `本轮结束：AI 猜中了。`);
+        } else {
+            elements.guessStatus.textContent = "轮到你继续提问或猜答案。";
+        }
+        return;
+    }
+
+    appendGuessLog('user', `你答：${answer}`);
+    state.guessGame.transcript.push({ side: 'ai_question', text: state.guessGame.pendingAiQuestion, answer });
+    elements.guessStatus.textContent = "轮到你继续提问或猜答案。";
+}
+
 
 async function apiStreamPost(endpoint, data, onDelta) {
     const res = await fetch(endpoint, {
