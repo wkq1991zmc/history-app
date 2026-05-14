@@ -177,6 +177,7 @@ class ChatRequest(BaseModel):
     character: str       # 微信告诉我们当前在审问谁 (例如: "曹操")
     message: str         # 微信发来的最新质问
     history: List[Dict]  # 🌟 微信传过来的历史聊天记录（给 AI 记忆！）
+    answer_mode: Optional[str] = "expert"
 
     class Config:
         json_schema_extra = {
@@ -196,6 +197,8 @@ class ChatRequest(BaseModel):
             raise ValueError("未知角色")
         if len(self.message) > 500:
             raise ValueError("消息过长，请控制在500字以内")
+        if self.answer_mode not in ("fast", "expert", None):
+            raise ValueError("未知回答模式")
         if len(self.history) > 20:
             raise ValueError("历史记录过多，请清空后重试")
         for msg in self.history:
@@ -390,8 +393,9 @@ async def ai_chat_stream(request: ChatRequest, x_client_id: Optional[str] = Head
 
     async def event_stream():
         try:
+            selected_model = "qwen-turbo" if request.answer_mode == "fast" else "qwen3.6-plus"
             stream = await gemini_client.chat.completions.create(
-                model=GEMINI_MODEL,
+                model=selected_model,
                 messages=final_messages,
                 max_tokens=800,
                 temperature=0.7,

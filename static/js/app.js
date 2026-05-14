@@ -16,6 +16,7 @@ const state = {
     currentEventData: null,
     chatHistory: {},
     currentTarget: "所有参与人",
+    answerMode: localStorage.getItem('traeHistoryAnswerMode') || "fast",
     isLoading: false
 };
 
@@ -41,7 +42,7 @@ const elements = {
     chatForm: document.getElementById('chat-form'),
     btnClear: document.getElementById('btn-clear-chat'),
     currentAtBadge: document.getElementById('current-at-badge'),
-    questionSuggestions: document.getElementById('question-suggestions'),
+    answerModeOptions: document.getElementById('answer-mode-options'),
     chatSpinner: document.getElementById('chat-spinner')
 };
 
@@ -112,21 +113,14 @@ async function init() {
         setAtTarget(button.dataset.char);
     });
 
-    elements.questionSuggestions.addEventListener('click', (e) => {
-        const button = e.target.closest('[data-question]');
+    elements.answerModeOptions.addEventListener('click', (e) => {
+        const button = e.target.closest('[data-mode]');
         if (!button) return;
-        elements.chatInput.value = button.dataset.question;
-        elements.chatInput.focus();
+        state.answerMode = button.dataset.mode;
+        localStorage.setItem('traeHistoryAnswerMode', state.answerMode);
+        renderAnswerModeOptions();
     });
-
-    elements.chatHistoryWrapper.addEventListener('click', (e) => {
-        const messageEl = e.target.closest('[data-message-index]');
-        if (!messageEl) return;
-        document.querySelectorAll('[data-message-index]').forEach(el => el.classList.remove('message-active'));
-        messageEl.classList.add('message-active');
-        const message = (state.chatHistory[state.currentEventId] || [])[Number(messageEl.dataset.messageIndex)];
-        renderQuestionSuggestions(message);
-    });
+    renderAnswerModeOptions();
 
     elements.btnClear.addEventListener('click', () => {
         if(!state.currentEventId) return;
@@ -249,7 +243,6 @@ function renderStory(data) {
     
     // 渲染正文HTML
     elements.storyDetails.innerHTML = sanitizeStoryHtml(data.story || '');
-    renderQuestionSuggestions();
     
     // 让卷宗滚回顶部
     elements.storyContent.parentElement.parentElement.scrollTop = 0;
@@ -319,70 +312,17 @@ async function apiStreamPost(endpoint, data, onDelta) {
     }
 }
 
-function extractStoryHeadings(storyHtml) {
-    const template = document.createElement('template');
-    template.innerHTML = storyHtml || '';
-    return [...template.content.querySelectorAll('p > b:first-child')]
-        .map(node => node.textContent.replace(/[【】]/g, '').trim())
-        .filter(Boolean)
-        .slice(0, 6);
-}
-
-function hashText(text) {
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-        hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
-    }
-    return Math.abs(hash);
-}
-
-function pickItems(items, seed, count) {
-    const pool = [...items];
-    const picked = [];
-    let cursor = seed || 1;
-    while (pool.length && picked.length < count) {
-        cursor = (cursor * 1103515245 + 12345) & 0x7fffffff;
-        picked.push(pool.splice(cursor % pool.length, 1)[0]);
-    }
-    return picked;
-}
-
-function renderQuestionSuggestions(message = null) {
-    const data = state.currentEventData || {};
-    const chars = data.characters || [];
-    const headings = extractStoryHeadings(data.story);
-    const target = message?.target && message.target !== "所有参与人"
-        ? message.target
-        : (state.currentTarget !== "所有参与人" ? state.currentTarget : (chars[0] || "你"));
-    const focus = headings[hashText(`${data.title || ''}${message?.content || ''}`) % Math.max(headings.length, 1)] || "这件事";
-    const basis = `${data.title || ''}${target}${focus}${message?.content || ''}`;
-    const templates = [
-        `${target}，你刚才这句话背后真正顾虑的是什么？`,
-        `${target}，如果只看「${focus}」，你觉得谁获利最大？`,
-        `这件事里有没有哪一步被后人误解了？`,
-        `${target}，你当时最不愿承认的失误是什么？`,
-        `从你的立场看，另一个选择会带来什么代价？`,
-        `史书对这段记载有没有遗漏关键细节？`,
-        `${target}，你如何评价其他人的判断？`,
-        `如果回到「${focus}」之前，你会先防备谁？`,
-        `这场局面里，真正决定成败的因素是什么？`,
-        `你这段话是辩解，还是当时确实别无选择？`
-    ];
-    const questions = pickItems(templates, hashText(basis), 4);
-
-    elements.questionSuggestions.innerHTML = `
-        <div class="suggestion-label">${message ? '围绕所选对话追问' : '可直接追问'}</div>
-        <div class="suggestion-list">
-            ${questions.map(q => `<button type="button" data-question="${escapeAttr(q)}">${escapeHtml(q)}</button>`).join('')}
-        </div>
-    `;
+function renderAnswerModeOptions() {
+    if (!elements.answerModeOptions) return;
+    elements.answerModeOptions.querySelectorAll('[data-mode]').forEach(button => {
+        button.classList.toggle('active', button.dataset.mode === state.answerMode);
+    });
 }
 
 // 暴露给全局的点击事件
 window.setAtTarget = function(char) {
     state.currentTarget = char;
     renderChatControls();
-    renderQuestionSuggestions();
     elements.chatInput.focus();
 }
 
@@ -524,7 +464,8 @@ async function handleUserSubmit() {
                 event_name: state.currentEventId,
                 character: speaker,
                 message: target === "所有参与人" && i > 0 ? "前辈, 请问您对刚才的说法有什么高见？" : text,
-                history: recentHistory
+                history: recentHistory,
+                answer_mode: state.answerMode
             };
             
             const assistantMessage = {

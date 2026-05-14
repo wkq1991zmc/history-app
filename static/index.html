@@ -125,7 +125,25 @@
           <div id="character-buttons" class="flex flex-wrap gap-2 pb-2 px-2 custom-scrollbar-hide mb-3">
           </div>
 
-          <div id="question-suggestions" class="question-suggestions px-2 mb-3"></div>
+          <div class="answer-mode-panel px-2 mb-3">
+            <div class="answer-mode-label">回答方式</div>
+            <div id="answer-mode-options" class="answer-mode-options">
+              <button type="button" class="answer-mode-option active" data-mode="fast">
+                <span class="answer-mode-icon">↯</span>
+                <span>
+                  <span class="answer-mode-title">快速</span>
+                  <span class="answer-mode-desc">适用于大部分情况</span>
+                </span>
+              </button>
+              <button type="button" class="answer-mode-option" data-mode="expert">
+                <span class="answer-mode-icon">✣</span>
+                <span>
+                  <span class="answer-mode-title">专家</span>
+                  <span class="answer-mode-desc">研究级智能模型</span>
+                </span>
+              </button>
+            </div>
+          </div>
 
           <form id="chat-form" class="flex gap-3 px-2 pb-2">
             <input type="text" id="chat-input" autocomplete="off" 

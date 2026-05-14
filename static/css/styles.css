@@ -116,12 +116,12 @@ h1, h2, h3, h4, h5, h6 {
     margin-top: -2px;
 }
 
-.question-suggestions {
+.answer-mode-panel {
     border-top: 1px dashed rgba(140, 122, 102, 0.45);
     padding-top: 0.75rem;
 }
 
-.suggestion-label {
+.answer-mode-label {
     color: #8c7a66;
     font-size: 0.68rem;
     font-weight: 800;
@@ -129,25 +129,63 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 0.5rem;
 }
 
-.suggestion-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
+.answer-mode-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
 }
 
-.suggestion-list button {
+.answer-mode-option {
     border: 1px solid rgba(92, 19, 19, 0.28);
-    color: #5c1313;
     background: rgba(245, 239, 232, 0.72);
-    padding: 0.35rem 0.6rem;
-    font-size: 0.72rem;
-    line-height: 1.2;
-    transition: background 0.2s, border-color 0.2s;
+    color: #5c1313;
+    padding: 0.65rem 0.75rem;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.55rem;
+    text-align: left;
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
-.suggestion-list button:hover {
+.answer-mode-option:hover,
+.answer-mode-option.active {
     background: #f5efe8;
     border-color: rgba(92, 19, 19, 0.6);
+    box-shadow: 0 0 0 2px rgba(92, 19, 19, 0.06);
+}
+
+.answer-mode-icon {
+    width: 1.35rem;
+    height: 1.35rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #5c1313;
+    font-weight: 800;
+}
+
+.answer-mode-title {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.86rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.answer-mode-option.active .answer-mode-title::after {
+    content: '✓';
+    margin-left: auto;
+    color: #5c1313;
+}
+
+.answer-mode-desc {
+    display: block;
+    margin-top: 0.15rem;
+    color: #8c7a66;
+    font-size: 0.68rem;
+    line-height: 1.25;
 }
 
 /* 气泡样式重写（脱离色块感，融入整体背景） */
