@@ -102,9 +102,23 @@ async function apiPost(endpoint, data) {
     }
 }
 
+function trackAnalytics(eventType, data = {}) {
+    const endpoint = eventType === 'visit' ? '/analytics/visit' : '/analytics/event';
+    const payload = eventType === 'visit'
+        ? { path: window.location.pathname + window.location.hash, referrer: document.referrer || '' }
+        : { event_type: eventType, ...data };
+    fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CLIENT-ID': USER_ID },
+        body: JSON.stringify(payload),
+        keepalive: true
+    }).catch(() => {});
+}
+
 // ================= 初始化与导航 =================
 
 async function init() {
+    trackAnalytics('visit');
     // 1. 获取导航目录
     const res = await apiGet('/events_list');
     if(res && res.success) {
@@ -265,6 +279,7 @@ async function loadEvent(eventId) {
     if(res && res.success) {
         state.currentEventId = res.full_name;
         state.currentEventData = res.data;
+        trackAnalytics('event_view', { event_name: state.currentEventId });
         state.currentTarget = "所有参与人";
         elements.currentAtBadge.classList.add('hidden');
         
@@ -413,6 +428,7 @@ async function startGuessGame() {
     elements.guessAskBtn.disabled = false;
     elements.guessGuessBtn.disabled = false;
     appendGuessLog('system', `你的人物已锁定。AI 的人物也已锁定。`);
+    trackAnalytics('guess_action', { detail: 'start' });
 }
 
 async function revealGuessGameAnswer() {
@@ -428,6 +444,7 @@ async function revealGuessGameAnswer() {
     state.guessGame.ended = true;
     elements.guessStatus.textContent = `AI 的人物是 ${res.answer}。本轮已结束。`;
     appendGuessLog('system', res.message);
+    trackAnalytics('guess_action', { detail: 'reveal' });
     elements.guessUserAnswer.classList.add('hidden');
     elements.guessRevealBtn.disabled = true;
     elements.guessInput.disabled = true;
@@ -454,6 +471,7 @@ async function askGuessGameQuestion() {
         return;
     }
     appendGuessLog('ai', `AI 答：${res.answer}`);
+    trackAnalytics('guess_action', { detail: 'ask_ai' });
     state.guessGame.transcript.push({ side: 'user_question', text: question, answer: res.answer });
     await runAiGuessTurn();
 }
@@ -472,6 +490,7 @@ async function guessAiPerson() {
         return;
     }
     appendGuessLog(res.correct ? 'system' : 'ai', res.message);
+    trackAnalytics('guess_action', { detail: res.correct ? 'guess_correct' : 'guess_wrong' });
     if (res.correct) {
         state.guessGame.ended = true;
         elements.guessStatus.textContent = `你猜中了，AI 的人物是 ${res.answer}。`;

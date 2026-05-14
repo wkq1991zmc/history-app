@@ -11,6 +11,7 @@ import re
 import time
 import tempfile
 import uuid
+import hashlib
 from collections import defaultdict
 from pathlib import Path
 from dotenv import load_dotenv
@@ -29,6 +30,13 @@ async def serve_frontend():
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return {"message": "找不到前端构建，请确保 static/index.html 存在"}
+
+@app.get("/admin")
+async def serve_admin():
+    admin_path = os.path.join("static", "admin.html")
+    if os.path.exists(admin_path):
+        return FileResponse(admin_path)
+    return {"message": "找不到后台页面"}
 
 DASHSCOPE_API_KEY = os.environ.get("DASHSCOPE_API_KEY")
 DASHSCOPE_MODEL = os.environ.get("MINIPROGRAM_MODEL", "qwen-turbo")
@@ -78,6 +86,166 @@ GUESS_DYNASTY_WORDS = [
     "北宋", "南宋", "辽朝", "金朝", "蒙古帝国", "元朝", "明朝", "南明", "清朝"
 ]
 guess_game_sessions = {}
+
+# ======== 轻量访问统计，仅管理员可见 ========
+ANALYTICS_DATA_DIR = Path("analytics_data").resolve()
+ANALYTICS_DATA_DIR.mkdir(exist_ok=True)
+ANALYTICS_FILE = ANALYTICS_DATA_DIR / "analytics.json"
+ADMIN_ANALYTICS_KEY = os.environ.get("ADMIN_ANALYTICS_KEY", "")
+
+class AnalyticsVisitRequest(BaseModel):
+    path: Optional[str] = "/"
+    referrer: Optional[str] = ""
+
+class AnalyticsEventRequest(BaseModel):
+    event_type: str
+    event_name: Optional[str] = ""
+    character: Optional[str] = ""
+    detail: Optional[str] = ""
+
+def _today_key() -> str:
+    return time.strftime("%Y-%m-%d", time.localtime())
+
+def _safe_analytics_key(value: str) -> str:
+    text = (value or "unknown").strip()
+    if not text:
+        text = "unknown"
+    return text[:120]
+
+def _hash_visitor_id(visitor_id: str) -> str:
+    return hashlib.sha256((visitor_id or "unknown").encode("utf-8")).hexdigest()[:16]
+
+def _default_analytics() -> Dict:
+    return {
+        "totals": {
+            "visits": 0,
+            "unique_visitors": 0,
+            "event_views": 0,
+            "chats": 0,
+            "guess_actions": 0,
+        },
+        "visitors": {},
+        "days": {},
+        "events": {},
+        "characters": {},
+        "recent": [],
+    }
+
+def _load_analytics() -> Dict:
+    if not ANALYTICS_FILE.exists():
+        return _default_analytics()
+    try:
+        with open(ANALYTICS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        default = _default_analytics()
+        for key, value in default.items():
+            data.setdefault(key, value)
+        for key, value in default["totals"].items():
+            data["totals"].setdefault(key, value)
+        return data
+    except Exception:
+        return _default_analytics()
+
+def _write_analytics(data: Dict):
+    ANALYTICS_DATA_DIR.mkdir(exist_ok=True)
+    with open(ANALYTICS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def _record_analytics(action: str, visitor_id: str = "", event_name: str = "", character: str = "", detail: str = ""):
+    data = _load_analytics()
+    now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    day_key = _today_key()
+    visitor_hash = _hash_visitor_id(visitor_id)
+    day = data["days"].setdefault(day_key, {"visits": 0, "visitors": [], "event_views": 0, "chats": 0, "guess_actions": 0})
+    visitor = data["visitors"].setdefault(visitor_hash, {"first_seen": now, "last_seen": now, "visits": 0, "chats": 0, "guess_actions": 0})
+    visitor["last_seen"] = now
+
+    if visitor_hash not in day["visitors"]:
+        day["visitors"].append(visitor_hash)
+
+    if action == "visit":
+        data["totals"]["visits"] += 1
+        day["visits"] += 1
+        visitor["visits"] += 1
+    elif action == "event_view":
+        event_key = _safe_analytics_key(event_name)
+        data["totals"]["event_views"] += 1
+        day["event_views"] += 1
+        data["events"].setdefault(event_key, {"views": 0, "chats": 0})["views"] += 1
+    elif action == "chat":
+        event_key = _safe_analytics_key(event_name)
+        char_key = _safe_analytics_key(character)
+        data["totals"]["chats"] += 1
+        day["chats"] += 1
+        visitor["chats"] += 1
+        data["events"].setdefault(event_key, {"views": 0, "chats": 0})["chats"] += 1
+        data["characters"].setdefault(char_key, {"chats": 0})["chats"] += 1
+    elif action == "guess_action":
+        data["totals"]["guess_actions"] += 1
+        day["guess_actions"] += 1
+        visitor["guess_actions"] += 1
+
+    data["totals"]["unique_visitors"] = len(data["visitors"])
+    data["recent"].insert(0, {
+        "time": now,
+        "action": action,
+        "event_name": event_name,
+        "character": character,
+        "detail": detail,
+    })
+    data["recent"] = data["recent"][:120]
+    _write_analytics(data)
+
+def _require_admin_key(key: Optional[str], x_admin_key: Optional[str]):
+    expected = ADMIN_ANALYTICS_KEY.strip()
+    provided = (x_admin_key or key or "").strip()
+    if not expected:
+        raise HTTPException(status_code=503, detail="管理员统计密码未配置")
+    if provided != expected:
+        raise HTTPException(status_code=403, detail="无权查看统计后台")
+
+def _top_items(mapping: Dict, metric: str, limit: int = 8) -> List[Dict]:
+    items = []
+    for name, stats in mapping.items():
+        items.append({"name": name, metric: stats.get(metric, 0), **stats})
+    items.sort(key=lambda item: item.get(metric, 0), reverse=True)
+    return items[:limit]
+
+@app.post("/analytics/visit")
+async def analytics_visit(req: AnalyticsVisitRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    _record_analytics("visit", x_client_id or "anonymous", detail=req.path or "/")
+    return {"success": True}
+
+@app.post("/analytics/event")
+async def analytics_event(req: AnalyticsEventRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    if req.event_type not in ("event_view", "guess_action"):
+        raise HTTPException(status_code=400, detail="未知统计事件")
+    _record_analytics(req.event_type, x_client_id or "anonymous", req.event_name or "", req.character or "", req.detail or "")
+    return {"success": True}
+
+@app.get("/admin/analytics")
+async def admin_analytics(key: Optional[str] = None, x_admin_key: Optional[str] = Header(None, alias="X-ADMIN-KEY")):
+    _require_admin_key(key, x_admin_key)
+    data = _load_analytics()
+    days = []
+    for day_key, stats in sorted(data.get("days", {}).items(), reverse=True)[:14]:
+        days.append({
+            "date": day_key,
+            "visits": stats.get("visits", 0),
+            "unique_visitors": len(stats.get("visitors", [])),
+            "event_views": stats.get("event_views", 0),
+            "chats": stats.get("chats", 0),
+            "guess_actions": stats.get("guess_actions", 0),
+        })
+    return {
+        "success": True,
+        "totals": data.get("totals", {}),
+        "days": days,
+        "top_events_by_views": _top_items(data.get("events", {}), "views"),
+        "top_events_by_chats": _top_items(data.get("events", {}), "chats"),
+        "top_characters": _top_items(data.get("characters", {}), "chats"),
+        "recent": data.get("recent", [])[:50],
+    }
 
 def check_rate_limit(player_id: str) -> bool:
     now = time.time()
@@ -523,6 +691,7 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
         client_type = "小程序" if is_miniprogram else "网页"
         print(f"\n=== 收到提审请求 [{client_type}] ===")
         print(f"玩家: {player_id} | 案件: {request.event_name} | 被告: {request.character}")
+        _record_analytics("chat", player_id, request.event_name, request.character, request.answer_mode or "")
         
         event_data = EVENTS_DB[request.event_name]
         raw_notes = event_data.get('ai_notes', '')
@@ -641,6 +810,7 @@ async def ai_chat_stream(request: ChatRequest, x_client_id: Optional[str] = Head
     player_id = x_client_id if x_client_id else "unknown_player"
     if not check_rate_limit(player_id):
         raise HTTPException(status_code=429, detail="发言太快了，请稍等片刻再问。")
+    _record_analytics("chat", player_id, request.event_name, request.character, request.answer_mode or "")
 
     event_data = EVENTS_DB[request.event_name]
     raw_notes = event_data.get('ai_notes', '')

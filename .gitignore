@@ -2,6 +2,7 @@
 __pycache__/
 chat_records.json
 chat_data/
+analytics_data/
 .env
 *.pyc
 *.pyo

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>时空印证系统 · 统计后台</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #18110f;
+      color: #3b2a20;
+      font-family: "Noto Serif SC", "Microsoft YaHei", serif;
+    }
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    h1 {
+      color: #f0c9a8;
+      margin: 0 0 8px;
+      letter-spacing: 0.08em;
+    }
+    .sub {
+      color: #b89a82;
+      margin-bottom: 24px;
+    }
+    .login, .panel {
+      background: #efe4d4;
+      border: 1px solid #b79b7c;
+      box-shadow: 0 18px 60px rgba(0,0,0,0.25);
+      padding: 20px;
+    }
+    .login {
+      max-width: 420px;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #a98c70;
+      background: #f8f2e9;
+      padding: 12px;
+      margin: 12px 0;
+      color: #3b2a20;
+      font-size: 16px;
+    }
+    button {
+      border: 1px solid #7d1f1f;
+      background: #8b2323;
+      color: white;
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .hidden {
+      display: none;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: rgba(255,255,255,0.35);
+      border-left: 3px solid #8b2323;
+      padding: 14px;
+    }
+    .num {
+      font-size: 30px;
+      font-weight: 900;
+      color: #681818;
+      line-height: 1.2;
+    }
+    .label {
+      color: #786552;
+      font-size: 13px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    section {
+      background: rgba(255,255,255,0.28);
+      padding: 14px;
+      border: 1px solid rgba(120,101,82,0.25);
+    }
+    h2 {
+      margin: 0 0 12px;
+      color: #681818;
+      font-size: 18px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      border-bottom: 1px solid rgba(120,101,82,0.25);
+      text-align: left;
+      padding: 8px 4px;
+      vertical-align: top;
+    }
+    th {
+      color: #786552;
+      font-weight: 700;
+    }
+    .recent {
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .error {
+      color: #b32626;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>统计后台</h1>
+    <div class="sub">只统计匿名访问和互动次数，不展示具体聊天内容。</div>
+
+    <div id="login" class="login">
+      <label for="admin-key">管理员密码</label>
+      <input id="admin-key" type="password" autocomplete="current-password" placeholder="输入 ADMIN_ANALYTICS_KEY">
+      <button id="load-btn" type="button">查看统计</button>
+      <div id="error" class="error"></div>
+    </div>
+
+    <div id="dashboard" class="panel hidden">
+      <div class="cards" id="cards"></div>
+      <div class="grid">
+        <section>
+          <h2>最近 14 天</h2>
+          <table id="days-table"></table>
+        </section>
+        <section>
+          <h2>热门事件 · 浏览</h2>
+          <table id="views-table"></table>
+        </section>
+        <section>
+          <h2>热门事件 · 对话</h2>
+          <table id="chats-table"></table>
+        </section>
+        <section>
+          <h2>热门角色</h2>
+          <table id="characters-table"></table>
+        </section>
+        <section>
+          <h2>最近动作</h2>
+          <div id="recent-list" class="recent"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const keyInput = document.getElementById('admin-key');
+    const loadBtn = document.getElementById('load-btn');
+    const errorBox = document.getElementById('error');
+    const dashboard = document.getElementById('dashboard');
+    const login = document.getElementById('login');
+
+    function escapeHtml(text) {
+      return String(text || '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      }[ch]));
+    }
+
+    function renderTable(id, rows, columns) {
+      const table = document.getElementById(id);
+      table.innerHTML = `<thead><tr>${columns.map(col => `<th>${col.label}</th>`).join('')}</tr></thead>` +
+        `<tbody>${rows.map(row => `<tr>${columns.map(col => `<td>${escapeHtml(row[col.key])}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    }
+
+    function render(data) {
+      const totals = data.totals || {};
+      document.getElementById('cards').innerHTML = [
+        ['访问次数', totals.visits || 0],
+        ['独立访客', totals.unique_visitors || 0],
+        ['事件浏览', totals.event_views || 0],
+        ['AI 对话', totals.chats || 0],
+        ['猜人物互动', totals.guess_actions || 0],
+      ].map(([label, value]) => `<div class="card"><div class="num">${value}</div><div class="label">${label}</div></div>`).join('');
+
+      renderTable('days-table', data.days || [], [
+        { key: 'date', label: '日期' },
+        { key: 'visits', label: '访问' },
+        { key: 'unique_visitors', label: '访客' },
+        { key: 'chats', label: '对话' },
+      ]);
+      renderTable('views-table', data.top_events_by_views || [], [
+        { key: 'name', label: '事件' },
+        { key: 'views', label: '浏览' },
+      ]);
+      renderTable('chats-table', data.top_events_by_chats || [], [
+        { key: 'name', label: '事件' },
+        { key: 'chats', label: '对话' },
+      ]);
+      renderTable('characters-table', data.top_characters || [], [
+        { key: 'name', label: '角色' },
+        { key: 'chats', label: '对话' },
+      ]);
+      document.getElementById('recent-list').innerHTML = (data.recent || []).map(item =>
+        `<div>${escapeHtml(item.time)} · ${escapeHtml(item.action)} · ${escapeHtml(item.event_name || item.detail || '')} ${escapeHtml(item.character || '')}</div>`
+      ).join('');
+    }
+
+    async function loadAnalytics() {
+      errorBox.textContent = '';
+      const key = keyInput.value.trim();
+      if (!key) {
+        errorBox.textContent = '请输入管理员密码。';
+        return;
+      }
+      try {
+        const res = await fetch('/admin/analytics', { headers: { 'X-ADMIN-KEY': key } });
+        if (!res.ok) throw new Error('密码错误或后台未配置');
+        const data = await res.json();
+        render(data);
+        login.classList.add('hidden');
+        dashboard.classList.remove('hidden');
+      } catch (err) {
+        errorBox.textContent = err.message;
+      }
+    }
+
+    loadBtn.addEventListener('click', loadAnalytics);
+    keyInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') loadAnalytics();
+    });
+  </script>
+</body>
+</html>
