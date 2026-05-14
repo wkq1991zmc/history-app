@@ -105,6 +105,24 @@ class GuessGameGuessRequest(BaseModel):
 def _normalize_person_name(name: str) -> str:
     return re.sub(r"[\s·・，。！？、,.!?《》〈〉“”\"'’‘]", "", name or "").lower()
 
+def _yes_no_only(raw_answer: str) -> str:
+    answer = (raw_answer or "").strip()
+    first_yes = answer.find("是")
+    first_no = answer.find("不是")
+    if first_no != -1 and (first_yes == -1 or first_no <= first_yes):
+        return "不是"
+    if first_yes != -1:
+        return "是"
+    return "不是"
+
+def _is_specific_person_guess(text: str) -> bool:
+    compact = re.sub(r"\s+", "", text or "")
+    guess_patterns = [
+        r"你的.{0,4}(人物|角色|答案).{0,4}是.{1,12}[吗么？?]",
+        r"^(是不是|是否是|是).{2,12}[吗么？?]$",
+    ]
+    return any(re.search(pattern, compact) for pattern in guess_patterns)
+
 def _pick_guess_person(seed_text: str = "") -> str:
     seed = sum(ord(ch) for ch in (seed_text or str(time.time())))
     return GUESS_GAME_PEOPLE[seed % len(GUESS_GAME_PEOPLE)]
@@ -139,17 +157,18 @@ async def guess_game_ask_ai(req: GuessGameAskRequest):
     prompt = f"""你正在玩猜中国历史人物游戏。
 你的秘密人物是：{session['ai_person']}。
 用户会问一个只能回答“是”或“不是”的问题。
-你必须只回答“是”或“不是”，可以在后面加一句不超过15字的极短提示，但绝不能透露人物姓名。
+你必须只回答两个字之一：“是”或“不是”。
+禁止解释，禁止提示，禁止透露朝代、身份、姓名、职业、功绩。
 
 用户问题：{question}
 """
     resp = await gemini_client.chat.completions.create(
         model="qwen-turbo",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=40,
-        temperature=0.2,
+        max_tokens=6,
+        temperature=0,
     )
-    answer = resp.choices[0].message.content.strip()
+    answer = _yes_no_only(resp.choices[0].message.content)
     return {"success": True, "answer": answer}
 
 @app.post("/guess_game/guess_ai")
@@ -170,8 +189,19 @@ async def guess_game_guess_ai(req: GuessGameGuessRequest):
 async def guess_game_ai_turn(req: GuessGameTurnRequest):
     _get_guess_session(req.session_id)
     transcript = req.transcript[-12:]
+    answered_ai_questions = sum(
+        1 for item in transcript
+        if item.get("side") == "ai_question" and item.get("answer") in ("是", "不是")
+    )
+    can_guess = answered_ai_questions >= 3
+    action_rule = (
+        "你现在可以在很有把握时猜一个具体中国历史人物。"
+        if can_guess
+        else "你现在还不能猜具体人物，必须继续问范围型问题，例如朝代、性别、职业、阵营、成就类别。禁止问“你的角色是不是某某”。"
+    )
     prompt = f"""你正在和用户玩猜中国历史人物游戏。
 你不知道用户心里的人物是谁，只能根据以下是/不是记录推理。
+{action_rule}
 你可以做两种事之一：
 1. 问一个只能回答“是”或“不是”的问题；
 2. 如果很有把握，猜一个具体中国历史人物。
@@ -197,6 +227,10 @@ async def guess_game_ai_turn(req: GuessGameTurnRequest):
         data = {"type": "question", "text": "此人是否生活在秦汉以后？"}
     if data.get("type") not in ("question", "guess"):
         data = {"type": "question", "text": "此人是否以政治或军事成就闻名？"}
+    if data.get("type") == "guess" and not can_guess:
+        data = {"type": "question", "text": "此人是否以政治或军事成就闻名？"}
+    if data.get("type") == "question" and not can_guess and _is_specific_person_guess(data.get("text", "")):
+        data = {"type": "question", "text": "此人是否主要活跃在宋代以前？"}
     return {"success": True, **data}
 
 @app.post("/login")
