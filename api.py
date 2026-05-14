@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Header, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 from openai import AsyncOpenAI
@@ -172,13 +172,6 @@ def _extract_json_fields(raw_text: str):
     me_text = me_text.replace("\\n", "\n").replace("\\t", "\t")
     return ov_text, me_text
 
-def _build_historian_note(event_data: Dict, character: str) -> str:
-    notes = event_data.get("ai_notes", "")
-    if character and character in notes:
-        return f"史官评注：这段回答主要是从{character}的处境和立场出发，可作为角色视角理解；涉及具体史实时，仍应以卷宗正文和正史材料为准。"
-    return "史官评注：这段回答属于历史角色视角的合理演绎；可帮助理解人物动机，但不宜直接当作史书原文。"
-
-
 class ChatRequest(BaseModel):
     event_name: str      # 微信告诉我们当前在哪个案子 (例如: "三国·赤壁之战")
     character: str       # 微信告诉我们当前在审问谁 (例如: "曹操")
@@ -317,7 +310,6 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
             "reply": original_voice,
             "original_voice": original_voice.strip(),
             "modern_explain": modern_explain.strip(),
-            "historian_note": _build_historian_note(event_data, request.character),
             "character": request.character
         }
 
@@ -331,6 +323,93 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
             ef.write(tb)
             ef.write(f"\n")
         return {"reply": f"服务器开了个小差 (异常防爆网兜底)，请再发一遍~", "original_voice": "", "modern_explain": "", "character": request.character}
+
+@app.post("/chat_stream")
+async def ai_chat_stream(request: ChatRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    try:
+        request.validate_inputs()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    player_id = x_client_id if x_client_id else "unknown_player"
+    if not check_rate_limit(player_id):
+        raise HTTPException(status_code=429, detail="发言太快了，请稍等片刻再问。")
+
+    event_data = EVENTS_DB[request.event_name]
+    raw_notes = event_data.get('ai_notes', '')
+    char_note = ""
+    for line in raw_notes.split('\n'):
+        if request.character in line:
+            char_note = raw_notes
+            break
+
+    character_reply_count = sum(
+        1
+        for m in request.history
+        if isinstance(m, dict)
+        and m.get("role") != "user"
+        and m.get("target") == request.character
+    )
+    allow_followup_question = character_reply_count > 0 and character_reply_count % 3 == 0
+    if allow_followup_question:
+        followup_question_rule = "本轮允许在结尾自然地向用户提出一个问题，但只能问一个，且必须和当前话题强相关；如果没有必要，仍然不要提问。"
+    else:
+        followup_question_rule = "本轮禁止向用户反问，也不要用问题作结尾；请直接回答用户的问题，让对话自然停在一个完整陈述上。"
+
+    system_prompt = f"""你是【{request.character}】，正在参与一场跨越千年的时空访谈。事件：{request.event_name}。
+原则：只据正史，不用野史小说，不知即说不知。以第一人称、半文半白回答。
+# 核心原则（必须严格遵守）
+1. 【史实红线】你所说的一切必须严格基于正史记载（《史记》《汉书》《三国志》《资治通鉴》等），绝不使用小说、野史、民间传说内容。
+2. 【不知即不知】如果你不知道某件事的正史记载，直接说「此事史书无载，吾不知也」，绝不可编造。
+3. 【角色代入】你必须完全以【{request.character}】的第一人称视角回答，带入该人物的性格、立场、处境和心机。提问者是一位来自现代的「后生」或「小友」。不要称呼对方为法官。
+4. 【语气要求】使用半文半白的语言风格，符合该历史人物的身份和时代背景。
+5. 【精简要求】不要长篇大论，保持回答简洁明了；你可以有主动思考和分析，但不要为了延长对话而强行反问。
+6. 【反问节奏】{followup_question_rule}
+
+{char_note}
+
+{event_data.get('dynamic_prompt', '')}
+
+请直接输出给用户看的正文，不要输出 JSON。必须使用以下格式：
+
+**【半原文】**
+（以第一人称、半文半白回答）
+
+**【白话文解】**
+（把上面的意思翻译成现代白话，保持简洁）
+"""
+
+    message_history = []
+    for m in request.history[-6:]:
+        if not isinstance(m, dict):
+            continue
+        content_text = m.get("content", "")
+        message_history.append({"role": "user" if m.get("role") == "user" else "assistant", "content": content_text})
+
+    final_messages = [{"role": "system", "content": system_prompt}] + message_history + [{"role": "user", "content": request.message}]
+
+    async def event_stream():
+        try:
+            stream = await gemini_client.chat.completions.create(
+                model=GEMINI_MODEL,
+                messages=final_messages,
+                max_tokens=800,
+                temperature=0.7,
+                stream=True,
+            )
+            async for chunk in stream:
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta
+                if delta.content:
+                    yield f"data: {json.dumps({'delta': delta.content}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'done': True}, ensure_ascii=False)}\n\n"
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
     
     # 🌟 新增接口：专门用于给微信小程序下发案卷故事
 @app.get("/event")

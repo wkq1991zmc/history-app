@@ -30,8 +30,6 @@ const elements = {
     storyLocation: document.getElementById('story-location'),
     storyCharactersList: document.getElementById('story-characters-list'),
     storyDetails: document.getElementById('story-details'),
-    relationshipMap: document.getElementById('relationship-map'),
-    eventTimeline: document.getElementById('event-timeline'),
     storyImgContainer: document.getElementById('story-image-container'),
     storyImg: document.getElementById('story-image'),
     
@@ -121,6 +119,15 @@ async function init() {
         elements.chatInput.focus();
     });
 
+    elements.chatHistoryWrapper.addEventListener('click', (e) => {
+        const messageEl = e.target.closest('[data-message-index]');
+        if (!messageEl) return;
+        document.querySelectorAll('[data-message-index]').forEach(el => el.classList.remove('message-active'));
+        messageEl.classList.add('message-active');
+        const message = (state.chatHistory[state.currentEventId] || [])[Number(messageEl.dataset.messageIndex)];
+        renderQuestionSuggestions(message);
+    });
+
     elements.btnClear.addEventListener('click', () => {
         if(!state.currentEventId) return;
         if(confirm(`确定要销毁【${state.currentEventId}】的所有档案记录并重新访谈吗？`)) {
@@ -198,6 +205,8 @@ async function loadEvent(eventId) {
     if(res && res.success) {
         state.currentEventId = res.full_name;
         state.currentEventData = res.data;
+        state.currentTarget = "所有参与人";
+        elements.currentAtBadge.classList.add('hidden');
         
         renderStory(res.data);
         
@@ -208,8 +217,6 @@ async function loadEvent(eventId) {
             state.chatHistory[state.currentEventId] = (historyRes && historyRes.messages) ? historyRes.messages : [];
         }
         
-        state.currentTarget = "所有参与人";
-        elements.currentAtBadge.classList.add('hidden');
         renderChatControls();
         renderChat();
         
@@ -242,9 +249,7 @@ function renderStory(data) {
     
     // 渲染正文HTML
     elements.storyDetails.innerHTML = sanitizeStoryHtml(data.story || '');
-    renderRelationshipMap(data);
-    renderTimeline(data);
-    renderQuestionSuggestions(data);
+    renderQuestionSuggestions();
     
     // 让卷宗滚回顶部
     elements.storyContent.parentElement.parentElement.scrollTop = 0;
@@ -279,28 +284,39 @@ function renderChatControls() {
     }
 }
 
-function renderRelationshipMap(data) {
-    const chars = data.characters || [];
-    if (chars.length === 0) {
-        elements.relationshipMap.innerHTML = '<div class="case-muted">暂无人物资料</div>';
-        return;
+async function apiStreamPost(endpoint, data, onDelta) {
+    const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CLIENT-ID': USER_ID },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok || !res.body) {
+        throw new Error(`HTTP ${res.status}`);
     }
 
-    const links = [];
-    for (let i = 0; i < chars.length - 1; i++) {
-        links.push([chars[i], chars[i + 1], i === 0 ? '核心冲突' : '牵连']);
-    }
-    if (chars.length > 2) {
-        links.push([chars[0], chars[chars.length - 1], '权力链条']);
-    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
 
-    elements.relationshipMap.innerHTML = links.map(([from, to, label]) => `
-        <div class="relationship-row">
-            <span class="relationship-person">${escapeHtml(from)}</span>
-            <span class="relationship-line">${escapeHtml(label)}</span>
-            <span class="relationship-person">${escapeHtml(to)}</span>
-        </div>
-    `).join('');
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const packets = buffer.split('\n\n');
+        buffer = packets.pop() || '';
+
+        for (const packet of packets) {
+            const line = packet.split('\n').find(item => item.startsWith('data: '));
+            if (!line) continue;
+            const payload = JSON.parse(line.slice(6));
+            if (payload.error) {
+                throw new Error(payload.error);
+            }
+            if (payload.delta) {
+                onDelta(payload.delta);
+            }
+        }
+    }
 }
 
 function extractStoryHeadings(storyHtml) {
@@ -312,33 +328,50 @@ function extractStoryHeadings(storyHtml) {
         .slice(0, 6);
 }
 
-function renderTimeline(data) {
-    const headings = extractStoryHeadings(data.story);
-    if (headings.length === 0) {
-        elements.eventTimeline.innerHTML = '<div class="case-muted">暂无时间线资料</div>';
-        return;
+function hashText(text) {
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+        hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
     }
-
-    elements.eventTimeline.innerHTML = headings.map((heading, index) => `
-        <div class="timeline-row">
-            <span class="timeline-index">${index + 1}</span>
-            <span class="timeline-title">${escapeHtml(heading)}</span>
-        </div>
-    `).join('');
+    return Math.abs(hash);
 }
 
-function renderQuestionSuggestions(data) {
+function pickItems(items, seed, count) {
+    const pool = [...items];
+    const picked = [];
+    let cursor = seed || 1;
+    while (pool.length && picked.length < count) {
+        cursor = (cursor * 1103515245 + 12345) & 0x7fffffff;
+        picked.push(pool.splice(cursor % pool.length, 1)[0]);
+    }
+    return picked;
+}
+
+function renderQuestionSuggestions(message = null) {
+    const data = state.currentEventData || {};
     const chars = data.characters || [];
-    const lead = state.currentTarget && state.currentTarget !== "所有参与人" ? state.currentTarget : (chars[0] || "你");
-    const questions = [
-        "你当时最担心的是什么？",
-        "史书有没有冤枉你？",
-        "如果重来一次，你会改变哪一步？",
-        `${lead}，你怎么看其他人的选择？`
+    const headings = extractStoryHeadings(data.story);
+    const target = message?.target && message.target !== "所有参与人"
+        ? message.target
+        : (state.currentTarget !== "所有参与人" ? state.currentTarget : (chars[0] || "你"));
+    const focus = headings[hashText(`${data.title || ''}${message?.content || ''}`) % Math.max(headings.length, 1)] || "这件事";
+    const basis = `${data.title || ''}${target}${focus}${message?.content || ''}`;
+    const templates = [
+        `${target}，你刚才这句话背后真正顾虑的是什么？`,
+        `${target}，如果只看「${focus}」，你觉得谁获利最大？`,
+        `这件事里有没有哪一步被后人误解了？`,
+        `${target}，你当时最不愿承认的失误是什么？`,
+        `从你的立场看，另一个选择会带来什么代价？`,
+        `史书对这段记载有没有遗漏关键细节？`,
+        `${target}，你如何评价其他人的判断？`,
+        `如果回到「${focus}」之前，你会先防备谁？`,
+        `这场局面里，真正决定成败的因素是什么？`,
+        `你这段话是辩解，还是当时确实别无选择？`
     ];
+    const questions = pickItems(templates, hashText(basis), 4);
 
     elements.questionSuggestions.innerHTML = `
-        <div class="suggestion-label">可直接追问</div>
+        <div class="suggestion-label">${message ? '围绕所选对话追问' : '可直接追问'}</div>
         <div class="suggestion-list">
             ${questions.map(q => `<button type="button" data-question="${escapeAttr(q)}">${escapeHtml(q)}</button>`).join('')}
         </div>
@@ -349,9 +382,7 @@ function renderQuestionSuggestions(data) {
 window.setAtTarget = function(char) {
     state.currentTarget = char;
     renderChatControls();
-    if (state.currentEventData) {
-        renderQuestionSuggestions(state.currentEventData);
-    }
+    renderQuestionSuggestions();
     elements.chatInput.focus();
 }
 
@@ -369,10 +400,10 @@ function renderChat() {
     elements.chatEmptyState.classList.add('hidden');
     let html = '';
     
-    history.forEach(msg => {
+    history.forEach((msg, index) => {
         if(msg.role === 'user') {
             html += `
-            <div class="flex flex-col items-end mb-4 bubble-enter pr-2">
+            <div class="message-selectable flex flex-col items-end mb-4 bubble-enter pr-2" data-message-index="${index}">
                 <span class="text-[10px] text-[#8c7a66] mb-1 uppercase tracking-widest">后生 (我)</span>
                 <div class="chat-bubble-user px-5 py-3 border border-[#8c7a66]/30 text-[#35251a] rounded max-w-[85%] whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.content)}</div>
             </div>`;
@@ -385,12 +416,11 @@ function renderChat() {
             let charName = msg.target || "涉案人";
             
             html += `
-            <div class="flex flex-col items-start mb-6 bubble-enter pl-2">
+            <div class="message-selectable flex flex-col items-start mb-6 bubble-enter pl-2" data-message-index="${index}">
                 <span class="text-xs text-[#8b2323] font-bold mb-1 ml-1 flex items-center gap-1 font-serif">
                     <span class="opacity-50">@</span> ${escapeHtml(charName)}
                 </span>
                 <div class="chat-bubble-ai border-t-2 border-t-[#8b2323] text-[#35251a] px-6 py-4 rounded max-w-[95%] shadow whitespace-pre-wrap leading-[2] text-[15px] bg-[#fcf8f2]">${formattedContent}</div>
-                ${msg.historian_note ? `<div class="historian-note max-w-[95%]">${escapeHtml(msg.historian_note)}</div>` : ''}
             </div>`;
         }
     });
@@ -488,41 +518,19 @@ async function handleUserSubmit() {
                 history: recentHistory
             };
             
-            // 创建一个临时加载气泡
-            const loadingHtmlId = `loading-${Date.now()}`;
-            elements.chatHistoryWrapper.insertAdjacentHTML('beforeend', `
-               <div id="${loadingHtmlId}" class="flex flex-col items-start mb-6 pl-2 animate-pulse">
-                   <span class="text-xs text-[#888] mb-1 ml-1">⌛ 史料链接中... 等待 ${escapeHtml(speaker)} 回复</span>
-                   <div class="bg-gray-100 border border-gray-200 text-gray-400 px-4 py-2 rounded-lg rounded-tl-none max-w-[80%]">正在调取时空信号...</div>
-               </div>
-            `);
-            elements.chatHistoryWrapper.scrollTop = elements.chatHistoryWrapper.scrollHeight;
+            const assistantMessage = {
+                role: "assistant",
+                content: "",
+                target: speaker
+            };
+            state.chatHistory[state.currentEventId].push(assistantMessage);
+            renderChat();
 
-            // ⚠️ 发送到原本为小程序写的同一个 api.py 里的接口！
-            const aiRes = await apiPost('/chat', payload);
-            
-            // 移除 Loading
-            const loadingEl = document.getElementById(loadingHtmlId);
-            if(loadingEl) loadingEl.remove();
-
-            if(aiRes && aiRes.reply) {
-                // 将半文半白和白话文组装在一起，网页端看着更饱满 (或者依靠模型自己返回的格式)
-                let combinedReply = aiRes.reply;
-                if(aiRes.modern_explain) {
-                    combinedReply = `**【半原文】**\n${aiRes.original_voice}\n\n**【白话文解】**\n${aiRes.modern_explain}`;
-                }
-                
-                state.chatHistory[state.currentEventId].push({
-                    role: "assistant",
-                    content: combinedReply,
-                    historian_note: aiRes.historian_note || "",
-                    target: speaker
-                });
+            await apiStreamPost('/chat_stream', payload, (delta) => {
+                assistantMessage.content += delta;
                 renderChat();
-                saveChatToServer();
-            } else {
-                alert(`与 ${speaker} 的连线失败`);
-            }
+            });
+            saveChatToServer();
         }
         
     } catch (e) {
