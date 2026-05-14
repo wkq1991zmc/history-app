@@ -93,7 +93,7 @@
           <div id="guess-game-content" class="hidden relative">
             <div class="text-[#64523e] text-xs tracking-[5px] mb-6 font-sans font-bold uppercase">INTERACTIVE GAME</div>
             <h1 class="text-3xl xl:text-[42px] font-bold text-[#5c1313] mb-3 leading-tight" style="font-family: 'Ma Shan Zheng', serif;">猜历史人物</h1>
-            <p class="text-[#64523e] text-sm mb-8 italic">双方各藏一个中国历史人物，只能用“是 / 不是”互相试探。</p>
+            <p class="text-[#64523e] text-sm mb-8 italic">双方各藏一个中国历史人物，用简短判断和历史线索互相试探。</p>
 
             <section id="guess-setup" class="game-panel">
               <div class="game-panel-title">设定你的人物</div>
@@ -109,7 +109,7 @@
                 <div>
                   <div class="game-panel-title">本轮对局</div>
                   <p id="guess-my-person" class="guess-my-person">你的人物：未设定</p>
-                  <p id="guess-status" class="game-copy">AI 已经选好人物。你先问一个是/不是问题。</p>
+                  <p id="guess-status" class="game-copy">AI 已经选好人物。你先问一个判断范围的问题。</p>
                 </div>
                 <div class="game-actions">
                   <button id="guess-reveal-btn" type="button" class="game-secondary-btn">揭晓答案</button>
@@ -120,9 +120,10 @@
               <div id="guess-user-answer" class="guess-answer-actions hidden">
                 <button type="button" data-answer="是">是</button>
                 <button type="button" data-answer="不是">不是</button>
+                <button type="button" data-answer="不确定">不确定</button>
               </div>
               <div class="guess-input-row">
-                <input id="guess-input" type="text" placeholder="输入是/不是问题，或直接猜 AI 的人物" autocomplete="off">
+                <input id="guess-input" type="text" placeholder="输入判断问题，或直接猜 AI 的人物" autocomplete="off">
                 <button id="guess-ask-btn" type="button">提问</button>
                 <button id="guess-guess-btn" type="button">猜答案</button>
               </div>

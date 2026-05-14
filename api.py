@@ -57,6 +57,26 @@ GUESS_GAME_PEOPLE = [
     "武则天", "玄奘", "安禄山", "郭子仪", "赵匡胤", "王安石", "苏轼", "岳飞", "成吉思汗", "忽必烈",
     "朱元璋", "朱棣", "于谦", "王阳明", "张居正", "郑成功", "康熙", "乾隆", "林则徐", "曾国藩"
 ]
+GUESS_PERSON_DYNASTIES = {
+    "秦始皇": ["秦朝"], "李斯": ["秦朝"], "扶苏": ["秦朝"],
+    "项羽": ["秦末汉初", "秦朝", "西汉"], "刘邦": ["秦末汉初", "西汉", "汉朝"],
+    "韩信": ["西汉", "汉朝"], "张良": ["西汉", "汉朝"],
+    "汉武帝": ["西汉", "汉朝"], "司马迁": ["西汉", "汉朝"], "王莽": ["新朝", "西汉"],
+    "曹操": ["东汉", "三国"], "刘备": ["三国", "蜀汉"], "孙权": ["三国", "东吴"],
+    "诸葛亮": ["三国", "蜀汉"], "周瑜": ["三国", "东吴"], "司马懿": ["三国", "曹魏", "西晋"],
+    "王羲之": ["东晋", "晋朝"], "谢安": ["东晋", "晋朝"],
+    "杨坚": ["隋朝"], "李世民": ["唐朝"], "武则天": ["唐朝", "武周"],
+    "玄奘": ["唐朝"], "安禄山": ["唐朝"], "郭子仪": ["唐朝"],
+    "赵匡胤": ["宋朝", "北宋"], "王安石": ["宋朝", "北宋"], "苏轼": ["宋朝", "北宋"], "岳飞": ["宋朝", "南宋"],
+    "成吉思汗": ["蒙古帝国", "元朝"], "忽必烈": ["元朝", "蒙古帝国"],
+    "朱元璋": ["明朝"], "朱棣": ["明朝"], "于谦": ["明朝"], "王阳明": ["明朝"], "张居正": ["明朝"],
+    "郑成功": ["明末清初", "南明", "清朝"], "康熙": ["清朝"], "乾隆": ["清朝"], "林则徐": ["清朝"], "曾国藩": ["清朝"],
+}
+GUESS_DYNASTY_WORDS = [
+    "秦朝", "西汉", "东汉", "汉朝", "新朝", "三国", "曹魏", "蜀汉", "东吴",
+    "西晋", "东晋", "晋朝", "隋朝", "唐朝", "武周", "五代十国", "宋朝",
+    "北宋", "南宋", "辽朝", "金朝", "蒙古帝国", "元朝", "明朝", "南明", "清朝"
+]
 guess_game_sessions = {}
 
 def check_rate_limit(player_id: str) -> bool:
@@ -118,6 +138,19 @@ def _yes_no_only(raw_answer: str) -> str:
         return "是"
     return "不是"
 
+def _brief_judge_answer(raw_answer: str, secret_person: str) -> str:
+    answer = re.sub(r"\s+", " ", (raw_answer or "").strip())
+    answer = re.sub(r"^(AI\s*答[:：]\s*)", "", answer)
+    if secret_person:
+        answer = answer.replace(secret_person, "此人")
+    if not re.match(r"^(是|不是|有争议|不确定)", answer):
+        answer = _yes_no_only(answer)
+    sentences = re.split(r"(?<=[。！？!?])", answer)
+    clean = "".join(sentences[:2]).strip(" ，,;；")
+    if len(clean) > 48:
+        clean = clean[:48].rstrip("，,。；;") + "。"
+    return clean or "不确定。"
+
 def _is_specific_person_guess(text: str) -> bool:
     compact = re.sub(r"\s+", "", text or "")
     guess_patterns = [
@@ -135,6 +168,22 @@ def _looks_like_yes_no_question(text: str) -> bool:
         return False
     yes_no_markers = ("吗", "么", "是否", "是不是", "能否", "能不能", "有没有", "有没有可能", "是", "不是")
     return any(marker in compact for marker in yes_no_markers)
+
+def _answer_known_guess_fact(person: str, question: str) -> Optional[str]:
+    compact = re.sub(r"\s+", "", question or "")
+    if any(word in compact for word in ("之前", "以后", "之后", "以前", "早于", "晚于")):
+        return None
+    asked_dynasties = [dynasty for dynasty in GUESS_DYNASTY_WORDS if dynasty in compact]
+    if not asked_dynasties:
+        return None
+    person_dynasties = GUESS_PERSON_DYNASTIES.get(person, [])
+    is_match = any(dynasty in person_dynasties for dynasty in asked_dynasties)
+    if is_match:
+        dynasty_text = "、".join(asked_dynasties)
+        if person == "成吉思汗" and "元朝" in asked_dynasties:
+            return "是。严格说生前元朝未建，但通常归入蒙古/元脉络。"
+        return f"是。常见分类可归入{dynasty_text}。"
+    return f"不是。常见分类更接近{'、'.join(person_dynasties) or '其他时代'}。"
 
 def _fallback_guess_question(transcript: List[Dict]) -> str:
     used = {item.get("text", "") for item in transcript if item.get("side") == "ai_question"}
@@ -174,7 +223,7 @@ async def guess_game_start(req: GuessGameStartRequest):
     return {
         "success": True,
         "session_id": session_id,
-        "message": "我已经选好了一个中国历史人物。你可以先问我一个只能回答是或不是的问题。"
+        "message": "我已经选好了一个中国历史人物。你可以先问我一个能简短裁判的问题。"
     }
 
 @app.post("/guess_game/ask_ai")
@@ -187,24 +236,28 @@ async def guess_game_ask_ai(req: GuessGameAskRequest):
         return {
             "success": True,
             "valid": False,
-            "answer": "请换成一个能回答“是/不是”的问题，或者用“猜答案”按钮直接猜人物。"
+            "answer": "请换成一个能判断范围的问题，或者用“猜答案”按钮直接猜人物。"
         }
+    known_answer = _answer_known_guess_fact(session["ai_person"], question)
+    if known_answer:
+        return {"success": True, "valid": True, "answer": known_answer}
 
     prompt = f"""你正在玩猜中国历史人物游戏。
 你的秘密人物是：{session['ai_person']}。
-用户会问一个只能回答“是”或“不是”的问题。
-你必须只回答两个字之一：“是”或“不是”。
-禁止解释，禁止提示，禁止透露朝代、身份、姓名、职业、功绩。
+这个人物的常用分类是：{"、".join(GUESS_PERSON_DYNASTIES.get(session['ai_person'], [])) or "未知"}。
+用户会问一个判断范围的问题。
+你必须用“是 / 不是 / 有争议 / 不确定”之一开头，并且最多补充一句不超过25字的历史解释。
+禁止透露人物姓名，禁止给出过度提示，不能主动说出具体答案。
 
 用户问题：{question}
 """
     resp = await gemini_client.chat.completions.create(
         model="qwen-turbo",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=6,
-        temperature=0,
+        max_tokens=60,
+        temperature=0.2,
     )
-    answer = _yes_no_only(resp.choices[0].message.content)
+    answer = _brief_judge_answer(resp.choices[0].message.content, session["ai_person"])
     return {"success": True, "valid": True, "answer": answer}
 
 @app.post("/guess_game/guess_ai")
@@ -241,7 +294,7 @@ async def guess_game_ai_turn(req: GuessGameTurnRequest):
     }
     answered_ai_questions = sum(
         1 for item in transcript
-        if item.get("side") == "ai_question" and item.get("answer") in ("是", "不是")
+        if item.get("side") == "ai_question" and item.get("answer") in ("是", "不是", "不确定", "有争议")
     )
     can_guess = answered_ai_questions >= 3
     action_rule = (

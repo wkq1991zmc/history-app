@@ -450,7 +450,7 @@ async function askGuessGameQuestion() {
     }
     if (res.valid === false) {
         appendGuessLog('system', res.answer);
-        elements.guessStatus.textContent = "这次不算回合。请换成是/不是问题，或直接点击“猜答案”。";
+        elements.guessStatus.textContent = "这次不算回合。请换成判断范围的问题，或直接点击“猜答案”。";
         return;
     }
     appendGuessLog('ai', `AI 答：${res.answer}`);
@@ -497,11 +497,11 @@ async function runAiGuessTurn() {
     if (res.type === 'guess') {
         state.guessGame.pendingAiGuess = res.text;
         appendGuessLog('ai', `AI 猜：${res.text}`);
-        elements.guessStatus.textContent = "AI 正在猜你的人物，请回答是或不是。";
+        elements.guessStatus.textContent = "AI 正在猜你的人物，请回答是、不是或不确定。";
     } else {
         state.guessGame.pendingAiGuess = "";
         appendGuessLog('ai', `AI 问：${res.text}`);
-        elements.guessStatus.textContent = "请回答 AI 的问题。";
+        elements.guessStatus.textContent = "请用是、不是或不确定回答 AI 的问题。";
     }
     state.guessGame.pendingAiQuestion = res.text;
     elements.guessUserAnswer.classList.remove('hidden');
