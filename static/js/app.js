@@ -45,9 +45,9 @@ const elements = {
 };
 
 // ================= API 请求 =================
-async function apiGet(endpoint) {
+async function apiGet(endpoint, options = {}) {
     try {
-        const res = await fetch(endpoint);
+        const res = await fetch(endpoint, options);
         if(!res.ok) throw new Error('Network response was not ok');
         return await res.json();
     } catch (e) {
@@ -98,6 +98,19 @@ async function init() {
         handleUserSubmit();
     });
 
+    elements.navContainer.addEventListener('click', (e) => {
+        const link = e.target.closest('.nav-item');
+        if (!link) return;
+        e.preventDefault();
+        loadEvent(link.dataset.eventId);
+    });
+
+    elements.charBtnsContainer.addEventListener('click', (e) => {
+        const button = e.target.closest('[data-char]');
+        if (!button) return;
+        setAtTarget(button.dataset.char);
+    });
+
     elements.btnClear.addEventListener('click', () => {
         if(!state.currentEventId) return;
         if(confirm(`确定要销毁【${state.currentEventId}】的所有档案记录并重新访谈吗？`)) {
@@ -126,18 +139,19 @@ function renderNav(events) {
         html += `<div class="mb-6">
             <h3 class="text-[#e8d5c4] font-bold text-sm mb-2 px-2 flex items-center gap-1">
                 <span class="w-1.5 h-4 bg-[#c62828] inline-block rounded-sm"></span>
-                ${dynasty}档案
+                ${escapeHtml(dynasty)}档案
             </h3>
             <ul class="space-y-1">
         `;
         groupByDynasty[dynasty].forEach(ev => {
             html += `
                 <li>
-                    <a href="#${ev.id}" onclick="loadEvent('${ev.id}')" 
+                    <a href="#${encodeURIComponent(ev.id)}"
+                       data-event-id="${escapeAttr(ev.id)}"
                        id="${safeId(ev.id)}"
                        class="nav-item block px-4 py-2 text-sm text-[#d4c3af] hover:bg-[#c62828]/10 hover:text-[#f0c9a8] rounded border-l-2 border-transparent transition-all truncate"
-                       title="${ev.title}">
-                       └─ ${ev.title}
+                       title="${escapeAttr(ev.title)}">
+                       └─ ${escapeHtml(ev.title)}
                     </a>
                 </li>
             `;
@@ -178,7 +192,9 @@ async function loadEvent(eventId) {
         renderStory(res.data);
         
         if(!state.chatHistory[state.currentEventId]) {
-            const historyRes = await apiGet(`/chat_history?user_id=${USER_ID}&event_name=${encodeURIComponent(state.currentEventId)}`);
+            const historyRes = await apiGet(`/chat_history?event_name=${encodeURIComponent(state.currentEventId)}`, {
+                headers: { 'X-CLIENT-ID': USER_ID }
+            });
             state.chatHistory[state.currentEventId] = (historyRes && historyRes.messages) ? historyRes.messages : [];
         }
         
@@ -215,7 +231,7 @@ function renderStory(data) {
     }
     
     // 渲染正文HTML
-    elements.storyDetails.innerHTML = data.story || '';
+    elements.storyDetails.innerHTML = sanitizeStoryHtml(data.story || '');
     
     // 让卷宗滚回顶部
     elements.storyContent.parentElement.parentElement.scrollTop = 0;
@@ -231,12 +247,12 @@ function renderChatControls() {
                         ? "bg-[#e7dbce] text-[#5c1313] border-[#5c1313] shadow-md shadow-[#5c1313]/30" 
                         : "bg-transparent text-[#8c7a66] border-[#d4c3af] hover:border-[#8c7a66]";
         
-        html += `<button type="button" onclick="setAtTarget('${char}')" class="${baseClass} ${stateClass}">@ ${char}</button>`;
+        html += `<button type="button" data-char="${escapeAttr(char)}" class="${baseClass} ${stateClass}">@ ${escapeHtml(char)}</button>`;
     });
     
     // 取消@群体模式钮
     const isAll = state.currentTarget === "所有参与人";
-    html += `<button type="button" onclick="setAtTarget('所有参与人')" class="px-3 py-1.5 rounded-full text-sm transition-all border whitespace-nowrap flex-shrink-0 tracking-wide ${isAll ? 'bg-transparent border-[#8c7a66] text-[#8c7a66]' : 'bg-transparent text-[#bcaea1] border-[#d4c3af] hover:text-[#8c7a66]'}">群聊模式</button>`;
+    html += `<button type="button" data-char="所有参与人" class="px-3 py-1.5 rounded-full text-sm transition-all border whitespace-nowrap flex-shrink-0 tracking-wide ${isAll ? 'bg-transparent border-[#8c7a66] text-[#8c7a66]' : 'bg-transparent text-[#bcaea1] border-[#d4c3af] hover:text-[#8c7a66]'}">群聊模式</button>`;
 
     elements.charBtnsContainer.innerHTML = html;
     
@@ -305,17 +321,38 @@ async function saveChatToServer() {
     if (!state.currentEventId) return;
     const messages = state.chatHistory[state.currentEventId] || [];
     await apiPost('/chat_history', {
-        user_id: USER_ID,
         event_name: state.currentEventId,
         messages: messages
     });
 }
 
 function escapeHtml(unsafe) {
-    return unsafe
+    return String(unsafe)
          .replace(/&/g, "&amp;")
          .replace(/</g, "&lt;")
          .replace(/>/g, "&gt;");
+}
+
+function escapeAttr(unsafe) {
+    return escapeHtml(unsafe)
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
+
+function sanitizeStoryHtml(html) {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    template.content.querySelectorAll('script, style, iframe, object, embed, link, meta').forEach(node => node.remove());
+    template.content.querySelectorAll('*').forEach(node => {
+        [...node.attributes].forEach(attr => {
+            const name = attr.name.toLowerCase();
+            const value = attr.value.trim().toLowerCase();
+            if (name.startsWith('on') || ((name === 'href' || name === 'src') && value.startsWith('javascript:'))) {
+                node.removeAttribute(attr.name);
+            }
+        });
+    });
+    return template.innerHTML;
 }
 
 // ================= AI 交互核心桥接 =================
@@ -372,7 +409,7 @@ async function handleUserSubmit() {
             const loadingHtmlId = `loading-${Date.now()}`;
             elements.chatHistoryWrapper.insertAdjacentHTML('beforeend', `
                <div id="${loadingHtmlId}" class="flex flex-col items-start mb-6 pl-2 animate-pulse">
-                   <span class="text-xs text-[#888] mb-1 ml-1">⌛ 史料链接中... 等待 ${speaker} 回复</span>
+                   <span class="text-xs text-[#888] mb-1 ml-1">⌛ 史料链接中... 等待 ${escapeHtml(speaker)} 回复</span>
                    <div class="bg-gray-100 border border-gray-200 text-gray-400 px-4 py-2 rounded-lg rounded-tl-none max-w-[80%]">正在调取时空信号...</div>
                </div>
             `);

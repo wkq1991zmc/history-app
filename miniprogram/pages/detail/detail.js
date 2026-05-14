@@ -297,7 +297,7 @@ Page({
     
     let currentMessages = [...this.data.messages];
     
-    const chatPromises = characters.map(async (speaker) => {
+    for (const speaker of characters) {
       const history = currentMessages.slice(-10).map(msg => ({
         role: msg.role,
         content: msg.content || msg.original_voice || msg.modern_explain || '...',
@@ -348,14 +348,10 @@ Page({
         
         this.saveChatHistory();
         
-        return assistantMessage;
       } catch (error) {
         console.error(`${speaker} 发言失败或导致 500:`, error);
-        return null;
       }
-    });
-    
-    await Promise.all(chatPromises);
+    }
     
     this.setData({ loading: false });
   }

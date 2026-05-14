@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Header, Depends
+from fastapi import FastAPI, Header, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -9,6 +9,7 @@ import httpx
 import json
 import re
 import time
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 from dotenv import load_dotenv
@@ -36,11 +37,12 @@ dashscope_client = AsyncOpenAI(
     timeout=httpx.Timeout(180.0, connect=10.0),
 )
 
-GEMINI_API_KEY = os.environ.get("DASHSCOPE_API_KEY")
+GEMINI_API_KEY = os.environ.get("WEB_API_KEY") or os.environ.get("GEMINI_API_KEY") or os.environ.get("DASHSCOPE_API_KEY")
 GEMINI_MODEL = os.environ.get("WEB_MODEL", "qwen3.6-plus") # 默认换成qwen的
+GEMINI_BASE_URL = os.environ.get("WEB_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
 gemini_client = AsyncOpenAI(
     api_key=GEMINI_API_KEY,
-    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+    base_url=GEMINI_BASE_URL,
     timeout=httpx.Timeout(180.0, connect=10.0),
 )
 
@@ -57,6 +59,17 @@ def check_rate_limit(player_id: str) -> bool:
         return False
     rate_limit_store[player_id].append(now)
     return True
+
+def get_request_user_id(
+    x_wx_openid: Optional[str] = Header(None, alias="X-WX-OPENID"),
+    x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID"),
+) -> str:
+    user_id = (x_wx_openid or x_client_id or "").strip()
+    if not user_id:
+        raise HTTPException(status_code=401, detail="缺少用户身份")
+    if not USER_ID_PATTERN.match(user_id):
+        raise HTTPException(status_code=400, detail="非法用户ID")
+    return user_id
 
 # ======== 🌟 用户隔离系统全局配置 ========
 WX_APP_ID = os.environ.get("WX_APP_ID", "")
@@ -177,6 +190,11 @@ class ChatRequest(BaseModel):
         }
 
     def validate_inputs(self):
+        if self.event_name not in EVENTS_DB:
+            raise ValueError("未知事件")
+        event_characters = EVENTS_DB[self.event_name].get("characters", [])
+        if self.character not in event_characters:
+            raise ValueError("未知角色")
         if len(self.message) > 500:
             raise ValueError("消息过长，请控制在500字以内")
         if len(self.history) > 20:
@@ -188,6 +206,11 @@ class ChatRequest(BaseModel):
 @app.post("/chat")
 async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None, alias="X-WX-OPENID"), x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
     try:
+        request.validate_inputs()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
         player_id = x_wx_openid if x_wx_openid else (x_client_id if x_client_id else "unknown_player")
         is_miniprogram = bool(x_wx_openid and x_wx_openid.strip())
         
@@ -198,7 +221,7 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
         print(f"\n=== 收到提审请求 [{client_type}] ===")
         print(f"玩家: {player_id} | 案件: {request.event_name} | 被告: {request.character}")
         
-        event_data = EVENTS_DB.get(request.event_name, {})
+        event_data = EVENTS_DB[request.event_name]
         raw_notes = event_data.get('ai_notes', '')
         char_note = ""
         for line in raw_notes.split('\n'):
@@ -407,13 +430,30 @@ def _safe_chat_path(user_id: str, event_name: str) -> Path:
         raise ValueError("路径越界")
     return event_file
 
+def _write_json_atomic(path: Path, data):
+    path.parent.mkdir(exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as tmp_file:
+        json.dump(data, tmp_file, ensure_ascii=False, indent=2)
+        tmp_name = tmp_file.name
+    os.replace(tmp_name, path)
+
 class ChatHistoryRequest(BaseModel):
-    user_id: str
     event_name: str
     messages: List[Dict]
 
+    def validate_inputs(self):
+        if self.event_name not in EVENTS_DB:
+            raise ValueError("未知事件")
+        if len(self.messages) > 100:
+            raise ValueError("聊天记录过多，请清理后重试")
+        for msg in self.messages:
+            if not isinstance(msg, dict):
+                raise ValueError("聊天记录格式错误")
+            if len(str(msg.get("content", ""))) > 2000:
+                raise ValueError("聊天记录中存在过长消息")
+
 @app.get("/chat_history")
-async def get_chat_history(user_id: str, event_name: str):
+async def get_chat_history(event_name: str, user_id: str = Depends(get_request_user_id)):
     try:
         event_file = _safe_chat_path(user_id, event_name)
     except ValueError:
@@ -428,15 +468,14 @@ async def get_chat_history(user_id: str, event_name: str):
         return {"success": True, "messages": []}
 
 @app.post("/chat_history")
-async def save_chat_history(request: ChatHistoryRequest):
+async def save_chat_history(request: ChatHistoryRequest, user_id: str = Depends(get_request_user_id)):
     try:
-        event_file = _safe_chat_path(request.user_id, request.event_name)
+        request.validate_inputs()
+        event_file = _safe_chat_path(user_id, request.event_name)
     except ValueError as e:
         return {"success": False, "error": str(e)}
-    event_file.parent.mkdir(exist_ok=True)
     try:
-        with open(event_file, "w", encoding="utf-8") as f:
-            json.dump(request.messages, f, ensure_ascii=False, indent=2)
+        _write_json_atomic(event_file, request.messages)
         return {"success": True}
     except Exception as e:
         return {"success": False, "error": str(e)}
