@@ -229,6 +229,19 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
                 char_note = raw_notes
                 break
 
+        character_reply_count = sum(
+            1
+            for m in request.history
+            if isinstance(m, dict)
+            and m.get("role") != "user"
+            and m.get("target") == request.character
+        )
+        allow_followup_question = character_reply_count > 0 and character_reply_count % 3 == 0
+        if allow_followup_question:
+            followup_question_rule = "本轮允许在结尾自然地向用户提出一个问题，但只能问一个，且必须和当前话题强相关；如果没有必要，仍然不要提问。"
+        else:
+            followup_question_rule = "本轮禁止向用户反问，也不要用问题作结尾；请直接回答用户的问题，让对话自然停在一个完整陈述上。"
+
         system_prompt = f"""你是【{request.character}】，正在参与一场跨越千年的时空访谈。事件：{request.event_name}。
 原则：只据正史，不用野史小说，不知即说不知。以第一人称、半文半白回答。
 # 核心原则（必须严格遵守）
@@ -236,7 +249,8 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
 2. 【不知即不知】如果你不知道某件事的正史记载，直接说"此事史书无载，吾不知也"，绝不可编造。
 3. 【角色代入】你必须完全以【{request.character}】的第一人称视角回答，带入该人物的性格、立场、处境和心机。此时距你所在的时代已过去千年。提问者是一位来自现代的「后生」或「小友」。不要称呼对方为法官！
 4. 【语气要求】使用半文半白的语言风格，符合该历史人物的身份和时代背景。
-5. 【精简要求】：不要长篇大论，保持回答简洁明了，你不能只是被动的回答问题，必须有主动思考和分析的能力，在适当的时候你可以向用户提出问题（切记不要每个回答都提问，比如随机性的在你们1-3次对话之间提问一次），从而引导用户将和你的对话继续下去。
+5. 【精简要求】：不要长篇大论，保持回答简洁明了；你可以有主动思考和分析，但不要为了延长对话而强行反问。
+6. 【反问节奏】：{followup_question_rule}
 
 {char_note}
 
