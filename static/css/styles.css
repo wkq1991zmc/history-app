@@ -10,8 +10,21 @@ body {
 .bg-paper {
     background-color: #e3d2be;
     background-image: 
-        radial-gradient(ellipse at center, rgba(255,255,255,0.4) 0%, rgba(0,0,0,0) 80%),
+        radial-gradient(ellipse at center, rgba(255,255,255,0.42) 0%, rgba(0,0,0,0) 68%),
+        radial-gradient(ellipse at left center, rgba(92, 56, 32, 0.16) 0%, rgba(92, 56, 32, 0.08) 18%, rgba(0,0,0,0) 44%),
+        radial-gradient(ellipse at right center, rgba(92, 56, 32, 0.18) 0%, rgba(92, 56, 32, 0.08) 18%, rgba(0,0,0,0) 46%),
+        linear-gradient(90deg, rgba(48, 28, 18, 0.16) 0%, rgba(0,0,0,0) 4%, rgba(0,0,0,0) 96%, rgba(48, 28, 18, 0.18) 100%),
         url('https://www.transparenttextures.com/patterns/cream-paper.png');
+}
+
+.bg-paper::before {
+    content: '';
+    position: sticky;
+    top: 0;
+    display: block;
+    height: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 80px rgba(56, 32, 20, 0.14);
 }
 
 /* 标题用马山正书法体，导航用小薇体，正文用思源宋体 */
