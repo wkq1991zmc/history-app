@@ -128,6 +128,48 @@ class GuessGameRevealRequest(BaseModel):
 def _normalize_person_name(name: str) -> str:
     return re.sub(r"[\s·・，。！？、,.!?《》〈〉“”\"'’‘]", "", name or "").lower()
 
+def _format_event_deep_context(event_data: Dict, character: str) -> str:
+    lines = []
+    source_notes = event_data.get("source_notes") or []
+    misconceptions = event_data.get("common_misconceptions") or []
+    debate_points = event_data.get("debate_points") or []
+    key_questions = event_data.get("key_questions") or []
+    variables = event_data.get("counterfactual_variables") or []
+    character_cards = event_data.get("character_cards") or {}
+    character_card = character_cards.get(character) if isinstance(character_cards, dict) else None
+
+    if source_notes:
+        lines.append("【史实依据与边界】")
+        lines.extend(f"- {item}" for item in source_notes[:4])
+    if misconceptions:
+        lines.append("【常见误解修正】")
+        lines.extend(f"- {item}" for item in misconceptions[:4])
+    if debate_points:
+        lines.append("【可讨论的争议点】")
+        lines.extend(f"- {item}" for item in debate_points[:4])
+    if key_questions:
+        lines.append("【适合深入回答的问题方向】")
+        lines.extend(f"- {item}" for item in key_questions[:5])
+    if variables:
+        lines.append("【历史推演变量】")
+        for item in variables[:4]:
+            if isinstance(item, dict):
+                variable = item.get("variable", "")
+                effect = item.get("likely_effect", "")
+                lines.append(f"- {variable}：{effect}")
+    if isinstance(character_card, dict):
+        lines.append(f"【{character}人物卡】")
+        for key, label in (
+            ("stance", "立场"),
+            ("fear", "恐惧"),
+            ("blind_spot", "盲点"),
+            ("answer_style", "回答风格"),
+        ):
+            if character_card.get(key):
+                lines.append(f"- {label}：{character_card[key]}")
+
+    return "\n".join(lines)
+
 def _yes_no_only(raw_answer: str) -> str:
     answer = (raw_answer or "").strip()
     first_yes = answer.find("是")
@@ -489,6 +531,7 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
             if request.character in line:
                 char_note = raw_notes
                 break
+        deep_context = _format_event_deep_context(event_data, request.character)
 
         character_reply_count = sum(
             1
@@ -516,6 +559,8 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
 {char_note}
 
 {event_data.get('dynamic_prompt', '')}
+
+{deep_context}
 
 你必须返回纯JSON格式，包含以下两个字段：
 1. original_voice：你的文言回答（半文半白风格）
@@ -604,6 +649,7 @@ async def ai_chat_stream(request: ChatRequest, x_client_id: Optional[str] = Head
         if request.character in line:
             char_note = raw_notes
             break
+    deep_context = _format_event_deep_context(event_data, request.character)
 
     character_reply_count = sum(
         1
@@ -631,6 +677,8 @@ async def ai_chat_stream(request: ChatRequest, x_client_id: Optional[str] = Head
 {char_note}
 
 {event_data.get('dynamic_prompt', '')}
+
+{deep_context}
 
 请直接输出给用户看的正文，不要输出 JSON。必须使用以下格式：
 
