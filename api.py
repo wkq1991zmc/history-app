@@ -172,6 +172,12 @@ def _extract_json_fields(raw_text: str):
     me_text = me_text.replace("\\n", "\n").replace("\\t", "\t")
     return ov_text, me_text
 
+def _build_historian_note(event_data: Dict, character: str) -> str:
+    notes = event_data.get("ai_notes", "")
+    if character and character in notes:
+        return f"史官评注：这段回答主要是从{character}的处境和立场出发，可作为角色视角理解；涉及具体史实时，仍应以卷宗正文和正史材料为准。"
+    return "史官评注：这段回答属于历史角色视角的合理演绎；可帮助理解人物动机，但不宜直接当作史书原文。"
+
 
 class ChatRequest(BaseModel):
     event_name: str      # 微信告诉我们当前在哪个案子 (例如: "三国·赤壁之战")
@@ -311,6 +317,7 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
             "reply": original_voice,
             "original_voice": original_voice.strip(),
             "modern_explain": modern_explain.strip(),
+            "historian_note": _build_historian_note(event_data, request.character),
             "character": request.character
         }
 

@@ -103,6 +103,130 @@ h1, h2, h3, h4, h5, h6 {
     margin-top: -2px;
 }
 
+.case-insight-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1rem;
+}
+
+.case-panel {
+    border-left: 2px solid rgba(92, 19, 19, 0.45);
+    background: rgba(255, 248, 239, 0.42);
+    padding: 1rem;
+}
+
+.case-panel-title {
+    color: #5c1313;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.75rem;
+}
+
+.relationship-map,
+.event-timeline {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.relationship-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+}
+
+.relationship-person {
+    color: #35251a;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.relationship-line {
+    color: #8b2323;
+    border-top: 1px solid rgba(139, 35, 35, 0.35);
+    padding: 0.15rem 0.35rem 0;
+    font-size: 0.68rem;
+    white-space: nowrap;
+}
+
+.timeline-row {
+    display: grid;
+    grid-template-columns: 1.4rem minmax(0, 1fr);
+    align-items: start;
+    gap: 0.5rem;
+    font-size: 0.84rem;
+}
+
+.timeline-index {
+    width: 1.25rem;
+    height: 1.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #5c1313;
+    color: #f5efe8;
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.timeline-title {
+    color: #35251a;
+    line-height: 1.5;
+}
+
+.case-muted {
+    color: #8c7a66;
+    font-size: 0.8rem;
+}
+
+.question-suggestions {
+    border-top: 1px dashed rgba(140, 122, 102, 0.45);
+    padding-top: 0.75rem;
+}
+
+.suggestion-label {
+    color: #8c7a66;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    margin-bottom: 0.5rem;
+}
+
+.suggestion-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.suggestion-list button {
+    border: 1px solid rgba(92, 19, 19, 0.28);
+    color: #5c1313;
+    background: rgba(245, 239, 232, 0.72);
+    padding: 0.35rem 0.6rem;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.suggestion-list button:hover {
+    background: #f5efe8;
+    border-color: rgba(92, 19, 19, 0.6);
+}
+
+.historian-note {
+    margin-top: 0.45rem;
+    border-left: 2px solid rgba(140, 103, 83, 0.55);
+    color: #705d4d;
+    background: rgba(253, 250, 245, 0.6);
+    padding: 0.55rem 0.75rem;
+    font-size: 0.76rem;
+    line-height: 1.65;
+}
+
 /* 气泡样式重写（脱离色块感，融入整体背景） */
 .chat-bubble-user {
     background: transparent !important;
@@ -204,6 +328,10 @@ h1, h2, h3, h4, h5, h6 {
 
     #story-image-container {
         height: 12rem !important;
+    }
+
+    .case-insight-grid {
+        grid-template-columns: 1fr;
     }
 
     .story-prose {

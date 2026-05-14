@@ -30,6 +30,8 @@ const elements = {
     storyLocation: document.getElementById('story-location'),
     storyCharactersList: document.getElementById('story-characters-list'),
     storyDetails: document.getElementById('story-details'),
+    relationshipMap: document.getElementById('relationship-map'),
+    eventTimeline: document.getElementById('event-timeline'),
     storyImgContainer: document.getElementById('story-image-container'),
     storyImg: document.getElementById('story-image'),
     
@@ -41,6 +43,7 @@ const elements = {
     chatForm: document.getElementById('chat-form'),
     btnClear: document.getElementById('btn-clear-chat'),
     currentAtBadge: document.getElementById('current-at-badge'),
+    questionSuggestions: document.getElementById('question-suggestions'),
     chatSpinner: document.getElementById('chat-spinner')
 };
 
@@ -109,6 +112,13 @@ async function init() {
         const button = e.target.closest('[data-char]');
         if (!button) return;
         setAtTarget(button.dataset.char);
+    });
+
+    elements.questionSuggestions.addEventListener('click', (e) => {
+        const button = e.target.closest('[data-question]');
+        if (!button) return;
+        elements.chatInput.value = button.dataset.question;
+        elements.chatInput.focus();
     });
 
     elements.btnClear.addEventListener('click', () => {
@@ -232,6 +242,9 @@ function renderStory(data) {
     
     // 渲染正文HTML
     elements.storyDetails.innerHTML = sanitizeStoryHtml(data.story || '');
+    renderRelationshipMap(data);
+    renderTimeline(data);
+    renderQuestionSuggestions(data);
     
     // 让卷宗滚回顶部
     elements.storyContent.parentElement.parentElement.scrollTop = 0;
@@ -266,10 +279,79 @@ function renderChatControls() {
     }
 }
 
+function renderRelationshipMap(data) {
+    const chars = data.characters || [];
+    if (chars.length === 0) {
+        elements.relationshipMap.innerHTML = '<div class="case-muted">暂无人物资料</div>';
+        return;
+    }
+
+    const links = [];
+    for (let i = 0; i < chars.length - 1; i++) {
+        links.push([chars[i], chars[i + 1], i === 0 ? '核心冲突' : '牵连']);
+    }
+    if (chars.length > 2) {
+        links.push([chars[0], chars[chars.length - 1], '权力链条']);
+    }
+
+    elements.relationshipMap.innerHTML = links.map(([from, to, label]) => `
+        <div class="relationship-row">
+            <span class="relationship-person">${escapeHtml(from)}</span>
+            <span class="relationship-line">${escapeHtml(label)}</span>
+            <span class="relationship-person">${escapeHtml(to)}</span>
+        </div>
+    `).join('');
+}
+
+function extractStoryHeadings(storyHtml) {
+    const template = document.createElement('template');
+    template.innerHTML = storyHtml || '';
+    return [...template.content.querySelectorAll('p > b:first-child')]
+        .map(node => node.textContent.replace(/[【】]/g, '').trim())
+        .filter(Boolean)
+        .slice(0, 6);
+}
+
+function renderTimeline(data) {
+    const headings = extractStoryHeadings(data.story);
+    if (headings.length === 0) {
+        elements.eventTimeline.innerHTML = '<div class="case-muted">暂无时间线资料</div>';
+        return;
+    }
+
+    elements.eventTimeline.innerHTML = headings.map((heading, index) => `
+        <div class="timeline-row">
+            <span class="timeline-index">${index + 1}</span>
+            <span class="timeline-title">${escapeHtml(heading)}</span>
+        </div>
+    `).join('');
+}
+
+function renderQuestionSuggestions(data) {
+    const chars = data.characters || [];
+    const lead = state.currentTarget && state.currentTarget !== "所有参与人" ? state.currentTarget : (chars[0] || "你");
+    const questions = [
+        "你当时最担心的是什么？",
+        "史书有没有冤枉你？",
+        "如果重来一次，你会改变哪一步？",
+        `${lead}，你怎么看其他人的选择？`
+    ];
+
+    elements.questionSuggestions.innerHTML = `
+        <div class="suggestion-label">可直接追问</div>
+        <div class="suggestion-list">
+            ${questions.map(q => `<button type="button" data-question="${escapeAttr(q)}">${escapeHtml(q)}</button>`).join('')}
+        </div>
+    `;
+}
+
 // 暴露给全局的点击事件
 window.setAtTarget = function(char) {
     state.currentTarget = char;
     renderChatControls();
+    if (state.currentEventData) {
+        renderQuestionSuggestions(state.currentEventData);
+    }
     elements.chatInput.focus();
 }
 
@@ -305,9 +387,10 @@ function renderChat() {
             html += `
             <div class="flex flex-col items-start mb-6 bubble-enter pl-2">
                 <span class="text-xs text-[#8b2323] font-bold mb-1 ml-1 flex items-center gap-1 font-serif">
-                    <span class="opacity-50">@</span> ${charName}
+                    <span class="opacity-50">@</span> ${escapeHtml(charName)}
                 </span>
                 <div class="chat-bubble-ai border-t-2 border-t-[#8b2323] text-[#35251a] px-6 py-4 rounded max-w-[95%] shadow whitespace-pre-wrap leading-[2] text-[15px] bg-[#fcf8f2]">${formattedContent}</div>
+                ${msg.historian_note ? `<div class="historian-note max-w-[95%]">${escapeHtml(msg.historian_note)}</div>` : ''}
             </div>`;
         }
     });
@@ -432,6 +515,7 @@ async function handleUserSubmit() {
                 state.chatHistory[state.currentEventId].push({
                     role: "assistant",
                     content: combinedReply,
+                    historian_note: aiRes.historian_note || "",
                     target: speaker
                 });
                 renderChat();
