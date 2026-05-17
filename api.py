@@ -103,6 +103,12 @@ class AnalyticsEventRequest(BaseModel):
     character: Optional[str] = ""
     detail: Optional[str] = ""
 
+class FeedbackRequest(BaseModel):
+    message: str
+    email: Optional[str] = ""
+    page: Optional[str] = ""
+    event_name: Optional[str] = ""
+
 def _today_key() -> str:
     return time.strftime("%Y-%m-%d", time.localtime())
 
@@ -123,12 +129,14 @@ def _default_analytics() -> Dict:
             "event_views": 0,
             "chats": 0,
             "guess_actions": 0,
+            "feedbacks": 0,
         },
         "visitors": {},
         "days": {},
         "events": {},
         "characters": {},
         "recent": [],
+        "feedbacks": [],
     }
 
 def _load_analytics() -> Dict:
@@ -184,6 +192,8 @@ def _record_analytics(action: str, visitor_id: str = "", event_name: str = "", c
         data["totals"]["guess_actions"] += 1
         day["guess_actions"] += 1
         visitor["guess_actions"] += 1
+    elif action == "feedback":
+        data["totals"]["feedbacks"] += 1
 
     data["totals"]["unique_visitors"] = len(data["visitors"])
     data["recent"].insert(0, {
@@ -192,6 +202,40 @@ def _record_analytics(action: str, visitor_id: str = "", event_name: str = "", c
         "event_name": event_name,
         "character": character,
         "detail": detail,
+    })
+    data["recent"] = data["recent"][:120]
+    _write_analytics(data)
+
+def _record_feedback(req: FeedbackRequest, visitor_id: str):
+    message = (req.message or "").strip()
+    email = (req.email or "").strip()
+    if len(message) < 2:
+        raise HTTPException(status_code=400, detail="反馈内容太短")
+    if len(message) > 1200:
+        raise HTTPException(status_code=400, detail="反馈内容请控制在1200字以内")
+    if email and (len(email) > 120 or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email)):
+        raise HTTPException(status_code=400, detail="邮箱格式不正确")
+
+    data = _load_analytics()
+    now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    feedback = {
+        "time": now,
+        "message": message,
+        "email": email,
+        "page": (req.page or "")[:200],
+        "event_name": (req.event_name or "")[:120],
+        "visitor": _hash_visitor_id(visitor_id),
+    }
+    data.setdefault("feedbacks", []).insert(0, feedback)
+    data["feedbacks"] = data["feedbacks"][:200]
+    data.setdefault("totals", {}).setdefault("feedbacks", 0)
+    data["totals"]["feedbacks"] += 1
+    data.setdefault("recent", []).insert(0, {
+        "time": now,
+        "action": "feedback",
+        "event_name": feedback["event_name"],
+        "character": "",
+        "detail": feedback["message"][:40],
     })
     data["recent"] = data["recent"][:120]
     _write_analytics(data)
@@ -223,6 +267,21 @@ async def analytics_event(req: AnalyticsEventRequest, x_client_id: Optional[str]
     _record_analytics(req.event_type, x_client_id or "anonymous", req.event_name or "", req.character or "", req.detail or "")
     return {"success": True}
 
+@app.post("/feedback")
+async def submit_feedback(req: FeedbackRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    visitor_id = x_client_id or "anonymous"
+    if not check_rate_limit(f"feedback-{visitor_id}"):
+        raise HTTPException(status_code=429, detail="提交太频繁，请稍后再试")
+    _record_feedback(req, visitor_id)
+    return {"success": True, "message": "反馈已收到，感谢你愿意帮我改进。"}
+
+@app.get("/site_config")
+async def site_config():
+    return {
+        "success": True,
+        "contact_email": os.environ.get("PUBLIC_CONTACT_EMAIL", "").strip()
+    }
+
 @app.get("/admin/analytics")
 async def admin_analytics(key: Optional[str] = None, x_admin_key: Optional[str] = Header(None, alias="X-ADMIN-KEY")):
     _require_admin_key(key, x_admin_key)
@@ -245,6 +304,7 @@ async def admin_analytics(key: Optional[str] = None, x_admin_key: Optional[str] 
         "top_events_by_chats": _top_items(data.get("events", {}), "chats"),
         "top_characters": _top_items(data.get("characters", {}), "chats"),
         "recent": data.get("recent", [])[:50],
+        "feedbacks": data.get("feedbacks", [])[:50],
     }
 
 def check_rate_limit(player_id: str) -> bool:

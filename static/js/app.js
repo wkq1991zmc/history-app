@@ -69,7 +69,15 @@ Object.assign(elements, {
     guessInput: document.getElementById('guess-input'),
     guessAskBtn: document.getElementById('guess-ask-btn'),
     guessGuessBtn: document.getElementById('guess-guess-btn'),
-    guessUserAnswer: document.getElementById('guess-user-answer')
+    guessUserAnswer: document.getElementById('guess-user-answer'),
+    feedbackOpenBtn: document.getElementById('feedback-open-btn'),
+    feedbackModal: document.getElementById('feedback-modal'),
+    feedbackCloseBtn: document.getElementById('feedback-close-btn'),
+    feedbackSubmitBtn: document.getElementById('feedback-submit-btn'),
+    feedbackMessage: document.getElementById('feedback-message'),
+    feedbackEmail: document.getElementById('feedback-email'),
+    feedbackStatus: document.getElementById('feedback-status'),
+    feedbackEmailLink: document.getElementById('feedback-email-link')
 });
 
 // ================= API 请求 =================
@@ -113,6 +121,53 @@ function trackAnalytics(eventType, data = {}) {
         body: JSON.stringify(payload),
         keepalive: true
     }).catch(() => {});
+}
+
+async function loadSiteConfig() {
+    const res = await apiGet('/site_config');
+    const email = res && res.contact_email ? String(res.contact_email).trim() : '';
+    if (!email || !elements.feedbackEmailLink) return;
+    elements.feedbackEmailLink.href = `mailto:${email}`;
+    elements.feedbackEmailLink.textContent = `也可以发邮件：${email}`;
+    elements.feedbackEmailLink.classList.remove('hidden');
+}
+
+function openFeedbackModal() {
+    elements.feedbackModal.classList.remove('hidden');
+    elements.feedbackModal.setAttribute('aria-hidden', 'false');
+    elements.feedbackStatus.textContent = '';
+    elements.feedbackMessage.focus();
+}
+
+function closeFeedbackModal() {
+    elements.feedbackModal.classList.add('hidden');
+    elements.feedbackModal.setAttribute('aria-hidden', 'true');
+}
+
+async function submitFeedback() {
+    const message = elements.feedbackMessage.value.trim();
+    const email = elements.feedbackEmail.value.trim();
+    if (message.length < 2) {
+        elements.feedbackStatus.textContent = '先写一点反馈内容。';
+        return;
+    }
+    elements.feedbackSubmitBtn.disabled = true;
+    elements.feedbackStatus.textContent = '正在提交...';
+    const res = await apiPost('/feedback', {
+        message,
+        email,
+        page: window.location.pathname + window.location.hash,
+        event_name: state.currentMode === 'story' ? state.currentEventId : '猜历史人物'
+    });
+    elements.feedbackSubmitBtn.disabled = false;
+    if (!res || !res.success) {
+        elements.feedbackStatus.textContent = '提交失败，请稍后再试。';
+        return;
+    }
+    elements.feedbackStatus.textContent = '已收到，谢谢你。';
+    elements.feedbackMessage.value = '';
+    elements.feedbackEmail.value = '';
+    setTimeout(closeFeedbackModal, 900);
 }
 
 // ================= 初始化与导航 =================
@@ -191,6 +246,13 @@ async function init() {
     elements.guessAskBtn.addEventListener('click', askGuessGameQuestion);
     elements.guessGuessBtn.addEventListener('click', guessAiPerson);
     elements.guessUserAnswer.addEventListener('click', handleUserYesNoAnswer);
+    elements.feedbackOpenBtn.addEventListener('click', openFeedbackModal);
+    elements.feedbackCloseBtn.addEventListener('click', closeFeedbackModal);
+    elements.feedbackModal.addEventListener('click', (e) => {
+        if (e.target === elements.feedbackModal) closeFeedbackModal();
+    });
+    elements.feedbackSubmitBtn.addEventListener('click', submitFeedback);
+    loadSiteConfig();
 }
 
 // 使用 base64 编码来避免特殊字符影响 ID 选择器，更安全

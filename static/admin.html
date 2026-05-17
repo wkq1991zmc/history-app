@@ -111,6 +111,19 @@
       font-size: 13px;
       line-height: 1.6;
     }
+    .feedback-item {
+      border-bottom: 1px solid rgba(120,101,82,0.25);
+      padding: 10px 0;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .feedback-meta {
+      color: #786552;
+      font-size: 12px;
+      margin-bottom: 4px;
+      white-space: normal;
+    }
     .error {
       color: #b32626;
       margin-top: 10px;
@@ -152,6 +165,10 @@
           <h2>最近动作</h2>
           <div id="recent-list" class="recent"></div>
         </section>
+        <section>
+          <h2>用户反馈</h2>
+          <div id="feedback-list"></div>
+        </section>
       </div>
     </div>
   </main>
@@ -162,6 +179,11 @@
     const errorBox = document.getElementById('error');
     const dashboard = document.getElementById('dashboard');
     const login = document.getElementById('login');
+    const savedAdminKey = localStorage.getItem('historyAdminKey') || '';
+    if (savedAdminKey) {
+      keyInput.value = savedAdminKey;
+      loadAnalytics();
+    }
 
     function escapeHtml(text) {
       return String(text || '').replace(/[&<>"']/g, (ch) => ({
@@ -183,6 +205,7 @@
         ['事件浏览', totals.event_views || 0],
         ['AI 对话', totals.chats || 0],
         ['猜人物互动', totals.guess_actions || 0],
+        ['用户反馈', totals.feedbacks || 0],
       ].map(([label, value]) => `<div class="card"><div class="num">${value}</div><div class="label">${label}</div></div>`).join('');
 
       renderTable('days-table', data.days || [], [
@@ -206,6 +229,9 @@
       document.getElementById('recent-list').innerHTML = (data.recent || []).map(item =>
         `<div>${escapeHtml(item.time)} · ${escapeHtml(item.action)} · ${escapeHtml(item.event_name || item.detail || '')} ${escapeHtml(item.character || '')}</div>`
       ).join('');
+      document.getElementById('feedback-list').innerHTML = (data.feedbacks || []).map(item =>
+        `<div class="feedback-item"><div class="feedback-meta">${escapeHtml(item.time)} · ${escapeHtml(item.event_name || item.page || '')}${item.email ? ' · ' + escapeHtml(item.email) : ''}</div>${escapeHtml(item.message)}</div>`
+      ).join('') || '<div class="recent">还没有收到反馈。</div>';
     }
 
     async function loadAnalytics() {
@@ -219,6 +245,7 @@
         const res = await fetch('/admin/analytics', { headers: { 'X-ADMIN-KEY': key } });
         if (!res.ok) throw new Error('密码错误或后台未配置');
         const data = await res.json();
+        localStorage.setItem('historyAdminKey', key);
         render(data);
         login.classList.add('hidden');
         dashboard.classList.remove('hidden');

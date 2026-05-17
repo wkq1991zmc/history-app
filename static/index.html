@@ -214,6 +214,22 @@
     </div>
   </div>
 
+  <button id="feedback-open-btn" type="button" class="feedback-open-btn">反馈</button>
+  <div id="feedback-modal" class="feedback-modal hidden" aria-hidden="true">
+    <div class="feedback-card">
+      <button id="feedback-close-btn" type="button" class="feedback-close-btn" aria-label="关闭反馈">×</button>
+      <div class="feedback-title">给我留言</div>
+      <p class="feedback-copy">如果你发现史实问题、体验不顺，或者有想看的历史事件，可以直接写在这里。</p>
+      <a id="feedback-email-link" class="feedback-email-link hidden" href="#">也可以发邮件联系我</a>
+      <textarea id="feedback-message" rows="5" maxlength="1200" placeholder="写下你的建议、问题或吐槽..."></textarea>
+      <input id="feedback-email" type="email" maxlength="120" placeholder="邮箱（选填，方便我回复你）">
+      <div class="feedback-actions">
+        <span id="feedback-status"></span>
+        <button id="feedback-submit-btn" type="button">提交反馈</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/static/js/app.js"></script>
 </body>
 </html>
