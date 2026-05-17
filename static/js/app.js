@@ -270,22 +270,7 @@ function renderNav(events) {
         groupByDynasty[e.dynasty].push(e);
     });
 
-    let html = `
-        <div class="mb-6">
-            <h3 class="text-[#e8d5c4] font-bold text-sm mb-2 px-2 flex items-center gap-1">
-                <span class="w-1.5 h-4 bg-[#c62828] inline-block rounded-sm"></span>
-                互动游戏
-            </h3>
-            <ul class="space-y-1">
-                <li>
-                    <a href="#guess-game" data-game="guess-person"
-                       class="nav-item block px-4 py-2 text-sm text-[#d4c3af] hover:bg-[#c62828]/10 hover:text-[#f0c9a8] rounded border-l-2 border-transparent transition-all truncate">
-                       └─ 猜历史人物
-                    </a>
-                </li>
-            </ul>
-        </div>
-    `;
+    let html = '';
     for(const dynasty in groupByDynasty) {
         html += `<div class="nav-dynasty-group collapsed mb-3">
             <button type="button" data-dynasty-toggle class="nav-dynasty-toggle text-[#e8d5c4] font-bold text-sm mb-2 px-2 flex items-center gap-1 w-full">
@@ -310,6 +295,22 @@ function renderNav(events) {
         });
         html += `</ul></div>`;
     }
+    html += `
+        <div class="mt-6 mb-6">
+            <h3 class="text-[#e8d5c4] font-bold text-sm mb-2 px-2 flex items-center gap-1">
+                <span class="w-1.5 h-4 bg-[#c62828] inline-block rounded-sm"></span>
+                互动游戏
+            </h3>
+            <ul class="space-y-1">
+                <li>
+                    <a href="#guess-game" data-game="guess-person"
+                       class="nav-item block px-4 py-2 text-sm text-[#d4c3af] hover:bg-[#c62828]/10 hover:text-[#f0c9a8] rounded border-l-2 border-transparent transition-all truncate">
+                       └─ 猜历史人物
+                    </a>
+                </li>
+            </ul>
+        </div>
+    `;
     elements.navContainer.innerHTML = html;
 }
 
