@@ -134,6 +134,35 @@ h1, h2, h3, h4, h5, h6 {
     margin-top: -2px;
 }
 
+.next-event-card {
+    margin-top: 2.5rem;
+    padding: 1rem 1.1rem;
+    border-left: 2px solid #8b2323;
+    background: rgba(255, 248, 239, 0.48);
+    color: #35251a;
+    text-indent: 0;
+}
+
+.next-event-card .next-event-label {
+    color: #8b2323;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    margin-bottom: 0.4rem;
+}
+
+.next-event-card p {
+    margin-bottom: 0.7rem !important;
+    text-indent: 0;
+    line-height: 1.8;
+}
+
+.next-event-card a {
+    color: #5c1313;
+    font-weight: 900;
+    border-bottom: 1px solid rgba(92, 19, 19, 0.35);
+}
+
 .answer-mode-panel {
     border-top: 1px dashed rgba(140, 122, 102, 0.45);
     padding-top: 0.75rem;

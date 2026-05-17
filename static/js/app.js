@@ -223,6 +223,13 @@ async function init() {
         setAtTarget(button.dataset.char);
     });
 
+    elements.storyDetails.addEventListener('click', (e) => {
+        const link = e.target.closest('[data-event-link]');
+        if (!link) return;
+        e.preventDefault();
+        loadEvent(link.dataset.eventLink);
+    });
+
     elements.answerModeOptions.addEventListener('click', (e) => {
         const button = e.target.closest('[data-mode]');
         if (!button) return;
@@ -388,7 +395,19 @@ function renderStory(data) {
     }
     
     // 渲染正文HTML
-    elements.storyDetails.innerHTML = sanitizeStoryHtml(data.story || '');
+    let storyHtml = sanitizeStoryHtml(data.story || '');
+    if (data.next_event) {
+        const nextTitle = String(data.next_event).split('·').pop();
+        const nextNote = data.next_note || `读完本案，可以继续看「${nextTitle}」，把这一段历史接起来。`;
+        storyHtml += `
+            <div class="next-event-card">
+                <div class="next-event-label">下一案</div>
+                <p>${escapeHtml(nextNote)}</p>
+                <a href="#${encodeURIComponent(data.next_event)}" data-event-link="${escapeAttr(data.next_event)}">继续调阅：${escapeHtml(nextTitle)}</a>
+            </div>
+        `;
+    }
+    elements.storyDetails.innerHTML = storyHtml;
     
     // 让卷宗滚回顶部
     elements.storyContent.parentElement.parentElement.scrollTop = 0;
