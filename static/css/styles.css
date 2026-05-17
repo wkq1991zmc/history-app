@@ -207,23 +207,26 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .feedback-open-btn {
-    position: fixed;
-    left: 1rem;
-    bottom: 1rem;
-    z-index: 70;
+    width: 100%;
     border: 1px solid rgba(240, 201, 168, 0.45);
-    background: rgba(22, 17, 15, 0.92);
+    background: rgba(92, 19, 19, 0.28);
     color: #f0c9a8;
-    padding: 0.55rem 0.85rem;
+    padding: 0.7rem 0.85rem;
     font-size: 0.8rem;
     font-weight: 800;
     letter-spacing: 0.08em;
-    box-shadow: 0 8px 26px rgba(0,0,0,0.32);
+    text-align: center;
+}
+
+.sidebar-feedback {
+    border-top: 1px dashed #4a362f;
+    padding: 0.85rem 1rem 1rem;
+    background: #16110f;
 }
 
 .feedback-open-btn:hover {
     border-color: #f0c9a8;
-    background: #261915;
+    background: rgba(139, 35, 35, 0.55);
 }
 
 .feedback-modal {
@@ -661,10 +664,6 @@ h1, h2, h3, h4, h5, h6 {
         max-width: 92% !important;
         padding: 0.75rem 1rem !important;
         font-size: 0.875rem !important;
-    }
-
-    .feedback-open-btn {
-        bottom: 4rem;
     }
 
     .feedback-modal {
