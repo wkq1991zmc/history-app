@@ -12,6 +12,7 @@ import time
 import tempfile
 import uuid
 import hashlib
+import sqlite3
 from collections import defaultdict
 from pathlib import Path
 from dotenv import load_dotenv
@@ -90,7 +91,8 @@ guess_game_sessions = {}
 # ======== 轻量访问统计，仅管理员可见 ========
 ANALYTICS_DATA_DIR = Path("analytics_data").resolve()
 ANALYTICS_DATA_DIR.mkdir(exist_ok=True)
-ANALYTICS_FILE = ANALYTICS_DATA_DIR / "analytics.json"
+ANALYTICS_SQLITE_FILE = Path(os.environ.get("ANALYTICS_SQLITE_FILE", ANALYTICS_DATA_DIR / "analytics.db")).resolve()
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 ADMIN_ANALYTICS_KEY = os.environ.get("ADMIN_ANALYTICS_KEY", "")
 
 class AnalyticsVisitRequest(BaseModel):
@@ -121,90 +123,104 @@ def _safe_analytics_key(value: str) -> str:
 def _hash_visitor_id(visitor_id: str) -> str:
     return hashlib.sha256((visitor_id or "unknown").encode("utf-8")).hexdigest()[:16]
 
-def _default_analytics() -> Dict:
-    return {
-        "totals": {
-            "visits": 0,
-            "unique_visitors": 0,
-            "event_views": 0,
-            "chats": 0,
-            "guess_actions": 0,
-            "feedbacks": 0,
-        },
-        "visitors": {},
-        "days": {},
-        "events": {},
-        "characters": {},
-        "recent": [],
-        "feedbacks": [],
-    }
+def _is_postgres() -> bool:
+    return bool(DATABASE_URL) and DATABASE_URL.startswith(("postgres://", "postgresql://"))
 
-def _load_analytics() -> Dict:
-    if not ANALYTICS_FILE.exists():
-        return _default_analytics()
-    try:
-        with open(ANALYTICS_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        default = _default_analytics()
-        for key, value in default.items():
-            data.setdefault(key, value)
-        for key, value in default["totals"].items():
-            data["totals"].setdefault(key, value)
-        return data
-    except Exception:
-        return _default_analytics()
+def _postgres_url() -> str:
+    if DATABASE_URL.startswith("postgres://"):
+        return "postgresql://" + DATABASE_URL[len("postgres://"):]
+    return DATABASE_URL
 
-def _write_analytics(data: Dict):
-    ANALYTICS_DATA_DIR.mkdir(exist_ok=True)
-    with open(ANALYTICS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+def _connect_db():
+    if _is_postgres():
+        import psycopg
+        return psycopg.connect(_postgres_url())
+    ANALYTICS_SQLITE_FILE.parent.mkdir(exist_ok=True)
+    conn = sqlite3.connect(ANALYTICS_SQLITE_FILE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def _db_placeholder() -> str:
+    return "%s" if _is_postgres() else "?"
+
+def _init_analytics_db():
+    with _connect_db() as conn:
+        cur = conn.cursor()
+        if _is_postgres():
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS analytics_events (
+                    id BIGSERIAL PRIMARY KEY,
+                    action TEXT NOT NULL,
+                    visitor_hash TEXT NOT NULL,
+                    event_name TEXT DEFAULT '',
+                    character TEXT DEFAULT '',
+                    detail TEXT DEFAULT '',
+                    day_key TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS feedback_messages (
+                    id BIGSERIAL PRIMARY KEY,
+                    created_at TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    email TEXT DEFAULT '',
+                    page TEXT DEFAULT '',
+                    event_name TEXT DEFAULT '',
+                    visitor_hash TEXT NOT NULL
+                )
+            """)
+        else:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS analytics_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    action TEXT NOT NULL,
+                    visitor_hash TEXT NOT NULL,
+                    event_name TEXT DEFAULT '',
+                    character TEXT DEFAULT '',
+                    detail TEXT DEFAULT '',
+                    day_key TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS feedback_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    email TEXT DEFAULT '',
+                    page TEXT DEFAULT '',
+                    event_name TEXT DEFAULT '',
+                    visitor_hash TEXT NOT NULL
+                )
+            """)
+        conn.commit()
+
+def _fetch_all(cur) -> List[Dict]:
+    columns = [item[0] for item in cur.description]
+    return [dict(zip(columns, row)) for row in cur.fetchall()]
 
 def _record_analytics(action: str, visitor_id: str = "", event_name: str = "", character: str = "", detail: str = ""):
-    data = _load_analytics()
+    _init_analytics_db()
     now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    day_key = _today_key()
-    visitor_hash = _hash_visitor_id(visitor_id)
-    day = data["days"].setdefault(day_key, {"visits": 0, "visitors": [], "event_views": 0, "chats": 0, "guess_actions": 0})
-    visitor = data["visitors"].setdefault(visitor_hash, {"first_seen": now, "last_seen": now, "visits": 0, "chats": 0, "guess_actions": 0})
-    visitor["last_seen"] = now
-
-    if visitor_hash not in day["visitors"]:
-        day["visitors"].append(visitor_hash)
-
-    if action == "visit":
-        data["totals"]["visits"] += 1
-        day["visits"] += 1
-        visitor["visits"] += 1
-    elif action == "event_view":
-        event_key = _safe_analytics_key(event_name)
-        data["totals"]["event_views"] += 1
-        day["event_views"] += 1
-        data["events"].setdefault(event_key, {"views": 0, "chats": 0})["views"] += 1
-    elif action == "chat":
-        event_key = _safe_analytics_key(event_name)
-        char_key = _safe_analytics_key(character)
-        data["totals"]["chats"] += 1
-        day["chats"] += 1
-        visitor["chats"] += 1
-        data["events"].setdefault(event_key, {"views": 0, "chats": 0})["chats"] += 1
-        data["characters"].setdefault(char_key, {"chats": 0})["chats"] += 1
-    elif action == "guess_action":
-        data["totals"]["guess_actions"] += 1
-        day["guess_actions"] += 1
-        visitor["guess_actions"] += 1
-    elif action == "feedback":
-        data["totals"]["feedbacks"] += 1
-
-    data["totals"]["unique_visitors"] = len(data["visitors"])
-    data["recent"].insert(0, {
-        "time": now,
-        "action": action,
-        "event_name": event_name,
-        "character": character,
-        "detail": detail,
-    })
-    data["recent"] = data["recent"][:120]
-    _write_analytics(data)
+    values = (
+        action,
+        _hash_visitor_id(visitor_id),
+        _safe_analytics_key(event_name),
+        _safe_analytics_key(character),
+        (detail or "")[:200],
+        _today_key(),
+        now,
+    )
+    p = _db_placeholder()
+    with _connect_db() as conn:
+        conn.execute(
+            f"""INSERT INTO analytics_events
+                (action, visitor_hash, event_name, character, detail, day_key, created_at)
+                VALUES ({p}, {p}, {p}, {p}, {p}, {p}, {p})""",
+            values,
+        )
+        conn.commit()
 
 def _record_feedback(req: FeedbackRequest, visitor_id: str):
     message = (req.message or "").strip()
@@ -216,29 +232,26 @@ def _record_feedback(req: FeedbackRequest, visitor_id: str):
     if email and (len(email) > 120 or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email)):
         raise HTTPException(status_code=400, detail="邮箱格式不正确")
 
-    data = _load_analytics()
+    _init_analytics_db()
     now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    feedback = {
-        "time": now,
-        "message": message,
-        "email": email,
-        "page": (req.page or "")[:200],
-        "event_name": (req.event_name or "")[:120],
-        "visitor": _hash_visitor_id(visitor_id),
-    }
-    data.setdefault("feedbacks", []).insert(0, feedback)
-    data["feedbacks"] = data["feedbacks"][:200]
-    data.setdefault("totals", {}).setdefault("feedbacks", 0)
-    data["totals"]["feedbacks"] += 1
-    data.setdefault("recent", []).insert(0, {
-        "time": now,
-        "action": "feedback",
-        "event_name": feedback["event_name"],
-        "character": "",
-        "detail": feedback["message"][:40],
-    })
-    data["recent"] = data["recent"][:120]
-    _write_analytics(data)
+    p = _db_placeholder()
+    values = (
+        now,
+        message,
+        email,
+        (req.page or "")[:200],
+        (req.event_name or "")[:120],
+        _hash_visitor_id(visitor_id),
+    )
+    with _connect_db() as conn:
+        conn.execute(
+            f"""INSERT INTO feedback_messages
+                (created_at, message, email, page, event_name, visitor_hash)
+                VALUES ({p}, {p}, {p}, {p}, {p}, {p})""",
+            values,
+        )
+        conn.commit()
+    _record_analytics("feedback", visitor_id, req.event_name or "", "", message[:40])
 
 def _require_admin_key(key: Optional[str], x_admin_key: Optional[str]):
     expected = ADMIN_ANALYTICS_KEY.strip()
@@ -248,12 +261,95 @@ def _require_admin_key(key: Optional[str], x_admin_key: Optional[str]):
     if provided != expected:
         raise HTTPException(status_code=403, detail="无权查看统计后台")
 
-def _top_items(mapping: Dict, metric: str, limit: int = 8) -> List[Dict]:
-    items = []
-    for name, stats in mapping.items():
-        items.append({"name": name, metric: stats.get(metric, 0), **stats})
-    items.sort(key=lambda item: item.get(metric, 0), reverse=True)
-    return items[:limit]
+def _analytics_count(cur, action: str) -> int:
+    p = _db_placeholder()
+    cur.execute(f"SELECT COUNT(*) AS count FROM analytics_events WHERE action = {p}", (action,))
+    return int(cur.fetchone()[0])
+
+def _analytics_totals(cur) -> Dict:
+    cur.execute("SELECT COUNT(DISTINCT visitor_hash) AS count FROM analytics_events")
+    unique_visitors = int(cur.fetchone()[0])
+    cur.execute("SELECT COUNT(*) AS count FROM feedback_messages")
+    feedbacks = int(cur.fetchone()[0])
+    return {
+        "visits": _analytics_count(cur, "visit"),
+        "unique_visitors": unique_visitors,
+        "event_views": _analytics_count(cur, "event_view"),
+        "chats": _analytics_count(cur, "chat"),
+        "guess_actions": _analytics_count(cur, "guess_action"),
+        "feedbacks": feedbacks,
+    }
+
+def _admin_analytics_payload() -> Dict:
+    _init_analytics_db()
+    with _connect_db() as conn:
+        cur = conn.cursor()
+        totals = _analytics_totals(cur)
+        cur.execute("""
+            SELECT
+                day_key AS date,
+                SUM(CASE WHEN action = 'visit' THEN 1 ELSE 0 END) AS visits,
+                COUNT(DISTINCT visitor_hash) AS unique_visitors,
+                SUM(CASE WHEN action = 'event_view' THEN 1 ELSE 0 END) AS event_views,
+                SUM(CASE WHEN action = 'chat' THEN 1 ELSE 0 END) AS chats,
+                SUM(CASE WHEN action = 'guess_action' THEN 1 ELSE 0 END) AS guess_actions
+            FROM analytics_events
+            GROUP BY day_key
+            ORDER BY day_key DESC
+            LIMIT 14
+        """)
+        days = _fetch_all(cur)
+        cur.execute("""
+            SELECT event_name AS name, COUNT(*) AS views
+            FROM analytics_events
+            WHERE action = 'event_view'
+            GROUP BY event_name
+            ORDER BY views DESC
+            LIMIT 8
+        """)
+        top_events_by_views = _fetch_all(cur)
+        cur.execute("""
+            SELECT event_name AS name, COUNT(*) AS chats
+            FROM analytics_events
+            WHERE action = 'chat'
+            GROUP BY event_name
+            ORDER BY chats DESC
+            LIMIT 8
+        """)
+        top_events_by_chats = _fetch_all(cur)
+        cur.execute("""
+            SELECT character AS name, COUNT(*) AS chats
+            FROM analytics_events
+            WHERE action = 'chat'
+            GROUP BY character
+            ORDER BY chats DESC
+            LIMIT 8
+        """)
+        top_characters = _fetch_all(cur)
+        cur.execute("""
+            SELECT created_at AS time, action, event_name, character, detail
+            FROM analytics_events
+            ORDER BY id DESC
+            LIMIT 50
+        """)
+        recent = _fetch_all(cur)
+        cur.execute("""
+            SELECT created_at AS time, message, email, page, event_name
+            FROM feedback_messages
+            ORDER BY id DESC
+            LIMIT 50
+        """)
+        feedbacks = _fetch_all(cur)
+    return {
+        "success": True,
+        "totals": totals,
+        "days": days,
+        "top_events_by_views": top_events_by_views,
+        "top_events_by_chats": top_events_by_chats,
+        "top_characters": top_characters,
+        "recent": recent,
+        "feedbacks": feedbacks,
+    }
 
 @app.post("/analytics/visit")
 async def analytics_visit(req: AnalyticsVisitRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
@@ -285,27 +381,7 @@ async def site_config():
 @app.get("/admin/analytics")
 async def admin_analytics(key: Optional[str] = None, x_admin_key: Optional[str] = Header(None, alias="X-ADMIN-KEY")):
     _require_admin_key(key, x_admin_key)
-    data = _load_analytics()
-    days = []
-    for day_key, stats in sorted(data.get("days", {}).items(), reverse=True)[:14]:
-        days.append({
-            "date": day_key,
-            "visits": stats.get("visits", 0),
-            "unique_visitors": len(stats.get("visitors", [])),
-            "event_views": stats.get("event_views", 0),
-            "chats": stats.get("chats", 0),
-            "guess_actions": stats.get("guess_actions", 0),
-        })
-    return {
-        "success": True,
-        "totals": data.get("totals", {}),
-        "days": days,
-        "top_events_by_views": _top_items(data.get("events", {}), "views"),
-        "top_events_by_chats": _top_items(data.get("events", {}), "chats"),
-        "top_characters": _top_items(data.get("characters", {}), "chats"),
-        "recent": data.get("recent", [])[:50],
-        "feedbacks": data.get("feedbacks", [])[:50],
-    }
+    return _admin_analytics_payload()
 
 def check_rate_limit(player_id: str) -> bool:
     now = time.time()
