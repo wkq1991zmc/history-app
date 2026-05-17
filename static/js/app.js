@@ -71,6 +71,7 @@ Object.assign(elements, {
     guessGuessBtn: document.getElementById('guess-guess-btn'),
     guessUserAnswer: document.getElementById('guess-user-answer'),
     feedbackOpenBtn: document.getElementById('feedback-open-btn'),
+    mobileFeedbackBtn: document.getElementById('mobile-tab-feedback'),
     feedbackModal: document.getElementById('feedback-modal'),
     feedbackCloseBtn: document.getElementById('feedback-close-btn'),
     feedbackSubmitBtn: document.getElementById('feedback-submit-btn'),
@@ -246,7 +247,8 @@ async function init() {
     elements.guessAskBtn.addEventListener('click', askGuessGameQuestion);
     elements.guessGuessBtn.addEventListener('click', guessAiPerson);
     elements.guessUserAnswer.addEventListener('click', handleUserYesNoAnswer);
-    elements.feedbackOpenBtn.addEventListener('click', openFeedbackModal);
+    elements.feedbackOpenBtn?.addEventListener('click', openFeedbackModal);
+    elements.mobileFeedbackBtn?.addEventListener('click', openFeedbackModal);
     elements.feedbackCloseBtn.addEventListener('click', closeFeedbackModal);
     elements.feedbackModal.addEventListener('click', (e) => {
         if (e.target === elements.feedbackModal) closeFeedbackModal();
@@ -805,7 +807,8 @@ async function handleUserSubmit() {
                 character: speaker,
                 message: target === "所有参与人" && i > 0 ? "前辈, 请问您对刚才的说法有什么高见？" : text,
                 history: recentHistory,
-                answer_mode: state.answerMode
+                answer_mode: state.answerMode,
+                track_question: i === 0
             };
             
             const assistantMessage = {
@@ -859,6 +862,7 @@ function initMobile() {
     const menuBtn = document.getElementById('mobile-menu-btn');
     const tabStory = document.getElementById('mobile-tab-story');
     const tabChat = document.getElementById('mobile-tab-chat');
+    const tabFeedback = document.getElementById('mobile-tab-feedback');
     const storySection = document.getElementById('story-section');
     const chatSection = document.getElementById('chat-section');
 
@@ -915,6 +919,10 @@ function initMobile() {
 
     tabStory.addEventListener('click', switchToStory);
     tabChat.addEventListener('click', switchToChat);
+    tabFeedback?.addEventListener('click', () => {
+        closeSidebar();
+        openFeedbackModal();
+    });
 
     switchToStory();
 }

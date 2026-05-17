@@ -170,6 +170,17 @@ def _init_analytics_db():
                     visitor_hash TEXT NOT NULL
                 )
             """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS chat_questions (
+                    id BIGSERIAL PRIMARY KEY,
+                    created_at TEXT NOT NULL,
+                    question TEXT NOT NULL,
+                    event_name TEXT DEFAULT '',
+                    character TEXT DEFAULT '',
+                    answer_mode TEXT DEFAULT '',
+                    visitor_hash TEXT NOT NULL
+                )
+            """)
         else:
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS analytics_events (
@@ -191,6 +202,17 @@ def _init_analytics_db():
                     email TEXT DEFAULT '',
                     page TEXT DEFAULT '',
                     event_name TEXT DEFAULT '',
+                    visitor_hash TEXT NOT NULL
+                )
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS chat_questions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    question TEXT NOT NULL,
+                    event_name TEXT DEFAULT '',
+                    character TEXT DEFAULT '',
+                    answer_mode TEXT DEFAULT '',
                     visitor_hash TEXT NOT NULL
                 )
             """)
@@ -253,6 +275,40 @@ def _record_feedback(req: FeedbackRequest, visitor_id: str):
         conn.commit()
     _record_analytics("feedback", visitor_id, req.event_name or "", "", message[:40])
 
+def _should_record_chat_question(message: str) -> bool:
+    text = (message or "").strip()
+    if len(text) < 2:
+        return False
+    synthetic_prefixes = ("前辈", "前輩")
+    if any(text.startswith(prefix) for prefix in synthetic_prefixes):
+        return False
+    return not ("刚才" in text and "高见" in text)
+
+def _record_chat_question(request, visitor_id: str):
+    if getattr(request, "track_question", True) is False:
+        return
+    if not _should_record_chat_question(request.message):
+        return
+    _init_analytics_db()
+    now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    p = _db_placeholder()
+    values = (
+        now,
+        request.message.strip()[:800],
+        _safe_analytics_key(request.event_name),
+        _safe_analytics_key(request.character),
+        _safe_analytics_key(request.answer_mode or ""),
+        _hash_visitor_id(visitor_id),
+    )
+    with _connect_db() as conn:
+        conn.execute(
+            f"""INSERT INTO chat_questions
+                (created_at, question, event_name, character, answer_mode, visitor_hash)
+                VALUES ({p}, {p}, {p}, {p}, {p}, {p})""",
+            values,
+        )
+        conn.commit()
+
 def _require_admin_key(key: Optional[str], x_admin_key: Optional[str]):
     expected = ADMIN_ANALYTICS_KEY.strip()
     provided = (x_admin_key or key or "").strip()
@@ -271,6 +327,8 @@ def _analytics_totals(cur) -> Dict:
     unique_visitors = int(cur.fetchone()[0])
     cur.execute("SELECT COUNT(*) AS count FROM feedback_messages")
     feedbacks = int(cur.fetchone()[0])
+    cur.execute("SELECT COUNT(*) AS count FROM chat_questions")
+    questions = int(cur.fetchone()[0])
     return {
         "visits": _analytics_count(cur, "visit"),
         "unique_visitors": unique_visitors,
@@ -278,6 +336,7 @@ def _analytics_totals(cur) -> Dict:
         "chats": _analytics_count(cur, "chat"),
         "guess_actions": _analytics_count(cur, "guess_action"),
         "feedbacks": feedbacks,
+        "questions": questions,
     }
 
 def _admin_analytics_payload() -> Dict:
@@ -340,6 +399,13 @@ def _admin_analytics_payload() -> Dict:
             LIMIT 50
         """)
         feedbacks = _fetch_all(cur)
+        cur.execute("""
+            SELECT created_at AS time, question, event_name, character, answer_mode
+            FROM chat_questions
+            ORDER BY id DESC
+            LIMIT 80
+        """)
+        questions = _fetch_all(cur)
     return {
         "success": True,
         "totals": totals,
@@ -349,6 +415,7 @@ def _admin_analytics_payload() -> Dict:
         "top_characters": top_characters,
         "recent": recent,
         "feedbacks": feedbacks,
+        "questions": questions,
     }
 
 @app.post("/analytics/visit")
@@ -783,6 +850,7 @@ class ChatRequest(BaseModel):
     message: str         # 微信发来的最新质问
     history: List[Dict]  # 🌟 微信传过来的历史聊天记录（给 AI 记忆！）
     answer_mode: Optional[str] = "expert"
+    track_question: Optional[bool] = True
 
     class Config:
         json_schema_extra = {
@@ -828,6 +896,7 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
         print(f"\n=== 收到提审请求 [{client_type}] ===")
         print(f"玩家: {player_id} | 案件: {request.event_name} | 被告: {request.character}")
         _record_analytics("chat", player_id, request.event_name, request.character, request.answer_mode or "")
+        _record_chat_question(request, player_id)
         
         event_data = EVENTS_DB[request.event_name]
         raw_notes = event_data.get('ai_notes', '')
@@ -947,6 +1016,7 @@ async def ai_chat_stream(request: ChatRequest, x_client_id: Optional[str] = Head
     if not check_rate_limit(player_id):
         raise HTTPException(status_code=429, detail="发言太快了，请稍等片刻再问。")
     _record_analytics("chat", player_id, request.event_name, request.character, request.answer_mode or "")
+    _record_chat_question(request, player_id)
 
     event_data = EVENTS_DB[request.event_name]
     raw_notes = event_data.get('ai_notes', '')

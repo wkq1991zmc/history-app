@@ -169,6 +169,10 @@
           <h2>用户反馈</h2>
           <div id="feedback-list"></div>
         </section>
+        <section>
+          <h2>用户提问</h2>
+          <div id="question-list"></div>
+        </section>
       </div>
     </div>
   </main>
@@ -204,6 +208,7 @@
         ['独立访客', totals.unique_visitors || 0],
         ['事件浏览', totals.event_views || 0],
         ['AI 对话', totals.chats || 0],
+        ['用户提问', totals.questions || 0],
         ['猜人物互动', totals.guess_actions || 0],
         ['用户反馈', totals.feedbacks || 0],
       ].map(([label, value]) => `<div class="card"><div class="num">${value}</div><div class="label">${label}</div></div>`).join('');
@@ -232,6 +237,9 @@
       document.getElementById('feedback-list').innerHTML = (data.feedbacks || []).map(item =>
         `<div class="feedback-item"><div class="feedback-meta">${escapeHtml(item.time)} · ${escapeHtml(item.event_name || item.page || '')}${item.email ? ' · ' + escapeHtml(item.email) : ''}</div>${escapeHtml(item.message)}</div>`
       ).join('') || '<div class="recent">还没有收到反馈。</div>';
+      document.getElementById('question-list').innerHTML = (data.questions || []).map(item =>
+        `<div class="feedback-item"><div class="feedback-meta">${escapeHtml(item.time)} · ${escapeHtml(item.event_name || '')} · ${escapeHtml(item.character || '')} · ${escapeHtml(item.answer_mode || '')}</div>${escapeHtml(item.question)}</div>`
+      ).join('') || '<div class="recent">还没有记录到用户提问。</div>';
     }
 
     async function loadAnalytics() {
