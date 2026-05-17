@@ -71,7 +71,7 @@ Object.assign(elements, {
     guessGuessBtn: document.getElementById('guess-guess-btn'),
     guessUserAnswer: document.getElementById('guess-user-answer'),
     feedbackOpenBtn: document.getElementById('feedback-open-btn'),
-    mobileFeedbackBtn: document.getElementById('mobile-tab-feedback'),
+    mobileFeedbackBtn: document.getElementById('mobile-feedback-top-btn'),
     feedbackModal: document.getElementById('feedback-modal'),
     feedbackCloseBtn: document.getElementById('feedback-close-btn'),
     feedbackSubmitBtn: document.getElementById('feedback-submit-btn'),
@@ -862,7 +862,6 @@ function initMobile() {
     const menuBtn = document.getElementById('mobile-menu-btn');
     const tabStory = document.getElementById('mobile-tab-story');
     const tabChat = document.getElementById('mobile-tab-chat');
-    const tabFeedback = document.getElementById('mobile-tab-feedback');
     const storySection = document.getElementById('story-section');
     const chatSection = document.getElementById('chat-section');
 
@@ -919,11 +918,6 @@ function initMobile() {
 
     tabStory.addEventListener('click', switchToStory);
     tabChat.addEventListener('click', switchToChat);
-    tabFeedback?.addEventListener('click', () => {
-        closeSidebar();
-        openFeedbackModal();
-    });
-
     switchToStory();
 }
 

@@ -530,6 +530,22 @@ h1, h2, h3, h4, h5, h6 {
         display: flex !important;
     }
 
+    .mobile-feedback-top-btn {
+        border: 1px solid rgba(240, 201, 168, 0.55);
+        background: rgba(139, 35, 35, 0.42);
+        color: #f0c9a8;
+        padding: 0.35rem 0.55rem;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        line-height: 1.1;
+        min-width: 2.7rem;
+    }
+
+    .mobile-feedback-top-btn:active {
+        background: rgba(139, 35, 35, 0.68);
+    }
+
     #mobile-tabs {
         display: flex !important;
     }
