@@ -440,7 +440,9 @@ function renderStory(data) {
     }
     
     // 渲染正文HTML
-    let storyHtml = sanitizeStoryHtml(data.story || '');
+    let storyHtml = data.summary_type === 'dynasty_skeleton'
+        ? renderDynastySkeleton(data)
+        : sanitizeStoryHtml(data.story || '');
     if (data.next_event) {
         const nextTitle = String(data.next_event).split('·').pop();
         const nextNote = data.next_note || `读完本案，可以继续看「${nextTitle}」，把这一段历史接起来。`;
@@ -456,6 +458,71 @@ function renderStory(data) {
     
     // 让卷宗滚回顶部
     elements.storyContent.parentElement.parentElement.scrollTop = 0;
+}
+
+function renderDynastySkeleton(data) {
+    const nodes = data.skeleton_nodes || [];
+    const pillars = data.pillars || [];
+    const cracks = data.cracks || [];
+    const takeaways = data.takeaways || [];
+    const heroImage = data.hero_image || data.image || '';
+
+    const nodeHtml = nodes.map((node, index) => `
+        <a class="skeleton-node" href="#${encodeURIComponent(node.event || '')}" data-event-link="${escapeAttr(node.event || '')}">
+            <span class="skeleton-node-index">${String(index + 1).padStart(2, '0')}</span>
+            <span class="skeleton-node-stage">${escapeHtml(node.stage || '')}</span>
+            <strong>${escapeHtml(node.label || '')}</strong>
+            <span>${escapeHtml(node.note || '')}</span>
+        </a>
+    `).join('');
+
+    const pillarHtml = pillars.map(item => `
+        <div class="skeleton-card">
+            <div class="skeleton-card-title">${escapeHtml(item.title || '')}</div>
+            <p>${escapeHtml(item.body || '')}</p>
+        </div>
+    `).join('');
+
+    const crackHtml = cracks.map(item => `
+        <div class="skeleton-card skeleton-card-crack">
+            <div class="skeleton-card-title">${escapeHtml(item.title || '')}</div>
+            <p>${escapeHtml(item.body || '')}</p>
+        </div>
+    `).join('');
+
+    const takeawayHtml = takeaways.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+
+    return `
+        <section class="dynasty-skeleton">
+            <div class="skeleton-hero" style="background-image: linear-gradient(90deg, rgba(41, 25, 16, 0.7), rgba(41, 25, 16, 0.16)), url('${escapeAttr(heroImage)}');">
+                <div class="skeleton-hero-content">
+                    <div class="skeleton-kicker">朝代骨架</div>
+                    <h2>${escapeHtml(data.summary_title || data.title || '')}</h2>
+                    <p>${escapeHtml(data.summary_intro || '')}</p>
+                </div>
+            </div>
+
+            <div class="skeleton-section">
+                <div class="skeleton-section-title">秦朝主线</div>
+                <div class="skeleton-flow">${nodeHtml}</div>
+            </div>
+
+            <div class="skeleton-section">
+                <div class="skeleton-section-title">这层楼搭起了什么</div>
+                <div class="skeleton-grid">${pillarHtml}</div>
+            </div>
+
+            <div class="skeleton-section">
+                <div class="skeleton-section-title">这层楼从哪里开裂</div>
+                <div class="skeleton-grid">${crackHtml}</div>
+            </div>
+
+            <div class="skeleton-section skeleton-takeaway">
+                <div class="skeleton-section-title">读完秦朝，至少记住三件事</div>
+                <ol>${takeawayHtml}</ol>
+            </div>
+        </section>
+    `;
 }
 
 function renderChatControls() {
