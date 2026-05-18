@@ -173,6 +173,18 @@ h1, h2, h3, h4, h5, h6 {
     text-indent: 0 !important;
 }
 
+.story-content-skeleton #manuscript-stamp,
+.story-content-skeleton #story-title,
+.story-content-skeleton #story-title + p,
+.story-content-skeleton #story-image-container,
+.story-content-skeleton #story-image-container + div {
+    display: none !important;
+}
+
+.story-content-skeleton #story-details {
+    padding-bottom: 3rem;
+}
+
 .skeleton-hero {
     position: relative;
     min-height: 22rem;
@@ -182,8 +194,8 @@ h1, h2, h3, h4, h5, h6 {
     align-items: center;
     background-size: cover;
     background-position: center right;
-    border: 1px solid rgba(140, 103, 83, 0.28);
-    box-shadow: 0 18px 42px rgba(61, 39, 23, 0.16);
+    border: 1px solid rgba(79, 48, 30, 0.46);
+    box-shadow: 0 18px 42px rgba(61, 39, 23, 0.28);
     overflow: hidden;
 }
 
@@ -193,47 +205,56 @@ h1, h2, h3, h4, h5, h6 {
     inset: 0;
     pointer-events: none;
     background:
-        linear-gradient(180deg, rgba(255,255,255,0.12), rgba(92,19,19,0.05)),
-        radial-gradient(circle at 25% 20%, rgba(255,255,255,0.28), transparent 30%);
+        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(37,22,15,0.28)),
+        radial-gradient(circle at 8% 50%, rgba(0,0,0,0.24), transparent 42%),
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08), transparent 32%);
 }
 
 .skeleton-hero-content {
     position: relative;
     z-index: 1;
     max-width: 34rem;
-    color: #35251a;
+    color: #f2dec3;
 }
 
-.skeleton-kicker {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 3rem;
-    height: 2rem;
-    border: 1px solid rgba(139, 35, 35, 0.48);
-    color: #8b2323;
-    background: rgba(255, 248, 239, 0.58);
+.skeleton-manuscript {
+    color: #f4d5af;
     font-size: 0.82rem;
     font-weight: 900;
-    letter-spacing: 0.12em;
-    margin-bottom: 0.8rem;
+    letter-spacing: 0.16em;
+    margin-bottom: 0.55rem;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.45);
 }
 
 .skeleton-hero h2 {
     margin: 0 0 0.8rem;
-    color: #4d100f;
+    color: #f6d1ae;
     font-family: 'Ma Shan Zheng', 'Noto Serif SC', serif;
-    font-size: 2.75rem;
+    font-size: 3rem;
     line-height: 1.12;
     letter-spacing: 0;
+    text-shadow: 0 3px 18px rgba(0,0,0,0.56);
+}
+
+.skeleton-hero h2 span,
+.skeleton-hero h2 em {
+    display: block;
+    font-style: normal;
+}
+
+.skeleton-hero h2 em {
+    margin-top: 0.2rem;
+    font-size: 0.82em;
 }
 
 .skeleton-hero p {
     margin: 0 !important;
     text-indent: 0;
     max-width: 29rem;
-    color: #5d4b3e;
+    color: #f4e3ce;
     line-height: 1.85;
+    font-weight: 600;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.46);
 }
 
 .skeleton-hero-tags {
@@ -244,9 +265,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .skeleton-hero-tags span {
-    border: 1px solid rgba(140, 103, 83, 0.38);
-    background: rgba(255, 248, 239, 0.68);
-    color: #5c1313;
+    border: 1px solid rgba(240, 213, 176, 0.54);
+    background: rgba(56, 33, 22, 0.44);
+    color: #f5d3b4;
     padding: 0.32rem 0.75rem;
     font-size: 0.78rem;
     font-weight: 800;
@@ -290,31 +311,22 @@ h1, h2, h3, h4, h5, h6 {
 .skeleton-node {
     position: relative;
     min-height: 11rem;
-    border: 1px solid rgba(140, 103, 83, 0.34);
+    border: 1px solid rgba(129, 83, 54, 0.42);
     background:
-        linear-gradient(180deg, rgba(255, 250, 242, 0.92), rgba(241, 226, 205, 0.68));
-    padding: 1rem 0.7rem 0.85rem;
+        linear-gradient(180deg, rgba(244, 228, 205, 0.96), rgba(219, 193, 163, 0.82));
+    padding: 1.05rem 0.75rem 0.9rem;
     color: #35251a;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     gap: 0.42rem;
-    box-shadow: 0 12px 24px rgba(61, 39, 23, 0.11);
+    box-shadow: 0 12px 24px rgba(61, 39, 23, 0.16);
     transition: transform 0.18s, border-color 0.18s, background 0.18s;
 }
 
 .skeleton-node::before {
-    content: "";
-    position: absolute;
-    top: -0.42rem;
-    left: 50%;
-    width: 1.2rem;
-    height: 0.45rem;
-    transform: translateX(-50%);
-    border: 1px solid rgba(140, 103, 83, 0.4);
-    border-bottom: 0;
-    background: #c8a87b;
+    content: none;
 }
 
 .skeleton-node::after {
@@ -335,7 +347,7 @@ h1, h2, h3, h4, h5, h6 {
 .skeleton-node:hover {
     transform: translateY(-2px);
     border-color: rgba(92, 19, 19, 0.58);
-    background: rgba(255, 248, 239, 0.94);
+    background: rgba(241, 222, 196, 0.98);
 }
 
 .skeleton-node-index {
@@ -354,21 +366,22 @@ h1, h2, h3, h4, h5, h6 {
 
 .skeleton-node-title {
     color: #5c1313;
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 900;
     line-height: 1.25;
 }
 
 .skeleton-node-stage {
-    color: #8c7a66;
-    font-size: 0.72rem;
+    color: #6e563f;
+    font-size: 0.78rem;
     font-weight: 800;
 }
 
 .skeleton-node-note {
-    color: #705d4d;
-    font-size: 0.74rem;
-    line-height: 1.55;
+    color: #4f3a2c;
+    font-size: 0.9rem;
+    font-weight: 650;
+    line-height: 1.65;
 }
 
 .skeleton-archive-grid {
@@ -381,11 +394,11 @@ h1, h2, h3, h4, h5, h6 {
 .skeleton-archive-card {
     position: relative;
     overflow: hidden;
-    border: 1px solid rgba(140, 103, 83, 0.32);
+    border: 1px solid rgba(129, 83, 54, 0.4);
     background:
-        linear-gradient(180deg, rgba(255, 250, 242, 0.92), rgba(240, 224, 203, 0.58));
+        linear-gradient(180deg, rgba(241, 224, 201, 0.94), rgba(218, 192, 161, 0.72));
     padding: 1.25rem;
-    box-shadow: 0 14px 30px rgba(61, 39, 23, 0.1);
+    box-shadow: 0 14px 30px rgba(61, 39, 23, 0.16);
 }
 
 .skeleton-archive-card::after {
@@ -399,10 +412,17 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 50%;
 }
 
-.skeleton-archive-card-dark {
+.skeleton-archive-card-rise {
     background:
-        linear-gradient(135deg, rgba(255, 250, 242, 0.9), rgba(226, 204, 180, 0.5)),
-        linear-gradient(45deg, transparent 65%, rgba(139, 35, 35, 0.08));
+        linear-gradient(180deg, rgba(243, 226, 201, 0.94), rgba(215, 188, 152, 0.76)),
+        radial-gradient(circle at 100% 100%, rgba(139, 98, 46, 0.16), transparent 36%);
+}
+
+.skeleton-archive-card-fall {
+    background:
+        linear-gradient(135deg, rgba(235, 214, 190, 0.94), rgba(202, 172, 147, 0.78)),
+        linear-gradient(45deg, transparent 58%, rgba(139, 35, 35, 0.15));
+    border-color: rgba(139, 35, 35, 0.34);
 }
 
 .skeleton-archive-label {
@@ -422,14 +442,23 @@ h1, h2, h3, h4, h5, h6 {
     margin-bottom: 1rem;
 }
 
+.skeleton-archive-title span {
+    display: inline-block;
+    margin: 0 0.12rem;
+    padding: 0.05rem 0.35rem 0.12rem;
+    color: #f4d6b3;
+    background: #7b1e1e;
+    box-shadow: 0 4px 10px rgba(92, 19, 19, 0.18);
+}
+
 .skeleton-card-list {
     display: grid;
     gap: 0.75rem;
 }
 
 .skeleton-card {
-    border: 1px solid rgba(140, 103, 83, 0.28);
-    background: rgba(255, 248, 239, 0.64);
+    border: 1px solid rgba(129, 83, 54, 0.32);
+    background: rgba(247, 235, 218, 0.7);
     padding: 0.85rem;
     color: #35251a;
     display: grid;
@@ -467,7 +496,9 @@ h1, h2, h3, h4, h5, h6 {
     margin: 0 !important;
     text-indent: 0;
     line-height: 1.7;
-    font-size: 0.84rem;
+    color: #4c3729;
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .skeleton-verdict {
@@ -476,10 +507,10 @@ h1, h2, h3, h4, h5, h6 {
     grid-template-columns: 6rem 1fr;
     gap: 1.2rem;
     align-items: center;
-    border: 1px solid rgba(140, 103, 83, 0.3);
+    border: 1px solid rgba(129, 83, 54, 0.42);
     background:
-        linear-gradient(90deg, rgba(255, 250, 242, 0.92), rgba(239, 219, 193, 0.56)),
-        radial-gradient(circle at 100% 0%, rgba(139, 35, 35, 0.08), transparent 36%);
+        linear-gradient(90deg, rgba(234, 210, 181, 0.94), rgba(206, 178, 148, 0.72)),
+        radial-gradient(circle at 100% 0%, rgba(92, 19, 19, 0.14), transparent 36%);
     padding: 1.35rem 1.5rem;
     margin-top: 2.2rem;
     box-shadow: 0 14px 30px rgba(61, 39, 23, 0.1);
@@ -488,13 +519,20 @@ h1, h2, h3, h4, h5, h6 {
 .skeleton-verdict-seal {
     color: #8b2323;
     font-family: 'Ma Shan Zheng', 'Noto Serif SC', serif;
-    font-size: 1.45rem;
+    font-size: 1.55rem;
     font-weight: 900;
     writing-mode: vertical-rl;
     justify-self: center;
     border: 1px solid rgba(139, 35, 35, 0.42);
     padding: 0.75rem 0.45rem;
-    background: rgba(255, 248, 239, 0.66);
+    background: rgba(246, 229, 202, 0.74);
+}
+
+.skeleton-verdict li {
+    color: #3f2c21;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 0.98rem;
+    font-weight: 700;
 }
 
 .skeleton-verdict ol {
@@ -1090,9 +1128,8 @@ h1, h2, h3, h4, h5, h6 {
         background-position: center right;
     }
 
-    .skeleton-kicker {
+    .skeleton-manuscript {
         font-size: 0.68rem;
-        height: 1.8rem;
     }
 
     .skeleton-hero h2 {

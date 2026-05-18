@@ -425,6 +425,8 @@ async function loadEvent(eventId) {
 function renderStory(data) {
     elements.storySplash.classList.add('hidden');
     elements.storyContent.classList.remove('hidden');
+    const isDynastySkeleton = data.summary_type === 'dynasty_skeleton';
+    elements.storyContent.classList.toggle('story-content-skeleton', isDynastySkeleton);
     
     elements.manuscriptStamp.innerText = data.manuscript || 'TOP SECRET DOCUMENT';
     elements.storyTitle.innerText = data.title || '无名卷宗';
@@ -440,7 +442,7 @@ function renderStory(data) {
     }
     
     // 渲染正文HTML
-    let storyHtml = data.summary_type === 'dynasty_skeleton'
+    let storyHtml = isDynastySkeleton
         ? renderDynastySkeleton(data)
         : sanitizeStoryHtml(data.story || '');
     if (data.next_event) {
@@ -466,6 +468,9 @@ function renderDynastySkeleton(data) {
     const cracks = data.cracks || [];
     const takeaways = data.takeaways || [];
     const heroImage = data.hero_image || data.image || '';
+    const titleParts = String(data.title || '').split(/[：:]/);
+    const heroTitle = titleParts[0] || data.title || '';
+    const heroSubtitle = titleParts.slice(1).join('：') || data.summary_title || '';
     const heroTags = [
         nodes[0]?.label || '一统六国',
         pillars[1]?.title || '郡县制度',
@@ -473,7 +478,7 @@ function renderDynastySkeleton(data) {
     ];
 
     const nodeHtml = nodes.map((node, index) => `
-        <a class="skeleton-node ${index === 5 ? 'skeleton-node-turn' : ''}" href="#${encodeURIComponent(node.event || '')}" data-event-link="${escapeAttr(node.event || '')}">
+        <a class="skeleton-node" href="#${encodeURIComponent(node.event || '')}" data-event-link="${escapeAttr(node.event || '')}">
             <span class="skeleton-node-index">${String(index + 1).padStart(2, '0')}</span>
             <span class="skeleton-node-title">${escapeHtml(node.label || '')}</span>
             <span class="skeleton-node-stage">${escapeHtml(node.stage || '')}</span>
@@ -506,10 +511,10 @@ function renderDynastySkeleton(data) {
 
     return `
         <section class="dynasty-skeleton">
-            <div class="skeleton-hero" style="background-image: linear-gradient(90deg, rgba(246, 234, 215, 0.96), rgba(246, 234, 215, 0.74) 42%, rgba(246, 234, 215, 0.12)), url('${escapeAttr(heroImage)}');">
+            <div class="skeleton-hero" style="background-image: linear-gradient(90deg, rgba(42, 25, 17, 0.82), rgba(42, 25, 17, 0.52) 45%, rgba(42, 25, 17, 0.1)), url('${escapeAttr(heroImage)}');">
                 <div class="skeleton-hero-content">
-                    <div class="skeleton-kicker">秦 案</div>
-                    <h2>${escapeHtml(data.summary_title || data.title || '')}</h2>
+                    <div class="skeleton-manuscript">${escapeHtml(data.manuscript || '第一卷 · 秦')}</div>
+                    <h2><span>${escapeHtml(heroTitle)}</span><em>${escapeHtml(heroSubtitle)}</em></h2>
                     <p>${escapeHtml(data.summary_intro || '')}</p>
                     <div class="skeleton-hero-tags">${tagHtml}</div>
                 </div>
@@ -521,14 +526,14 @@ function renderDynastySkeleton(data) {
             </div>
 
             <div class="skeleton-archive-grid">
-                <div class="skeleton-archive-card">
+                <div class="skeleton-archive-card skeleton-archive-card-rise">
                     <div class="skeleton-archive-label">第一份案卷</div>
-                    <div class="skeleton-archive-title">秦朝为何能迅速兴起？</div>
+                    <div class="skeleton-archive-title">秦朝为何能迅速<span>兴起</span>？</div>
                     <div class="skeleton-card-list">${pillarHtml}</div>
                 </div>
-                <div class="skeleton-archive-card skeleton-archive-card-dark">
+                <div class="skeleton-archive-card skeleton-archive-card-fall">
                     <div class="skeleton-archive-label">第二份案卷</div>
-                    <div class="skeleton-archive-title">帝国裂痕从哪里开始？</div>
+                    <div class="skeleton-archive-title">帝国<span>裂痕</span>从哪里开始？</div>
                     <div class="skeleton-card-list">${crackHtml}</div>
                 </div>
             </div>
