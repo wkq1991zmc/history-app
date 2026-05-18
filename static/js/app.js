@@ -466,59 +466,75 @@ function renderDynastySkeleton(data) {
     const cracks = data.cracks || [];
     const takeaways = data.takeaways || [];
     const heroImage = data.hero_image || data.image || '';
+    const heroTags = [
+        nodes[0]?.label || '一统六国',
+        pillars[1]?.title || '郡县制度',
+        '二世而亡'
+    ];
 
     const nodeHtml = nodes.map((node, index) => `
-        <a class="skeleton-node" href="#${encodeURIComponent(node.event || '')}" data-event-link="${escapeAttr(node.event || '')}">
+        <a class="skeleton-node ${index === 5 ? 'skeleton-node-turn' : ''}" href="#${encodeURIComponent(node.event || '')}" data-event-link="${escapeAttr(node.event || '')}">
             <span class="skeleton-node-index">${String(index + 1).padStart(2, '0')}</span>
+            <span class="skeleton-node-title">${escapeHtml(node.label || '')}</span>
             <span class="skeleton-node-stage">${escapeHtml(node.stage || '')}</span>
-            <strong>${escapeHtml(node.label || '')}</strong>
-            <span>${escapeHtml(node.note || '')}</span>
+            <span class="skeleton-node-note">${escapeHtml(node.note || '')}</span>
         </a>
     `).join('');
 
-    const pillarHtml = pillars.map(item => `
+    const pillarHtml = pillars.map((item, index) => `
         <div class="skeleton-card">
-            <div class="skeleton-card-title">${escapeHtml(item.title || '')}</div>
-            <p>${escapeHtml(item.body || '')}</p>
+            <span class="skeleton-card-index">${String(index + 1).padStart(2, '0')}</span>
+            <div>
+                <div class="skeleton-card-title">${escapeHtml(item.title || '')}</div>
+                <p>${escapeHtml(item.body || '')}</p>
+            </div>
         </div>
     `).join('');
 
-    const crackHtml = cracks.map(item => `
+    const crackHtml = cracks.map((item, index) => `
         <div class="skeleton-card skeleton-card-crack">
-            <div class="skeleton-card-title">${escapeHtml(item.title || '')}</div>
-            <p>${escapeHtml(item.body || '')}</p>
+            <span class="skeleton-card-index">${String(index + 1).padStart(2, '0')}</span>
+            <div>
+                <div class="skeleton-card-title">${escapeHtml(item.title || '')}</div>
+                <p>${escapeHtml(item.body || '')}</p>
+            </div>
         </div>
     `).join('');
 
-    const takeawayHtml = takeaways.map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    const takeawayHtml = takeaways.map(item => `<li><span></span>${escapeHtml(item)}</li>`).join('');
+    const tagHtml = heroTags.map(tag => `<span>${escapeHtml(tag)}</span>`).join('');
 
     return `
         <section class="dynasty-skeleton">
-            <div class="skeleton-hero" style="background-image: linear-gradient(90deg, rgba(41, 25, 16, 0.7), rgba(41, 25, 16, 0.16)), url('${escapeAttr(heroImage)}');">
+            <div class="skeleton-hero" style="background-image: linear-gradient(90deg, rgba(246, 234, 215, 0.96), rgba(246, 234, 215, 0.74) 42%, rgba(246, 234, 215, 0.12)), url('${escapeAttr(heroImage)}');">
                 <div class="skeleton-hero-content">
-                    <div class="skeleton-kicker">朝代骨架</div>
+                    <div class="skeleton-kicker">秦 案</div>
                     <h2>${escapeHtml(data.summary_title || data.title || '')}</h2>
                     <p>${escapeHtml(data.summary_intro || '')}</p>
+                    <div class="skeleton-hero-tags">${tagHtml}</div>
                 </div>
             </div>
 
-            <div class="skeleton-section">
-                <div class="skeleton-section-title">秦朝主线</div>
+            <div class="skeleton-section skeleton-line-section">
+                <div class="skeleton-section-title">帝国主线：大秦兴亡十一章</div>
                 <div class="skeleton-flow">${nodeHtml}</div>
             </div>
 
-            <div class="skeleton-section">
-                <div class="skeleton-section-title">这层楼搭起了什么</div>
-                <div class="skeleton-grid">${pillarHtml}</div>
+            <div class="skeleton-archive-grid">
+                <div class="skeleton-archive-card">
+                    <div class="skeleton-archive-label">第一份案卷</div>
+                    <div class="skeleton-archive-title">秦朝为何能迅速兴起？</div>
+                    <div class="skeleton-card-list">${pillarHtml}</div>
+                </div>
+                <div class="skeleton-archive-card skeleton-archive-card-dark">
+                    <div class="skeleton-archive-label">第二份案卷</div>
+                    <div class="skeleton-archive-title">帝国裂痕从哪里开始？</div>
+                    <div class="skeleton-card-list">${crackHtml}</div>
+                </div>
             </div>
 
-            <div class="skeleton-section">
-                <div class="skeleton-section-title">这层楼从哪里开裂</div>
-                <div class="skeleton-grid">${crackHtml}</div>
-            </div>
-
-            <div class="skeleton-section skeleton-takeaway">
-                <div class="skeleton-section-title">读完秦朝，至少记住三件事</div>
+            <div class="skeleton-verdict">
+                <div class="skeleton-verdict-seal">史官结语</div>
                 <ol>${takeawayHtml}</ol>
             </div>
         </section>
