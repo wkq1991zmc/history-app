@@ -145,6 +145,48 @@ function closeFeedbackModal() {
     elements.feedbackModal.setAttribute('aria-hidden', 'true');
 }
 
+function showToast(message) {
+    let toast = document.getElementById('site-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'site-toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('visible');
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(() => {
+        toast.classList.remove('visible');
+    }, 1800);
+}
+
+async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+    }
+    const input = document.createElement('textarea');
+    input.value = text;
+    input.setAttribute('readonly', '');
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    document.body.appendChild(input);
+    input.select();
+    const success = document.execCommand('copy');
+    document.body.removeChild(input);
+    return success;
+}
+
+async function copyQQGroup(e) {
+    const groupNumber = e.currentTarget.dataset.copyGroup || '1073677465';
+    try {
+        await copyText(groupNumber);
+        showToast(`QQ群号已复制：${groupNumber}`);
+    } catch (err) {
+        showToast(`QQ群号：${groupNumber}`);
+    }
+}
+
 async function submitFeedback() {
     const message = elements.feedbackMessage.value.trim();
     const email = elements.feedbackEmail.value.trim();
@@ -256,6 +298,9 @@ async function init() {
     elements.guessUserAnswer.addEventListener('click', handleUserYesNoAnswer);
     elements.feedbackOpenBtn?.addEventListener('click', openFeedbackModal);
     elements.mobileFeedbackBtn?.addEventListener('click', openFeedbackModal);
+    document.querySelectorAll('[data-copy-group]').forEach(button => {
+        button.addEventListener('click', copyQQGroup);
+    });
     elements.feedbackCloseBtn.addEventListener('click', closeFeedbackModal);
     elements.feedbackModal.addEventListener('click', (e) => {
         if (e.target === elements.feedbackModal) closeFeedbackModal();

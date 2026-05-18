@@ -22,7 +22,10 @@
   <div id="mobile-topbar" class="hidden fixed top-0 left-0 right-0 z-50 bg-[#16110f] border-b border-[#3e2c26] px-4 py-3 flex items-center justify-between">
     <button id="mobile-menu-btn" class="text-[#e8d5c4] text-2xl leading-none p-1">☰</button>
     <h1 class="text-lg font-bold text-[#f0c9a8] tracking-widest" style="font-family: 'Ma Shan Zheng', serif;">时空印证系统</h1>
-    <button id="mobile-feedback-top-btn" type="button" class="mobile-feedback-top-btn">反馈</button>
+    <div class="mobile-topbar-actions">
+      <button id="mobile-qq-group-btn" type="button" class="mobile-feedback-top-btn" data-copy-group="1073677465">QQ群</button>
+      <button id="mobile-feedback-top-btn" type="button" class="mobile-feedback-top-btn">反馈</button>
+    </div>
   </div>
 
   <!-- 移动端侧边栏遮罩 -->
@@ -52,6 +55,11 @@
         </div>
       </div>
       <div class="sidebar-feedback">
+        <div class="sidebar-community">
+          <div class="sidebar-community-label">交流群</div>
+          <button type="button" class="qq-group-btn" data-copy-group="1073677465">QQ群 1073677465</button>
+          <div class="sidebar-community-note">欢迎反馈史实问题和体验建议</div>
+        </div>
         <button id="feedback-open-btn" type="button" class="feedback-open-btn">反馈 / 联系我</button>
       </div>
     </aside>
@@ -166,6 +174,9 @@
           </div>
           
           <div id="character-buttons" class="flex flex-wrap gap-2 pb-2 px-2 custom-scrollbar-hide mb-3">
+          </div>
+          <div class="chat-use-hint px-2 mb-3">
+            点人物名可单聊；群聊模式会让多位相关人物依次回应。
           </div>
 
           <div class="answer-mode-panel px-2 mb-3">

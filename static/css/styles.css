@@ -235,6 +235,12 @@ h1, h2, h3, h4, h5, h6 {
     line-height: 1.25;
 }
 
+.chat-use-hint {
+    color: #8c7a66;
+    font-size: 0.72rem;
+    line-height: 1.5;
+}
+
 .feedback-open-btn {
     width: 100%;
     border: 1px solid rgba(240, 201, 168, 0.45);
@@ -253,9 +259,70 @@ h1, h2, h3, h4, h5, h6 {
     background: #16110f;
 }
 
+.sidebar-community {
+    border: 1px solid rgba(240, 201, 168, 0.22);
+    background: rgba(240, 201, 168, 0.06);
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.sidebar-community-label {
+    color: #b89a82;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    margin-bottom: 0.45rem;
+}
+
+.qq-group-btn {
+    width: 100%;
+    border: 1px solid rgba(240, 201, 168, 0.5);
+    background: rgba(139, 35, 35, 0.42);
+    color: #f0c9a8;
+    padding: 0.6rem 0.7rem;
+    font-size: 0.8rem;
+    font-weight: 900;
+    text-align: center;
+}
+
+.qq-group-btn:hover {
+    border-color: #f0c9a8;
+    background: rgba(139, 35, 35, 0.62);
+}
+
+.sidebar-community-note {
+    margin-top: 0.45rem;
+    color: #8c7a66;
+    font-size: 0.68rem;
+    line-height: 1.45;
+}
+
 .feedback-open-btn:hover {
     border-color: #f0c9a8;
     background: rgba(139, 35, 35, 0.55);
+}
+
+#site-toast {
+    position: fixed;
+    top: 4.5rem;
+    left: 50%;
+    z-index: 100;
+    transform: translate(-50%, -10px);
+    opacity: 0;
+    pointer-events: none;
+    border: 1px solid rgba(240, 201, 168, 0.55);
+    background: rgba(22, 17, 15, 0.96);
+    color: #f0c9a8;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+    transition: opacity 0.18s, transform 0.18s;
+}
+
+#site-toast.visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
 }
 
 .feedback-modal {
@@ -569,6 +636,12 @@ h1, h2, h3, h4, h5, h6 {
         letter-spacing: 0.06em;
         line-height: 1.1;
         min-width: 2.7rem;
+    }
+
+    .mobile-topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
     }
 
     .mobile-feedback-top-btn:active {
