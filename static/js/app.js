@@ -55,6 +55,7 @@ const elements = {
     answerModeOptions: document.getElementById('answer-mode-options'),
     chatSpinner: document.getElementById('chat-spinner')
 };
+elements.storyContainer = document.getElementById('story-container');
 
 Object.assign(elements, {
     guessSetup: document.getElementById('guess-setup'),
@@ -427,6 +428,7 @@ function renderStory(data) {
     elements.storyContent.classList.remove('hidden');
     const isDynastySkeleton = data.summary_type === 'dynasty_skeleton';
     elements.storyContent.classList.toggle('story-content-skeleton', isDynastySkeleton);
+    elements.storyContainer?.classList.toggle('story-container-skeleton', isDynastySkeleton);
     
     elements.manuscriptStamp.innerText = data.manuscript || 'TOP SECRET DOCUMENT';
     elements.storyTitle.innerText = data.title || '无名卷宗';
@@ -585,6 +587,7 @@ function showGuessGame() {
     document.querySelector('[data-game="guess-person"]')?.classList.add('bg-[#c62828]/10', 'text-[#c62828]', 'border-[#c62828]', 'font-bold');
     elements.storySplash.classList.add('hidden');
     elements.storyContent.classList.add('hidden');
+    elements.storyContainer?.classList.remove('story-container-skeleton');
     elements.guessGameContent.classList.remove('hidden');
     elements.chatSection.classList.add('hidden');
 }

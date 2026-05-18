@@ -185,6 +185,13 @@ h1, h2, h3, h4, h5, h6 {
     padding-bottom: 3rem;
 }
 
+.story-container-skeleton,
+#story-container:has(.story-content-skeleton) {
+    max-width: 76rem !important;
+    padding-left: 2.75rem !important;
+    padding-right: 2.75rem !important;
+}
+
 .skeleton-hero {
     position: relative;
     min-height: 22rem;
@@ -1103,6 +1110,11 @@ h1, h2, h3, h4, h5, h6 {
 
     #story-container {
         padding: 1.5rem 1rem 5rem 1rem !important;
+    }
+
+    .story-container-skeleton,
+    #story-container:has(.story-content-skeleton) {
+        max-width: none !important;
     }
 
     #story-title {
