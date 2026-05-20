@@ -6,6 +6,82 @@ body {
     background-color: #1a1412;
 }
 
+.home-screen {
+    --home-button-top: 62%;
+    --home-button-left: 50%;
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e6d2b7;
+    background-image:
+        linear-gradient(180deg, rgba(255, 247, 232, 0.05), rgba(49, 29, 18, 0.08)),
+        url('/static/images/home-hero-bg.png'),
+        url('/static/images/qin-skeleton-bg.png.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.home-screen.hidden {
+    display: none !important;
+}
+
+.home-hero-content {
+    position: absolute;
+    left: var(--home-button-left);
+    top: var(--home-button-top);
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(26rem, 82vw);
+}
+
+@media (min-width: 1440px) and (min-aspect-ratio: 19/10) {
+    .home-screen {
+        --home-button-top: 64%;
+    }
+}
+
+@media (min-width: 1440px) and (max-aspect-ratio: 19/10) {
+    .home-screen {
+        --home-button-top: 61%;
+    }
+}
+
+@media (max-height: 760px) and (orientation: landscape) {
+    .home-screen {
+        --home-button-top: 66%;
+    }
+}
+
+#home-start-btn {
+    min-width: 11rem;
+    border: 1px solid rgba(92, 19, 19, 0.66);
+    background: linear-gradient(180deg, #8f2521, #631817);
+    color: #f7e5c9;
+    padding: 0.9rem 2.2rem;
+    font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', serif;
+    font-size: 1.05rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    box-shadow: 0 14px 30px rgba(56, 28, 18, 0.24);
+    transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+}
+
+#home-start-btn:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(180deg, #a42b25, #6b1918);
+    box-shadow: 0 18px 38px rgba(56, 28, 18, 0.3);
+}
+
+#home-start-btn:active {
+    transform: translateY(0);
+}
+
 /* 模拟中间卷宗的复古纸张纹理与明暗过度 */
 .bg-paper {
     background-color: #e3d2be;
@@ -385,10 +461,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .skeleton-node-note {
-    color: #4f3a2c;
-    font-size: 0.9rem;
-    font-weight: 650;
-    line-height: 1.65;
+    color: #4b382b;
+    font-family: 'Noto Serif SC', 'STSong', serif;
+    font-size: 0.93rem;
+    font-weight: 400;
+    line-height: 1.72;
 }
 
 .skeleton-archive-grid {
@@ -647,6 +724,16 @@ h1, h2, h3, h4, h5, h6 {
     color: #8c7a66;
     font-size: 0.72rem;
     line-height: 1.5;
+}
+
+.chat-unavailable-note {
+    width: 100%;
+    border: 1px dashed rgba(140, 122, 102, 0.46);
+    background: rgba(245, 239, 232, 0.58);
+    color: #705d4d;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.78rem;
+    line-height: 1.55;
 }
 
 .feedback-open-btn {
@@ -1030,6 +1117,55 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ======== 移动端响应式布局 ======== */
 @media (max-width: 1023px) {
+    .home-screen {
+        --home-button-top: 61%;
+        background-size: cover;
+        background-position: center;
+    }
+
+    .home-hero-content {
+        width: min(22rem, 84vw);
+    }
+
+    #home-start-btn {
+        min-width: 9.5rem;
+        padding: 0.75rem 1.8rem;
+        font-size: 0.95rem;
+    }
+
+    @media (orientation: landscape) {
+        .home-screen {
+            --home-button-top: 66%;
+        }
+    }
+
+    @media (orientation: portrait) {
+        .home-screen {
+            --home-button-top: clamp(20rem, 45vh, 30rem);
+            background-image:
+                linear-gradient(180deg, rgba(255, 247, 232, 0.05), rgba(49, 29, 18, 0.08)),
+                url('/static/images/home-hero-bg.png');
+            background-size: cover, 100% auto;
+            background-position: center, top center;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .home-screen {
+            --home-button-top: clamp(19rem, 43vh, 24rem);
+        }
+
+        .home-hero-content {
+            width: min(18rem, 80vw);
+        }
+
+        #home-start-btn {
+            min-width: 8.8rem;
+            padding: 0.68rem 1.45rem;
+            font-size: 0.88rem;
+        }
+    }
+
     #mobile-topbar {
         display: flex !important;
     }

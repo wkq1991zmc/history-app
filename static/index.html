@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>跨时空听证会</title>
+  <title>时空印证系统</title>
   
   <!-- Tailwind CSS 核心通过 CDN 引入作为原子类工具 -->
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="stylesheet" href="/static/css/styles.css?v=home-polish-20260520">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,6 +17,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet">
 </head>
 <body class="bg-scroll min-h-screen text-[#5d4037] antialiased overflow-x-hidden">
+  <section id="home-screen" class="home-screen hidden" aria-label="时空印证系统首页">
+    <div class="home-hero-content">
+      <button id="home-start-btn" type="button">开始探索</button>
+    </div>
+  </section>
   
   <!-- 移动端顶部导航栏 -->
   <div id="mobile-topbar" class="hidden fixed top-0 left-0 right-0 z-50 bg-[#16110f] border-b border-[#3e2c26] px-4 py-3 flex items-center justify-between">
@@ -243,6 +248,6 @@
     </div>
   </div>
 
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=home-polish-20260520"></script>
 </body>
 </html>

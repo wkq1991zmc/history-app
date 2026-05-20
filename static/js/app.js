@@ -30,6 +30,8 @@ const state = {
 
 // DOM 元素引用
 const elements = {
+    homeScreen: document.getElementById('home-screen'),
+    homeStartBtn: document.getElementById('home-start-btn'),
     navContainer: document.getElementById('nav-container'),
     storySplash: document.getElementById('story-splash'),
     storyContent: document.getElementById('story-content'),
@@ -216,6 +218,36 @@ async function submitFeedback() {
 
 // ================= 初始化与导航 =================
 
+function hideHome() {
+    elements.homeScreen?.classList.add('hidden');
+}
+
+function showHome() {
+    state.currentMode = "home";
+    elements.homeScreen?.classList.remove('hidden');
+    elements.storySplash.classList.remove('hidden');
+    elements.storyContent.classList.add('hidden');
+    elements.guessGameContent.classList.add('hidden');
+    elements.chatSection?.classList?.remove('hidden');
+    document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('bg-[#c62828]/10', 'text-[#c62828]', 'border-[#c62828]', 'font-bold');
+        el.classList.add('border-transparent');
+    });
+}
+
+function getDefaultEvent() {
+    return state.eventsList.find(item => item.id === "秦朝·一统六国")
+        || state.eventsList.find(item => !item.isSummary)
+        || state.eventsList[0];
+}
+
+function enterFromHome() {
+    const event = getDefaultEvent();
+    if (event) {
+        loadEvent(event.id);
+    }
+}
+
 async function init() {
     trackAnalytics('visit');
     // 1. 获取导航目录
@@ -229,8 +261,8 @@ async function init() {
             showGuessGame();
         } else if(hash) {
             loadEvent(hash);
-        } else if (res.data.length > 0) {
-            loadEvent(res.data[0].id);
+        } else {
+            showHome();
         }
     } else {
         elements.navContainer.innerHTML = '<div class="text-red-500 text-center text-sm p-4">无法加载中央档案，请刷新重试。</div>';
@@ -307,6 +339,7 @@ async function init() {
         if (e.target === elements.feedbackModal) closeFeedbackModal();
     });
     elements.feedbackSubmitBtn.addEventListener('click', submitFeedback);
+    elements.homeStartBtn?.addEventListener('click', enterFromHome);
     loadSiteConfig();
 }
 
@@ -383,6 +416,7 @@ function updateNavHighlight(activeId) {
 async function loadEvent(eventId) {
     if(state.isLoading) return;
     state.isLoading = true;
+    hideHome();
     
     window.location.hash = eventId;
     state.currentMode = "story";
@@ -410,11 +444,11 @@ async function loadEvent(eventId) {
             state.chatHistory[state.currentEventId] = (historyRes && historyRes.messages) ? historyRes.messages : [];
         }
         
-        renderChatControls();
+        const canChat = renderChatControls();
         renderChat();
         
-        elements.chatInput.disabled = false;
-        elements.chatSubmit.disabled = false;
+        elements.chatInput.disabled = !canChat;
+        elements.chatSubmit.disabled = !canChat;
         
     } else {
         alert("时空卷轴读取失败，无法找到该事件");
@@ -550,6 +584,14 @@ function renderDynastySkeleton(data) {
 
 function renderChatControls() {
     const chars = state.currentEventData.characters || [];
+    if (chars.length === 0) {
+        state.currentTarget = "所有参与人";
+        elements.charBtnsContainer.innerHTML = '<div class="chat-unavailable-note">这一页是朝代骨架总结，可点击左侧或上方主线节点进入具体事件后再提问。</div>';
+        elements.currentAtBadge.classList.add('hidden');
+        elements.chatInput.placeholder = "进入具体事件后可向人物提问";
+        return false;
+    }
+
     let html = '';
     chars.forEach(char => {
         const isSelected = char === state.currentTarget;
@@ -575,9 +617,11 @@ function renderChatControls() {
         elements.currentAtBadge.innerText = `@ ${state.currentTarget}`;
         elements.chatInput.placeholder = `正在连线 @${state.currentTarget}...`;
     }
+    return true;
 }
 
 function showGuessGame() {
+    hideHome();
     state.currentMode = "guess";
     window.location.hash = "guess-game";
     document.querySelectorAll('.nav-item').forEach(el => {
@@ -919,6 +963,11 @@ function sanitizeStoryHtml(html) {
 async function handleUserSubmit() {
     const text = elements.chatInput.value.trim();
     if(!text) return;
+    const eventCharacters = state.currentEventData?.characters || [];
+    if (eventCharacters.length === 0) {
+        showToast("请先进入具体事件，再向历史人物提问。");
+        return;
+    }
     
     // 阻止重复提交
     elements.chatInput.disabled = true;
@@ -945,9 +994,9 @@ async function handleUserSubmit() {
         // 但这里我们做个优雅的高级博弈适配：如果@所有参与人，我们按序让前两个人物回答
         
         let responsers = [];
-        if(target === "所有参与人" && state.currentEventData.characters.length > 0) {
+        if(target === "所有参与人" && eventCharacters.length > 0) {
             // 取前两个重要当事人接招
-            responsers = state.currentEventData.characters;
+            responsers = eventCharacters;
         } else {
             responsers = [target];
         }

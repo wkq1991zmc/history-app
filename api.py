@@ -244,6 +244,25 @@ def _record_analytics(action: str, visitor_id: str = "", event_name: str = "", c
         )
         conn.commit()
 
+def _log_analytics_failure(context: str, exc: Exception):
+    print(f"统计记录失败 [{context}]: {exc}")
+
+def _safe_record_analytics(action: str, visitor_id: str = "", event_name: str = "", character: str = "", detail: str = "") -> bool:
+    try:
+        _record_analytics(action, visitor_id, event_name, character, detail)
+        return True
+    except Exception as exc:
+        _log_analytics_failure(action, exc)
+        return False
+
+def _safe_record_chat_question(request, visitor_id: str) -> bool:
+    try:
+        _record_chat_question(request, visitor_id)
+        return True
+    except Exception as exc:
+        _log_analytics_failure("chat_question", exc)
+        return False
+
 def _record_feedback(req: FeedbackRequest, visitor_id: str):
     message = (req.message or "").strip()
     email = (req.email or "").strip()
@@ -273,7 +292,7 @@ def _record_feedback(req: FeedbackRequest, visitor_id: str):
             values,
         )
         conn.commit()
-    _record_analytics("feedback", visitor_id, req.event_name or "", "", message[:40])
+    _safe_record_analytics("feedback", visitor_id, req.event_name or "", "", message[:40])
 
 def _should_record_chat_question(message: str) -> bool:
     text = (message or "").strip()
@@ -420,15 +439,15 @@ def _admin_analytics_payload() -> Dict:
 
 @app.post("/analytics/visit")
 async def analytics_visit(req: AnalyticsVisitRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
-    _record_analytics("visit", x_client_id or "anonymous", detail=req.path or "/")
-    return {"success": True}
+    recorded = _safe_record_analytics("visit", x_client_id or "anonymous", detail=req.path or "/")
+    return {"success": True, "recorded": recorded}
 
 @app.post("/analytics/event")
 async def analytics_event(req: AnalyticsEventRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
     if req.event_type not in ("event_view", "guess_action"):
         raise HTTPException(status_code=400, detail="未知统计事件")
-    _record_analytics(req.event_type, x_client_id or "anonymous", req.event_name or "", req.character or "", req.detail or "")
-    return {"success": True}
+    recorded = _safe_record_analytics(req.event_type, x_client_id or "anonymous", req.event_name or "", req.character or "", req.detail or "")
+    return {"success": True, "recorded": recorded}
 
 @app.post("/feedback")
 async def submit_feedback(req: FeedbackRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
@@ -448,7 +467,11 @@ async def site_config():
 @app.get("/admin/analytics")
 async def admin_analytics(key: Optional[str] = None, x_admin_key: Optional[str] = Header(None, alias="X-ADMIN-KEY")):
     _require_admin_key(key, x_admin_key)
-    return _admin_analytics_payload()
+    try:
+        return _admin_analytics_payload()
+    except Exception as exc:
+        _log_analytics_failure("admin_payload", exc)
+        raise HTTPException(status_code=503, detail="统计数据库暂时不可用，请检查 analytics_data 或数据库配置")
 
 def check_rate_limit(player_id: str) -> bool:
     now = time.time()
@@ -895,8 +918,8 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
         client_type = "小程序" if is_miniprogram else "网页"
         print(f"\n=== 收到提审请求 [{client_type}] ===")
         print(f"玩家: {player_id} | 案件: {request.event_name} | 被告: {request.character}")
-        _record_analytics("chat", player_id, request.event_name, request.character, request.answer_mode or "")
-        _record_chat_question(request, player_id)
+        _safe_record_analytics("chat", player_id, request.event_name, request.character, request.answer_mode or "")
+        _safe_record_chat_question(request, player_id)
         
         event_data = EVENTS_DB[request.event_name]
         raw_notes = event_data.get('ai_notes', '')
@@ -1015,8 +1038,8 @@ async def ai_chat_stream(request: ChatRequest, x_client_id: Optional[str] = Head
     player_id = x_client_id if x_client_id else "unknown_player"
     if not check_rate_limit(player_id):
         raise HTTPException(status_code=429, detail="发言太快了，请稍等片刻再问。")
-    _record_analytics("chat", player_id, request.event_name, request.character, request.answer_mode or "")
-    _record_chat_question(request, player_id)
+    _safe_record_analytics("chat", player_id, request.event_name, request.character, request.answer_mode or "")
+    _safe_record_chat_question(request, player_id)
 
     event_data = EVENTS_DB[request.event_name]
     raw_notes = event_data.get('ai_notes', '')
@@ -1167,7 +1190,8 @@ async def get_events_list():
             "year": year or time_str.split('（')[0], 
             "desc": desc,
             "image": matched_image,
-            "isImage": True
+            "isImage": True,
+            "isSummary": data.get("summary_type") == "dynasty_skeleton"
         }
         events_list.append(event_item)
         
@@ -1191,7 +1215,7 @@ async def get_events_list():
         return weight
         
     # 对 events_list 进行原地排序
-    events_list.sort(key=lambda x: get_sort_weight(x['year']))
+    events_list.sort(key=lambda x: (x.get("isSummary", False), get_sort_weight(x['year'])))
     # === 结束：排序算法 ===
         
     return {
