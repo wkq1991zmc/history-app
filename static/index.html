@@ -9,7 +9,7 @@
   <script defer src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=fast-home-entry-20260521">
+  <link rel="stylesheet" href="/static/css/styles.css?v=remember-login-20260521">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -272,6 +272,10 @@
       <p class="auth-copy">输入邮箱和密码登录。第一次使用时点注册，之后用同一邮箱登录。</p>
       <input id="auth-email" type="email" maxlength="120" placeholder="你的邮箱">
       <input id="auth-password" type="password" minlength="6" maxlength="80" placeholder="密码（至少 6 位）">
+      <label class="auth-remember-row">
+        <input id="auth-remember" type="checkbox" checked>
+        <span>记住我，下次自动保持登录</span>
+      </label>
       <div class="auth-actions auth-actions-stack">
         <span id="auth-status"></span>
         <div class="auth-button-row">
@@ -283,6 +287,6 @@
     </div>
   </div>
 
-  <script type="module" src="/static/js/app.js?v=fast-home-entry-20260521"></script>
+  <script type="module" src="/static/js/app.js?v=remember-login-20260521"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@ let firebaseAuthApi = null;
 let firebaseReadyPromise = null;
 let firebaseObserverStarted = false;
 const DEFAULT_EVENT_ID = "\u79e6\u671d\u00b7\u4e00\u7edf\u516d\u56fd";
+const AUTH_REMEMBER_KEY = "historyAppRememberLogin";
 
 async function getFirebaseAuth() {
     if (firebaseAuth && firebaseAuthApi) {
@@ -138,6 +139,7 @@ Object.assign(elements, {
     authCloseBtn: document.getElementById('auth-close-btn'),
     authEmail: document.getElementById('auth-email'),
     authPassword: document.getElementById('auth-password'),
+    authRemember: document.getElementById('auth-remember'),
     authLoginBtn: document.getElementById('auth-login-btn'),
     authSignupBtn: document.getElementById('auth-signup-btn'),
     authResetBtn: document.getElementById('auth-reset-btn'),
@@ -241,6 +243,24 @@ function openAuthModal() {
 function closeAuthModal() {
     elements.authModal?.classList.add('hidden');
     elements.authModal?.setAttribute('aria-hidden', 'true');
+}
+
+function initRememberLoginOption() {
+    if (!elements.authRemember) return;
+    elements.authRemember.checked = localStorage.getItem(AUTH_REMEMBER_KEY) !== "0";
+}
+
+function shouldRememberLogin() {
+    return elements.authRemember ? elements.authRemember.checked : true;
+}
+
+async function applyAuthPersistence() {
+    const remember = shouldRememberLogin();
+    localStorage.setItem(AUTH_REMEMBER_KEY, remember ? "1" : "0");
+    const { auth, api } = await getFirebaseAuth();
+    const persistence = remember ? api.browserLocalPersistence : api.browserSessionPersistence;
+    await api.setPersistence(auth, persistence);
+    return { auth, api };
 }
 
 function isLoggedIn() {
@@ -349,7 +369,7 @@ async function loginWithEmail() {
     setAuthBusy(true);
     elements.authStatus.textContent = '正在登录...';
     try {
-        const { auth, api } = await getFirebaseAuth();
+        const { auth, api } = await applyAuthPersistence();
         const credential = await api.signInWithEmailAndPassword(auth, values.email, values.password);
         state.authToken = await credential.user.getIdToken();
         state.authUser = {
@@ -374,7 +394,7 @@ async function signupWithEmail() {
     setAuthBusy(true);
     elements.authStatus.textContent = '正在注册...';
     try {
-        const { auth, api } = await getFirebaseAuth();
+        const { auth, api } = await applyAuthPersistence();
         const credential = await api.createUserWithEmailAndPassword(auth, values.email, values.password);
         state.authToken = await credential.user.getIdToken();
         state.authUser = {
@@ -549,6 +569,7 @@ function enterFromHome() {
 
 async function init() {
     trackAnalytics('visit');
+    initRememberLoginOption();
     loadAuthUser();
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
     elements.authLoginBtn?.addEventListener('click', loginWithEmail);
@@ -669,17 +690,15 @@ async function init() {
         if (e.target === elements.feedbackModal) closeFeedbackModal();
     });
     elements.feedbackSubmitBtn.addEventListener('click', submitFeedback);
-    elements.authCloseBtn?.addEventListener('click', closeAuthModal);
     elements.authModal?.addEventListener('click', (e) => {
         if (e.target === elements.authModal) closeAuthModal();
     });
-    elements.authLoginBtn?.addEventListener('click', loginWithEmail);
-    elements.authSignupBtn?.addEventListener('click', signupWithEmail);
-    elements.authResetBtn?.addEventListener('click', resetAuthPassword);
+    elements.authRemember?.addEventListener('change', () => {
+        localStorage.setItem(AUTH_REMEMBER_KEY, shouldRememberLogin() ? "1" : "0");
+    });
     elements.authPassword?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') loginWithEmail();
     });
-    elements.homeStartBtn?.addEventListener('click', enterFromHome);
     loadSiteConfig();
 }
 
