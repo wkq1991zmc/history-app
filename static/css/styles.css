@@ -7,7 +7,8 @@ body {
 }
 
 .home-screen {
-    --home-button-top: 62%;
+    --home-copy-top: 38%;
+    --home-button-top: 56%;
     --home-button-left: 50%;
     position: fixed;
     inset: 0;
@@ -18,11 +19,45 @@ body {
     background-color: #e6d2b7;
     background-image:
         linear-gradient(180deg, rgba(255, 247, 232, 0.05), rgba(49, 29, 18, 0.08)),
-        url('/static/images/home-hero-bg.png'),
+        url('/static/images/home-hero-bg2.png'),
         url('/static/images/qin-skeleton-bg.png.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+}
+
+.home-hero-copy {
+    position: absolute;
+    left: 50%;
+    top: var(--home-copy-top);
+    transform: translate(-50%, -50%);
+    width: min(68rem, 88vw);
+    text-align: center;
+    color: #1f1711;
+    pointer-events: none;
+}
+
+.home-hero-copy h1 {
+    margin: 0 0 1.05rem;
+    color: #21160f;
+    font-family: 'Ma Shan Zheng', 'ZCOOL XiaoWei', 'Noto Serif SC', serif !important;
+    font-size: clamp(3.2rem, 6.1vw, 5.8rem);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: 0;
+    text-shadow:
+        0 2px 0 rgba(139, 35, 35, 0.2),
+        0 14px 24px rgba(69, 43, 25, 0.2);
+}
+
+.home-hero-copy p {
+    margin: 0;
+    color: #2d2119;
+    font-family: 'Noto Serif SC', 'STSong', serif;
+    font-size: clamp(1rem, 1.45vw, 1.45rem);
+    font-weight: 600;
+    line-height: 1.7;
+    text-shadow: 0 1px 10px rgba(255, 247, 232, 0.6);
 }
 
 .home-screen.hidden {
@@ -42,13 +77,13 @@ body {
 
 @media (min-width: 1440px) and (min-aspect-ratio: 19/10) {
     .home-screen {
-        --home-button-top: 64%;
+        --home-button-top: 58%;
     }
 }
 
 @media (min-width: 1440px) and (max-aspect-ratio: 19/10) {
     .home-screen {
-        --home-button-top: 61%;
+        --home-button-top: 55%;
     }
 }
 
@@ -61,6 +96,7 @@ body {
 #home-start-btn {
     min-width: 11rem;
     border: 1px solid rgba(92, 19, 19, 0.66);
+    border-radius: 999px;
     background: linear-gradient(180deg, #8f2521, #631817);
     color: #f7e5c9;
     padding: 0.9rem 2.2rem;
@@ -1118,7 +1154,7 @@ h1, h2, h3, h4, h5, h6 {
 /* ======== 移动端响应式布局 ======== */
 @media (max-width: 1023px) {
     .home-screen {
-        --home-button-top: 61%;
+        --home-button-top: 57%;
         background-size: cover;
         background-position: center;
     }
@@ -1141,22 +1177,51 @@ h1, h2, h3, h4, h5, h6 {
 
     @media (orientation: portrait) {
         .home-screen {
-            --home-button-top: clamp(20rem, 45vh, 30rem);
+            --home-copy-top: clamp(7.8rem, 16vh, 10.5rem);
+            --home-button-top: clamp(19rem, 43vh, 28rem);
             background-image:
                 linear-gradient(180deg, rgba(255, 247, 232, 0.05), rgba(49, 29, 18, 0.08)),
-                url('/static/images/home-hero-bg.png');
-            background-size: cover, 100% auto;
-            background-position: center, top center;
+                url('/static/images/home-hero-bg-mobile.png');
+            background-size: cover, cover;
+            background-position: center, center;
+        }
+
+        .home-hero-copy {
+            width: min(38rem, 88vw);
+        }
+
+        .home-hero-copy h1 {
+            margin-bottom: 0.5rem;
+            font-size: clamp(2rem, 7.2vw, 3.1rem);
+            line-height: 1.16;
+        }
+
+        .home-hero-copy p {
+            font-size: clamp(0.76rem, 2.5vw, 0.98rem);
+            line-height: 1.55;
         }
     }
 
     @media (max-width: 640px) {
         .home-screen {
-            --home-button-top: clamp(19rem, 43vh, 24rem);
+            --home-copy-top: clamp(6.6rem, 15vh, 8.2rem);
+            --home-button-top: clamp(18.2rem, 42vh, 23rem);
         }
 
         .home-hero-content {
             width: min(18rem, 80vw);
+        }
+
+        .home-hero-copy {
+            width: 96vw;
+        }
+
+        .home-hero-copy h1 {
+            font-size: clamp(1.7rem, 6.2vw, 2.15rem);
+        }
+
+        .home-hero-copy p {
+            font-size: clamp(0.7rem, 2.25vw, 0.88rem);
         }
 
         #home-start-btn {
