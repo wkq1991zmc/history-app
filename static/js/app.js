@@ -1,3 +1,41 @@
+const firebaseConfig = {
+    apiKey: "AIzaSyBpxBagzoxMN_9TJWffR6Bqik0-sRkfGrQ",
+    authDomain: "history-app-3e6cb.firebaseapp.com",
+    projectId: "history-app-3e6cb",
+    storageBucket: "history-app-3e6cb.firebasestorage.app",
+    messagingSenderId: "1017339099255",
+    appId: "1:1017339099255:web:ad853b976fa52546666e72",
+    measurementId: "G-EY27HDP84N"
+};
+
+let firebaseAuth = null;
+let firebaseAuthApi = null;
+let firebaseReadyPromise = null;
+let firebaseObserverStarted = false;
+const DEFAULT_EVENT_ID = "\u79e6\u671d\u00b7\u4e00\u7edf\u516d\u56fd";
+
+async function getFirebaseAuth() {
+    if (firebaseAuth && firebaseAuthApi) {
+        return { auth: firebaseAuth, api: firebaseAuthApi };
+    }
+    if (!firebaseReadyPromise) {
+        firebaseReadyPromise = Promise.all([
+            import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"),
+            import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js")
+        ]).then(([appApi, authApi]) => {
+            const firebaseApp = appApi.initializeApp(firebaseConfig);
+            firebaseAuth = authApi.getAuth(firebaseApp);
+            firebaseAuthApi = authApi;
+            return authApi.setPersistence(firebaseAuth, authApi.browserLocalPersistence)
+                .catch((err) => {
+                    console.warn("Firebase persistence setup failed", err);
+                })
+                .then(() => ({ auth: firebaseAuth, api: firebaseAuthApi }));
+        });
+    }
+    return firebaseReadyPromise;
+}
+
 // 用户身份标识（UUID，首次访问自动生成，存于 localStorage）
 function getUserId() {
     let uid = localStorage.getItem('traeHistoryUserId');
@@ -18,8 +56,10 @@ const state = {
     currentTarget: "所有参与人",
     answerMode: localStorage.getItem('traeHistoryAnswerMode') || "fast",
     currentMode: "story",
-    authToken: localStorage.getItem('historyAppAuthToken') || "",
+    authToken: "",
     authUser: null,
+    authReady: false,
+    pendingEntry: "",
     guessGame: {
         sessionId: null,
         userPerson: "",
@@ -34,6 +74,11 @@ const state = {
 const elements = {
     homeScreen: document.getElementById('home-screen'),
     homeStartBtn: document.getElementById('home-start-btn'),
+    homeAuthOpenBtn: document.getElementById('home-auth-open-btn'),
+    homeAuthUser: document.getElementById('home-auth-user'),
+    homeAuthEmail: document.getElementById('home-auth-email'),
+    homeAuthLogoutBtn: document.getElementById('home-auth-logout-btn'),
+    appShell: document.getElementById('app-shell'),
     navContainer: document.getElementById('nav-container'),
     storySplash: document.getElementById('story-splash'),
     storyContent: document.getElementById('story-content'),
@@ -92,9 +137,10 @@ Object.assign(elements, {
     authModal: document.getElementById('auth-modal'),
     authCloseBtn: document.getElementById('auth-close-btn'),
     authEmail: document.getElementById('auth-email'),
-    authCode: document.getElementById('auth-code'),
-    authSendCodeBtn: document.getElementById('auth-send-code-btn'),
+    authPassword: document.getElementById('auth-password'),
     authLoginBtn: document.getElementById('auth-login-btn'),
+    authSignupBtn: document.getElementById('auth-signup-btn'),
+    authResetBtn: document.getElementById('auth-reset-btn'),
     authStatus: document.getElementById('auth-status')
 });
 
@@ -128,22 +174,6 @@ async function apiPost(endpoint, data, options = {}) {
         return await res.json();
     } catch (e) {
         console.error('API POST Error:', e);
-        return null;
-    }
-}
-
-async function authGet(endpoint) {
-    try {
-        const res = await fetch(endpoint, {
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CLIENT-ID': USER_ID,
-                'X-AUTH-TOKEN': state.authToken
-            }
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.json();
-    } catch (e) {
         return null;
     }
 }
@@ -188,6 +218,9 @@ function renderAuthState() {
     elements.authOpenBtn?.classList.toggle('hidden', isLoggedIn);
     elements.authUserPill?.classList.toggle('hidden', !isLoggedIn);
     if (elements.authUserEmail) elements.authUserEmail.textContent = email;
+    elements.homeAuthOpenBtn?.classList.toggle('hidden', isLoggedIn);
+    elements.homeAuthUser?.classList.toggle('hidden', !isLoggedIn);
+    if (elements.homeAuthEmail) elements.homeAuthEmail.textContent = email;
     if (elements.mobileAuthOpenBtn) {
         elements.mobileAuthOpenBtn.textContent = isLoggedIn ? "已登录" : "登录";
     }
@@ -201,6 +234,7 @@ function openAuthModal() {
     if (state.authUser?.email) {
         elements.authEmail.value = state.authUser.email;
     }
+    if (elements.authPassword) elements.authPassword.value = '';
     elements.authEmail.focus();
 }
 
@@ -209,76 +243,201 @@ function closeAuthModal() {
     elements.authModal?.setAttribute('aria-hidden', 'true');
 }
 
-async function loadAuthUser() {
-    if (!state.authToken) {
-        renderAuthState();
-        return;
-    }
-    const res = await authGet('/auth/me');
-    if (res && res.success && res.user) {
-        state.authUser = res.user;
-    } else {
-        state.authToken = "";
-        state.authUser = null;
-        localStorage.removeItem('historyAppAuthToken');
-    }
-    renderAuthState();
+function isLoggedIn() {
+    return Boolean(state.authUser?.email);
 }
 
-async function requestAuthCode() {
+function setPendingEntry(target = "") {
+    state.pendingEntry = target || "";
+}
+
+function requireLogin(target = "", options = {}) {
+    setPendingEntry(target);
+    showHome();
+    if (window.location.hash) {
+        window.history.replaceState(null, "", window.location.href.split("#")[0]);
+    }
+    if (options.silent) {
+        closeAuthModal();
+        return;
+    }
+    openAuthModal();
+    elements.authStatus.textContent = target
+        ? '请先登录，登录后会继续打开刚才的档案。'
+        : '请先登录或注册，再开始探索。';
+}
+
+function continueAfterLogin() {
+    if (!isLoggedIn()) return;
+    const target = state.pendingEntry;
+    state.pendingEntry = "";
+    if (target === "guess-game") {
+        showGuessGame();
+        return;
+    }
+    if (target) {
+        loadEvent(target);
+        return;
+    }
+}
+
+async function loadAuthUser() {
+    localStorage.removeItem('historyAppAuthToken');
+    if (firebaseObserverStarted) return;
+    firebaseObserverStarted = true;
+    getFirebaseAuth().then(({ auth, api }) => {
+        api.onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                state.authToken = "";
+                state.authUser = null;
+                state.authReady = true;
+                renderAuthState();
+                return;
+            }
+            state.authToken = await user.getIdToken();
+            state.authUser = {
+                id: user.uid,
+                email: user.email || ""
+            };
+            state.authReady = true;
+            renderAuthState();
+            continueAfterLogin();
+        });
+    }).catch((err) => {
+        console.warn("Firebase auth failed to initialize", err);
+        state.authReady = true;
+        renderAuthState();
+    });
+}
+
+function authErrorMessage(error) {
+    const code = error?.code || "";
+    if (code === "auth/email-already-in-use") return "这个邮箱已经注册过了，请直接登录。";
+    if (code === "auth/invalid-email") return "邮箱格式不正确。";
+    if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
+        return "邮箱或密码不正确。";
+    }
+    if (code === "auth/weak-password") return "密码至少需要 6 位。";
+    if (code === "auth/too-many-requests") return "尝试次数太多，请稍后再试。";
+    if (code === "auth/unauthorized-domain") return "当前域名还没有加入 Firebase 授权域名。";
+    return "登录服务暂时不可用，请稍后再试。";
+}
+
+function getAuthInputs() {
     const email = elements.authEmail.value.trim();
+    const password = elements.authPassword.value;
     if (!email) {
         elements.authStatus.textContent = '先填邮箱。';
-        return;
+        return null;
     }
-    elements.authSendCodeBtn.disabled = true;
-    elements.authStatus.textContent = '正在发送验证码...';
-    const res = await apiPost('/auth/email/request_code', { email });
-    elements.authSendCodeBtn.disabled = false;
-    if (!res || !res.success) {
-        elements.authStatus.textContent = '发送失败，请稍后再试。';
-        return;
+    if (!password || password.length < 6) {
+        elements.authStatus.textContent = '密码至少需要 6 位。';
+        return null;
     }
-    elements.authStatus.textContent = res.dev_code
-        ? `本地验证码：${res.dev_code}`
-        : '验证码已发送，请查看邮箱。';
-    elements.authCode.focus();
+    return { email, password };
+}
+
+function setAuthBusy(isBusy) {
+    elements.authLoginBtn.disabled = isBusy;
+    elements.authSignupBtn.disabled = isBusy;
+    elements.authResetBtn.disabled = isBusy;
 }
 
 async function loginWithEmail() {
-    const email = elements.authEmail.value.trim();
-    const code = elements.authCode.value.trim();
-    if (!email || !code) {
-        elements.authStatus.textContent = '邮箱和验证码都要填。';
-        return;
-    }
-    elements.authLoginBtn.disabled = true;
+    const values = getAuthInputs();
+    if (!values) return;
+    setAuthBusy(true);
     elements.authStatus.textContent = '正在登录...';
-    const res = await apiPost('/auth/email/login', { email, code });
-    elements.authLoginBtn.disabled = false;
-    if (!res || !res.success || !res.token) {
-        elements.authStatus.textContent = '登录失败，请检查验证码。';
+    try {
+        const { auth, api } = await getFirebaseAuth();
+        const credential = await api.signInWithEmailAndPassword(auth, values.email, values.password);
+        state.authToken = await credential.user.getIdToken();
+        state.authUser = {
+            id: credential.user.uid,
+            email: credential.user.email || values.email
+        };
+        renderAuthState();
+        elements.authStatus.textContent = '登录成功。';
+        showToast('登录成功');
+        continueAfterLogin();
+        setTimeout(closeAuthModal, 600);
+    } catch (err) {
+        elements.authStatus.textContent = authErrorMessage(err);
+    } finally {
+        setAuthBusy(false);
+    }
+}
+
+async function signupWithEmail() {
+    const values = getAuthInputs();
+    if (!values) return;
+    setAuthBusy(true);
+    elements.authStatus.textContent = '正在注册...';
+    try {
+        const { auth, api } = await getFirebaseAuth();
+        const credential = await api.createUserWithEmailAndPassword(auth, values.email, values.password);
+        state.authToken = await credential.user.getIdToken();
+        state.authUser = {
+            id: credential.user.uid,
+            email: credential.user.email || values.email
+        };
+        renderAuthState();
+        elements.authStatus.textContent = '注册成功。';
+        showToast('注册成功');
+        continueAfterLogin();
+        setTimeout(closeAuthModal, 600);
+    } catch (err) {
+        elements.authStatus.textContent = authErrorMessage(err);
+    } finally {
+        setAuthBusy(false);
+    }
+}
+
+async function resetAuthPassword() {
+    const email = elements.authEmail.value.trim();
+    if (!email) {
+        elements.authStatus.textContent = '先填邮箱，再重置密码。';
         return;
     }
-    state.authToken = res.token;
-    state.authUser = res.user;
-    localStorage.setItem('historyAppAuthToken', res.token);
-    renderAuthState();
-    elements.authStatus.textContent = '登录成功。';
-    showToast('登录成功');
-    setTimeout(closeAuthModal, 600);
+    setAuthBusy(true);
+    elements.authStatus.textContent = '正在发送重置邮件...';
+    try {
+        const { auth, api } = await getFirebaseAuth();
+        await api.sendPasswordResetEmail(auth, email);
+        elements.authStatus.textContent = '重置邮件已发送，请查看邮箱。';
+    } catch (err) {
+        elements.authStatus.textContent = authErrorMessage(err);
+    } finally {
+        setAuthBusy(false);
+    }
 }
 
 async function logoutAuth() {
-    if (state.authToken) {
-        await apiPost('/auth/logout', {}, { auth: true });
+    try {
+        const { auth, api } = await getFirebaseAuth();
+        await api.signOut(auth);
+        state.authToken = "";
+        state.authUser = null;
+        renderAuthState();
+        showToast('已退出登录');
+    } catch (err) {
+        showToast('退出失败，请稍后再试');
     }
-    state.authToken = "";
-    state.authUser = null;
-    localStorage.removeItem('historyAppAuthToken');
-    renderAuthState();
-    showToast('已退出登录');
 }
+
+document.addEventListener('click', (e) => {
+    const authTrigger = e.target.closest('#home-auth-open-btn, #auth-open-btn, #mobile-auth-open-btn');
+    if (authTrigger) {
+        e.preventDefault();
+        openAuthModal();
+        return;
+    }
+    const logoutTrigger = e.target.closest('#home-auth-logout-btn, #auth-logout-btn');
+    if (logoutTrigger) {
+        e.preventDefault();
+        logoutAuth();
+    }
+});
 
 function showToast(message) {
     let toast = document.getElementById('site-toast');
@@ -352,11 +511,13 @@ async function submitFeedback() {
 
 function hideHome() {
     elements.homeScreen?.classList.add('hidden');
+    elements.appShell?.classList.remove('hidden');
 }
 
 function showHome() {
     state.currentMode = "home";
     elements.homeScreen?.classList.remove('hidden');
+    elements.appShell?.classList.add('hidden');
     elements.storySplash.classList.remove('hidden');
     elements.storyContent.classList.add('hidden');
     elements.guessGameContent.classList.add('hidden');
@@ -370,10 +531,16 @@ function showHome() {
 function getDefaultEvent() {
     return state.eventsList.find(item => item.id === "秦朝·一统六国")
         || state.eventsList.find(item => !item.isSummary)
-        || state.eventsList[0];
+        || state.eventsList[0]
+        || { id: DEFAULT_EVENT_ID };
 }
 
 function enterFromHome() {
+    if (!isLoggedIn()) {
+        const event = getDefaultEvent();
+        requireLogin(event?.id || "");
+        return;
+    }
     const event = getDefaultEvent();
     if (event) {
         loadEvent(event.id);
@@ -383,6 +550,11 @@ function enterFromHome() {
 async function init() {
     trackAnalytics('visit');
     loadAuthUser();
+    elements.homeStartBtn?.addEventListener('click', enterFromHome);
+    elements.authLoginBtn?.addEventListener('click', loginWithEmail);
+    elements.authSignupBtn?.addEventListener('click', signupWithEmail);
+    elements.authResetBtn?.addEventListener('click', resetAuthPassword);
+    elements.authCloseBtn?.addEventListener('click', closeAuthModal);
     // 1. 获取导航目录
     const res = await apiGet('/events_list');
     if(res && res.success) {
@@ -391,9 +563,17 @@ async function init() {
         
         const hash = decodeURIComponent(window.location.hash.substring(1));
         if(hash === "guess-game") {
-            showGuessGame();
+            if (isLoggedIn()) {
+                showGuessGame();
+            } else {
+                requireLogin("guess-game", { silent: true });
+            }
         } else if(hash) {
-            loadEvent(hash);
+            if (isLoggedIn()) {
+                loadEvent(hash);
+            } else {
+                requireLogin(hash, { silent: true });
+            }
         } else {
             showHome();
         }
@@ -410,6 +590,10 @@ async function init() {
         const gameLink = e.target.closest('[data-game]');
         if (gameLink) {
             e.preventDefault();
+            if (!isLoggedIn()) {
+                requireLogin("guess-game");
+                return;
+            }
             showGuessGame();
             return;
         }
@@ -422,6 +606,10 @@ async function init() {
         const link = e.target.closest('.nav-item');
         if (!link) return;
         e.preventDefault();
+        if (!isLoggedIn()) {
+            requireLogin(link.dataset.eventId);
+            return;
+        }
         loadEvent(link.dataset.eventId);
     });
 
@@ -435,6 +623,10 @@ async function init() {
         const link = e.target.closest('[data-event-link]');
         if (!link) return;
         e.preventDefault();
+        if (!isLoggedIn()) {
+            requireLogin(link.dataset.eventLink);
+            return;
+        }
         loadEvent(link.dataset.eventLink);
     });
 
@@ -464,6 +656,8 @@ async function init() {
     elements.guessUserAnswer.addEventListener('click', handleUserYesNoAnswer);
     elements.feedbackOpenBtn?.addEventListener('click', openFeedbackModal);
     elements.mobileFeedbackBtn?.addEventListener('click', openFeedbackModal);
+    elements.homeAuthOpenBtn?.addEventListener('click', openAuthModal);
+    elements.homeAuthLogoutBtn?.addEventListener('click', logoutAuth);
     elements.authOpenBtn?.addEventListener('click', openAuthModal);
     elements.mobileAuthOpenBtn?.addEventListener('click', openAuthModal);
     elements.authLogoutBtn?.addEventListener('click', logoutAuth);
@@ -479,9 +673,10 @@ async function init() {
     elements.authModal?.addEventListener('click', (e) => {
         if (e.target === elements.authModal) closeAuthModal();
     });
-    elements.authSendCodeBtn?.addEventListener('click', requestAuthCode);
     elements.authLoginBtn?.addEventListener('click', loginWithEmail);
-    elements.authCode?.addEventListener('keydown', (e) => {
+    elements.authSignupBtn?.addEventListener('click', signupWithEmail);
+    elements.authResetBtn?.addEventListener('click', resetAuthPassword);
+    elements.authPassword?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') loginWithEmail();
     });
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
@@ -1271,8 +1466,14 @@ function initMobile() {
     switchToStory();
 }
 
-// 启动入口
-window.onload = function() {
+function startApp() {
     init();
     initMobile();
-};
+}
+
+// 启动入口：module 脚本可能在 load 之后执行，需兼容两种时机。
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startApp, { once: true });
+} else {
+    startApp();
+}

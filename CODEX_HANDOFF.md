@@ -261,3 +261,13 @@ Git 提示 `LF will be replaced by CRLF` 是 Windows 换行提示，通常不影
 - 为避免手机端首页背景层盖住顶栏，已把手机顶栏和登录/反馈弹窗层级调高。
 - 上线前用户需要准备并在 Render 环境变量里填写：`AUTH_SECRET`、`SMTP_HOST`、`SMTP_PORT`、`SMTP_USERNAME`、`SMTP_PASSWORD`、`SMTP_FROM`。常见端口是 587；如果服务要求 SSL，再设置 `SMTP_USE_SSL=true`。
 - 当前邮箱登录只是账号体系第一步；下一步可以把聊天记录、收藏、学习进度绑定到登录用户。
+
+## 2026-05-21 Firebase 登录调整记录
+
+- QQ SMTP 在 Render 上受出站 SMTP 端口限制影响，Brevo 账号也显示 `Suspended`，因此改用 Firebase Authentication。
+- 用户已经用个人 Google 账号创建 Firebase 项目 `history-app-3e6cb`，并启用了 Authentication 的 Email/Password。
+- 前端登录弹窗已从“邮箱验证码”改成“邮箱 + 密码”，支持注册、登录、退出和忘记密码。
+- Firebase Web 配置已写入 `static/js/app.js`，这类 Web 配置不是服务端私钥，可以出现在前端代码里。
+- 部署到 Render 后，需要在 Firebase Authentication 的 Settings / Authorized domains 中确认添加线上域名 `history-app-a766.onrender.com`，否则线上登录可能报 `auth/unauthorized-domain`。
+- 旧的后端验证码接口暂时保留但前端不再调用，后面稳定后可清理 SMTP 和 `/auth/email/*` 相关代码。
+- 之后又把首页改成登录门：未登录点击“开始探索”会先打开登录弹窗；未登录直接访问事件 hash 链接时只回到首页，不自动弹窗，但会记住目标事件，用户点击开始探索并登录后继续打开原本目标事件。

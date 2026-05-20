@@ -6,10 +6,10 @@
   <title>时空印证系统</title>
   
   <!-- Tailwind CSS 核心通过 CDN 引入作为原子类工具 -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=email-auth-20260520">
+  <link rel="stylesheet" href="/static/css/styles.css?v=fast-home-entry-20260521">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,7 +17,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet">
 </head>
 <body class="bg-scroll min-h-screen text-[#5d4037] antialiased overflow-x-hidden">
-  <section id="home-screen" class="home-screen hidden" aria-label="时空印证系统首页">
+  <section id="home-screen" class="home-screen" aria-label="时空印证系统首页">
+    <div id="home-auth-panel" class="home-auth-panel">
+      <button id="home-auth-open-btn" type="button" class="home-auth-open-btn">登录 / 注册</button>
+      <div id="home-auth-user" class="home-auth-user hidden">
+        <span id="home-auth-email"></span>
+        <button id="home-auth-logout-btn" type="button">退出</button>
+      </div>
+    </div>
     <div class="home-hero-copy">
       <h1>穿越千年，重返历史现场</h1>
       <p>以卷宗、人物、地图与对话的方式，重新理解中国历史的脉络。</p>
@@ -42,7 +49,7 @@
   <div id="mobile-sidebar-overlay" class="hidden fixed inset-0 bg-black/60 z-40"></div>
 
   <!-- 主容器：深色外框背景（模拟边缘暗影） -->
-  <div class="flex h-screen overflow-hidden bg-[#1a1412]">
+  <div id="app-shell" class="app-shell hidden flex h-screen overflow-hidden bg-[#1a1412]">
     
     <!-- 左侧侧边栏：极黑风格底色，暗红选区 -->
     <aside id="main-sidebar" class="w-64 flex-shrink-0 bg-[#16110f] border-r-[1px] border-[#3e2c26] flex flex-col relative z-20 text-[#e8d5c4] shadow-2xl transition-transform duration-300">
@@ -262,19 +269,20 @@
     <div class="auth-card">
       <button id="auth-close-btn" type="button" class="auth-close-btn" aria-label="关闭登录">×</button>
       <div class="auth-title">邮箱登录</div>
-      <p class="auth-copy">输入邮箱后获取验证码，登录后之后会用它同步你的个人记录。</p>
+      <p class="auth-copy">输入邮箱和密码登录。第一次使用时点注册，之后用同一邮箱登录。</p>
       <input id="auth-email" type="email" maxlength="120" placeholder="你的邮箱">
-      <div class="auth-code-row">
-        <input id="auth-code" type="text" inputmode="numeric" maxlength="6" placeholder="6 位验证码">
-        <button id="auth-send-code-btn" type="button">获取验证码</button>
-      </div>
-      <div class="auth-actions">
+      <input id="auth-password" type="password" minlength="6" maxlength="80" placeholder="密码（至少 6 位）">
+      <div class="auth-actions auth-actions-stack">
         <span id="auth-status"></span>
-        <button id="auth-login-btn" type="button">登录</button>
+        <div class="auth-button-row">
+          <button id="auth-login-btn" type="button">登录</button>
+          <button id="auth-signup-btn" type="button">注册</button>
+        </div>
+        <button id="auth-reset-btn" type="button" class="auth-reset-btn">忘记密码</button>
       </div>
     </div>
   </div>
 
-  <script src="/static/js/app.js?v=email-auth-20260520"></script>
+  <script type="module" src="/static/js/app.js?v=fast-home-entry-20260521"></script>
 </body>
 </html>
