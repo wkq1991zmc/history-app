@@ -8,11 +8,15 @@ import os
 import httpx
 import json
 import re
+import secrets
+import smtplib
+import ssl
 import time
 import tempfile
 import uuid
 import hashlib
 import sqlite3
+from email.message import EmailMessage
 from collections import defaultdict
 from pathlib import Path
 from dotenv import load_dotenv
@@ -94,6 +98,22 @@ ANALYTICS_DATA_DIR.mkdir(exist_ok=True)
 ANALYTICS_SQLITE_FILE = Path(os.environ.get("ANALYTICS_SQLITE_FILE", ANALYTICS_DATA_DIR / "analytics.db")).resolve()
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 ADMIN_ANALYTICS_KEY = os.environ.get("ADMIN_ANALYTICS_KEY", "")
+AUTH_DATA_DIR = Path("auth_data").resolve()
+AUTH_SQLITE_FILE = Path(os.environ.get("AUTH_SQLITE_FILE", AUTH_DATA_DIR / "auth.db")).resolve()
+AUTH_SECRET = os.environ.get("AUTH_SECRET", "local-dev-auth-secret")
+AUTH_SESSION_DAYS = int(os.environ.get("AUTH_SESSION_DAYS", "30"))
+AUTH_CODE_TTL_SECONDS = int(os.environ.get("AUTH_CODE_TTL_SECONDS", "600"))
+AUTH_USE_MEMORY_DB = os.environ.get("AUTH_USE_MEMORY_DB", "").lower() in ("true", "1", "yes")
+SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "").strip()
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").strip()
+SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USERNAME).strip()
+SMTP_USE_SSL = os.environ.get("SMTP_USE_SSL", "").lower() in ("true", "1", "yes")
+SMTP_STARTTLS = os.environ.get("SMTP_STARTTLS", "true").lower() not in ("false", "0", "no")
+AUTH_EMAIL_DEV_MODE = os.environ.get("AUTH_EMAIL_DEV_MODE", "").lower() in ("true", "1", "yes")
+_AUTH_MEMORY_CONN = None
+_AUTH_SQLITE_DISK_FAILED = False
 
 class AnalyticsVisitRequest(BaseModel):
     path: Optional[str] = "/"
@@ -110,6 +130,13 @@ class FeedbackRequest(BaseModel):
     email: Optional[str] = ""
     page: Optional[str] = ""
     event_name: Optional[str] = ""
+
+class EmailCodeRequest(BaseModel):
+    email: str
+
+class EmailLoginRequest(BaseModel):
+    email: str
+    code: str
 
 def _today_key() -> str:
     return time.strftime("%Y-%m-%d", time.localtime())
@@ -142,6 +169,24 @@ def _connect_db():
 
 def _db_placeholder() -> str:
     return "%s" if _is_postgres() else "?"
+
+def _connect_auth_memory_db():
+    global _AUTH_MEMORY_CONN
+    if _AUTH_MEMORY_CONN is None:
+        _AUTH_MEMORY_CONN = sqlite3.connect(":memory:", check_same_thread=False)
+        _AUTH_MEMORY_CONN.row_factory = sqlite3.Row
+    return _AUTH_MEMORY_CONN
+
+def _connect_auth_db():
+    if _is_postgres():
+        import psycopg
+        return psycopg.connect(_postgres_url())
+    if AUTH_USE_MEMORY_DB or _AUTH_SQLITE_DISK_FAILED:
+        return _connect_auth_memory_db()
+    AUTH_SQLITE_FILE.parent.mkdir(exist_ok=True)
+    conn = sqlite3.connect(AUTH_SQLITE_FILE)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def _init_analytics_db():
     with _connect_db() as conn:
@@ -221,6 +266,225 @@ def _init_analytics_db():
 def _fetch_all(cur) -> List[Dict]:
     columns = [item[0] for item in cur.description]
     return [dict(zip(columns, row)) for row in cur.fetchall()]
+
+def _init_auth_db():
+    global _AUTH_SQLITE_DISK_FAILED
+    try:
+        with _connect_auth_db() as conn:
+            cur = conn.cursor()
+            if _is_postgres():
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id TEXT PRIMARY KEY,
+                        email TEXT UNIQUE NOT NULL,
+                        created_at TEXT NOT NULL,
+                        last_login_at TEXT NOT NULL
+                    )
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS email_login_codes (
+                        id BIGSERIAL PRIMARY KEY,
+                        email TEXT NOT NULL,
+                        code_hash TEXT NOT NULL,
+                        expires_at DOUBLE PRECISION NOT NULL,
+                        used_at TEXT DEFAULT '',
+                        created_at TEXT NOT NULL,
+                        attempts INTEGER DEFAULT 0
+                    )
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS user_sessions (
+                        id BIGSERIAL PRIMARY KEY,
+                        user_id TEXT NOT NULL,
+                        token_hash TEXT UNIQUE NOT NULL,
+                        expires_at DOUBLE PRECISION NOT NULL,
+                        created_at TEXT NOT NULL,
+                        revoked_at TEXT DEFAULT ''
+                    )
+                """)
+            else:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id TEXT PRIMARY KEY,
+                        email TEXT UNIQUE NOT NULL,
+                        created_at TEXT NOT NULL,
+                        last_login_at TEXT NOT NULL
+                    )
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS email_login_codes (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        email TEXT NOT NULL,
+                        code_hash TEXT NOT NULL,
+                        expires_at REAL NOT NULL,
+                        used_at TEXT DEFAULT '',
+                        created_at TEXT NOT NULL,
+                        attempts INTEGER DEFAULT 0
+                    )
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS user_sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT NOT NULL,
+                        token_hash TEXT UNIQUE NOT NULL,
+                        expires_at REAL NOT NULL,
+                        created_at TEXT NOT NULL,
+                        revoked_at TEXT DEFAULT ''
+                    )
+                """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_email_login_codes_email ON email_login_codes(email)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(token_hash)")
+            conn.commit()
+    except sqlite3.OperationalError as exc:
+        if _is_postgres() or _AUTH_SQLITE_DISK_FAILED:
+            raise
+        print(f"本地登录数据库不可用，已切换到内存数据库: {exc}")
+        _AUTH_SQLITE_DISK_FAILED = True
+        _init_auth_db()
+
+def _row_to_dict(row) -> Dict:
+    if row is None:
+        return {}
+    if isinstance(row, sqlite3.Row):
+        return dict(row)
+    return dict(row) if hasattr(row, "keys") else {}
+
+def _normalize_email(email: str) -> str:
+    value = (email or "").strip().lower()
+    if len(value) > 120 or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", value):
+        raise HTTPException(status_code=400, detail="邮箱格式不正确")
+    return value
+
+def _now_text() -> str:
+    return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+def _hash_login_code(email: str, code: str) -> str:
+    raw = f"{email}:{code}:{AUTH_SECRET}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+def _hash_session_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+def _make_login_code() -> str:
+    return f"{secrets.randbelow(1000000):06d}"
+
+def _smtp_configured() -> bool:
+    return bool(SMTP_HOST and SMTP_FROM)
+
+def _auth_dev_code_enabled() -> bool:
+    return AUTH_EMAIL_DEV_MODE or (not _smtp_configured() and not _is_postgres())
+
+def _send_login_code_email(email: str, code: str):
+    if not _smtp_configured():
+        if _auth_dev_code_enabled():
+            return
+        raise HTTPException(status_code=503, detail="邮件服务还没有配置")
+
+    msg = EmailMessage()
+    msg["Subject"] = "时空印证系统登录验证码"
+    msg["From"] = SMTP_FROM
+    msg["To"] = email
+    msg.set_content(
+        f"你的登录验证码是：{code}\n\n"
+        f"验证码将在 {AUTH_CODE_TTL_SECONDS // 60} 分钟后过期。"
+    )
+
+    try:
+        if SMTP_USE_SSL:
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=context, timeout=15) as server:
+                if SMTP_USERNAME and SMTP_PASSWORD:
+                    server.login(SMTP_USERNAME, SMTP_PASSWORD)
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+                if SMTP_STARTTLS:
+                    server.starttls(context=ssl.create_default_context())
+                if SMTP_USERNAME and SMTP_PASSWORD:
+                    server.login(SMTP_USERNAME, SMTP_PASSWORD)
+                server.send_message(msg)
+    except Exception as exc:
+        print(f"发送登录邮件失败: {exc}")
+        raise HTTPException(status_code=503, detail="验证码邮件发送失败，请稍后再试")
+
+def _create_or_update_user(email: str) -> Dict:
+    _init_auth_db()
+    now = _now_text()
+    p = _db_placeholder()
+    with _connect_auth_db() as conn:
+        cur = conn.cursor()
+        cur.execute(f"SELECT id, email, created_at, last_login_at FROM users WHERE email = {p}", (email,))
+        row = cur.fetchone()
+        if row:
+            user_id = row[0]
+            cur.execute(f"UPDATE users SET last_login_at = {p} WHERE id = {p}", (now, user_id))
+        else:
+            user_id = str(uuid.uuid4())
+            cur.execute(
+                f"INSERT INTO users (id, email, created_at, last_login_at) VALUES ({p}, {p}, {p}, {p})",
+                (user_id, email, now, now),
+            )
+        conn.commit()
+        cur.execute(f"SELECT id, email, created_at, last_login_at FROM users WHERE id = {p}", (user_id,))
+        row = cur.fetchone()
+    return {
+        "id": row[0],
+        "email": row[1],
+        "created_at": row[2],
+        "last_login_at": row[3],
+    }
+
+def _create_user_session(user_id: str) -> str:
+    _init_auth_db()
+    token = secrets.token_urlsafe(32)
+    token_hash = _hash_session_token(token)
+    expires_at = time.time() + AUTH_SESSION_DAYS * 86400
+    p = _db_placeholder()
+    with _connect_auth_db() as conn:
+        conn.execute(
+            f"INSERT INTO user_sessions (user_id, token_hash, expires_at, created_at) VALUES ({p}, {p}, {p}, {p})",
+            (user_id, token_hash, expires_at, _now_text()),
+        )
+        conn.commit()
+    return token
+
+def _get_auth_token(authorization: Optional[str], x_auth_token: Optional[str]) -> str:
+    if x_auth_token:
+        return x_auth_token.strip()
+    text = (authorization or "").strip()
+    if text.lower().startswith("bearer "):
+        return text[7:].strip()
+    return ""
+
+def _get_user_by_token(token: str) -> Optional[Dict]:
+    if not token:
+        return None
+    _init_auth_db()
+    p = _db_placeholder()
+    token_hash = _hash_session_token(token)
+    with _connect_auth_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            f"""
+            SELECT u.id, u.email, u.created_at, u.last_login_at
+            FROM user_sessions s
+            JOIN users u ON u.id = s.user_id
+            WHERE s.token_hash = {p}
+              AND s.revoked_at = ''
+              AND s.expires_at > {p}
+            LIMIT 1
+            """,
+            (token_hash, time.time()),
+        )
+        row = cur.fetchone()
+    if not row:
+        return None
+    return {
+        "id": row[0],
+        "email": row[1],
+        "created_at": row[2],
+        "last_login_at": row[3],
+    }
 
 def _record_analytics(action: str, visitor_id: str = "", event_name: str = "", character: str = "", detail: str = ""):
     _init_analytics_db()
@@ -463,6 +727,103 @@ async def site_config():
         "success": True,
         "contact_email": os.environ.get("PUBLIC_CONTACT_EMAIL", "").strip()
     }
+
+@app.post("/auth/email/request_code")
+async def request_email_code(req: EmailCodeRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    email = _normalize_email(req.email)
+    visitor_id = x_client_id or "anonymous"
+    if not check_rate_limit(f"email-code-{visitor_id}") or not check_rate_limit(f"email-code-{email}"):
+        raise HTTPException(status_code=429, detail="验证码请求太频繁，请稍后再试")
+
+    _init_auth_db()
+    code = _make_login_code()
+    p = _db_placeholder()
+    with _connect_auth_db() as conn:
+        conn.execute(
+            f"""INSERT INTO email_login_codes
+                (email, code_hash, expires_at, created_at)
+                VALUES ({p}, {p}, {p}, {p})""",
+            (email, _hash_login_code(email, code), time.time() + AUTH_CODE_TTL_SECONDS, _now_text()),
+        )
+        conn.commit()
+
+    _send_login_code_email(email, code)
+    payload = {
+        "success": True,
+        "message": "验证码已发送，请查看邮箱。"
+    }
+    if _auth_dev_code_enabled():
+        payload["dev_code"] = code
+        payload["message"] = "本地开发验证码已生成。"
+    return payload
+
+@app.post("/auth/email/login")
+async def email_login(req: EmailLoginRequest):
+    email = _normalize_email(req.email)
+    code = (req.code or "").strip()
+    if not re.match(r"^\d{6}$", code):
+        raise HTTPException(status_code=400, detail="验证码格式不正确")
+
+    _init_auth_db()
+    p = _db_placeholder()
+    with _connect_auth_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            f"""
+            SELECT id, code_hash, attempts
+            FROM email_login_codes
+            WHERE email = {p}
+              AND used_at = ''
+              AND expires_at > {p}
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (email, time.time()),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=400, detail="验证码已过期，请重新获取")
+        code_id, code_hash, attempts = row[0], row[1], int(row[2] or 0)
+        if attempts >= 5:
+            raise HTTPException(status_code=400, detail="验证码尝试次数过多，请重新获取")
+        if code_hash != _hash_login_code(email, code):
+            cur.execute(f"UPDATE email_login_codes SET attempts = attempts + 1 WHERE id = {p}", (code_id,))
+            conn.commit()
+            raise HTTPException(status_code=400, detail="验证码不正确")
+        cur.execute(f"UPDATE email_login_codes SET used_at = {p} WHERE id = {p}", (_now_text(), code_id))
+        conn.commit()
+
+    user = _create_or_update_user(email)
+    token = _create_user_session(user["id"])
+    return {"success": True, "token": token, "user": user}
+
+@app.get("/auth/me")
+async def auth_me(
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_auth_token: Optional[str] = Header(None, alias="X-AUTH-TOKEN"),
+):
+    token = _get_auth_token(authorization, x_auth_token)
+    user = _get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="未登录")
+    return {"success": True, "user": user}
+
+@app.post("/auth/logout")
+async def auth_logout(
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    x_auth_token: Optional[str] = Header(None, alias="X-AUTH-TOKEN"),
+):
+    token = _get_auth_token(authorization, x_auth_token)
+    if token:
+        _init_auth_db()
+        p = _db_placeholder()
+        with _connect_auth_db() as conn:
+            conn.execute(
+                f"UPDATE user_sessions SET revoked_at = {p} WHERE token_hash = {p}",
+                (_now_text(), _hash_session_token(token)),
+            )
+            conn.commit()
+    return {"success": True}
 
 @app.get("/admin/analytics")
 async def admin_analytics(key: Optional[str] = None, x_admin_key: Optional[str] = Header(None, alias="X-ADMIN-KEY")):

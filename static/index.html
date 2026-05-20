@@ -9,7 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=home-mobile-bg-20260520">
+  <link rel="stylesheet" href="/static/css/styles.css?v=email-auth-20260520">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,6 +32,7 @@
     <button id="mobile-menu-btn" class="text-[#e8d5c4] text-2xl leading-none p-1">☰</button>
     <h1 class="text-lg font-bold text-[#f0c9a8] tracking-widest" style="font-family: 'Ma Shan Zheng', serif;">时空印证系统</h1>
     <div class="mobile-topbar-actions">
+      <button id="mobile-auth-open-btn" type="button" class="mobile-feedback-top-btn">登录</button>
       <button id="mobile-qq-group-btn" type="button" class="mobile-feedback-top-btn" data-copy-group="1073677465">QQ群</button>
       <button id="mobile-feedback-top-btn" type="button" class="mobile-feedback-top-btn">反馈</button>
     </div>
@@ -64,6 +65,11 @@
         </div>
       </div>
       <div class="sidebar-feedback">
+        <button id="auth-open-btn" type="button" class="auth-open-btn">邮箱登录</button>
+        <div id="auth-user-pill" class="auth-user-pill hidden">
+          <span id="auth-user-email"></span>
+          <button id="auth-logout-btn" type="button">退出</button>
+        </div>
         <div class="sidebar-community">
           <div class="sidebar-community-label">交流群</div>
           <button type="button" class="qq-group-btn" data-copy-group="1073677465">QQ群 1073677465</button>
@@ -252,6 +258,23 @@
     </div>
   </div>
 
-  <script src="/static/js/app.js?v=home-mobile-bg-20260520"></script>
+  <div id="auth-modal" class="auth-modal hidden" aria-hidden="true">
+    <div class="auth-card">
+      <button id="auth-close-btn" type="button" class="auth-close-btn" aria-label="关闭登录">×</button>
+      <div class="auth-title">邮箱登录</div>
+      <p class="auth-copy">输入邮箱后获取验证码，登录后之后会用它同步你的个人记录。</p>
+      <input id="auth-email" type="email" maxlength="120" placeholder="你的邮箱">
+      <div class="auth-code-row">
+        <input id="auth-code" type="text" inputmode="numeric" maxlength="6" placeholder="6 位验证码">
+        <button id="auth-send-code-btn" type="button">获取验证码</button>
+      </div>
+      <div class="auth-actions">
+        <span id="auth-status"></span>
+        <button id="auth-login-btn" type="button">登录</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js?v=email-auth-20260520"></script>
 </body>
 </html>

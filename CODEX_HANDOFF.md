@@ -251,3 +251,13 @@ Git 提示 `LF will be replaced by CRLF` 是 Windows 换行提示，通常不影
 - 若未来某个朝代骨架总结页没有配置 `characters`，前端会禁用提问并提示用户先进入具体事件，避免空人物对话报错。
 - 本地 SQLite 统计库出现过 `disk I/O error`。现在 `/analytics/visit` 和 `/analytics/event` 即使统计写入失败也会返回成功，避免影响用户浏览；AI 对话中的统计和提问记录也改为失败不打断主流程。
 - 后台统计页说明已更新：会展示用户提问，但不展示 AI 完整回答和整段聊天记录。
+
+## 2026-05-20 邮箱登录开发记录
+
+- 已新增邮箱验证码登录 MVP，接口在 `/auth/email/request_code`、`/auth/email/login`、`/auth/me`、`/auth/logout`。
+- 本地没有 SMTP 配置时会显示“本地验证码”，便于开发测试；部署到 Render 并使用 Postgres 时，如果没配置 SMTP，会提示邮件服务未配置，不会把验证码暴露给线上用户。
+- 邮箱登录数据上线后走 `DATABASE_URL` 对应的 Postgres；本地默认使用 `auth_data/auth.db`，但如果本机 SQLite 文件仍报 `disk I/O error`，会自动切到内存数据库，保证本地测试能跑。
+- 前端已新增“邮箱登录”入口、手机顶栏“登录”入口、登录弹窗、登录状态显示和退出登录。
+- 为避免手机端首页背景层盖住顶栏，已把手机顶栏和登录/反馈弹窗层级调高。
+- 上线前用户需要准备并在 Render 环境变量里填写：`AUTH_SECRET`、`SMTP_HOST`、`SMTP_PORT`、`SMTP_USERNAME`、`SMTP_PASSWORD`、`SMTP_FROM`。常见端口是 587；如果服务要求 SSL，再设置 `SMTP_USE_SSL=true`。
+- 当前邮箱登录只是账号体系第一步；下一步可以把聊天记录、收藏、学习进度绑定到登录用户。

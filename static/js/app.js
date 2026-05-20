@@ -18,6 +18,8 @@ const state = {
     currentTarget: "所有参与人",
     answerMode: localStorage.getItem('traeHistoryAnswerMode') || "fast",
     currentMode: "story",
+    authToken: localStorage.getItem('historyAppAuthToken') || "",
+    authUser: null,
     guessGame: {
         sessionId: null,
         userPerson: "",
@@ -81,7 +83,19 @@ Object.assign(elements, {
     feedbackMessage: document.getElementById('feedback-message'),
     feedbackEmail: document.getElementById('feedback-email'),
     feedbackStatus: document.getElementById('feedback-status'),
-    feedbackEmailLink: document.getElementById('feedback-email-link')
+    feedbackEmailLink: document.getElementById('feedback-email-link'),
+    authOpenBtn: document.getElementById('auth-open-btn'),
+    mobileAuthOpenBtn: document.getElementById('mobile-auth-open-btn'),
+    authUserPill: document.getElementById('auth-user-pill'),
+    authUserEmail: document.getElementById('auth-user-email'),
+    authLogoutBtn: document.getElementById('auth-logout-btn'),
+    authModal: document.getElementById('auth-modal'),
+    authCloseBtn: document.getElementById('auth-close-btn'),
+    authEmail: document.getElementById('auth-email'),
+    authCode: document.getElementById('auth-code'),
+    authSendCodeBtn: document.getElementById('auth-send-code-btn'),
+    authLoginBtn: document.getElementById('auth-login-btn'),
+    authStatus: document.getElementById('auth-status')
 });
 
 // ================= API 请求 =================
@@ -96,11 +110,15 @@ async function apiGet(endpoint, options = {}) {
     }
 }
 
-async function apiPost(endpoint, data) {
+async function apiPost(endpoint, data, options = {}) {
     try {
+        const headers = { 'Content-Type': 'application/json', 'X-CLIENT-ID': USER_ID };
+        if (options.auth && state.authToken) {
+            headers['X-AUTH-TOKEN'] = state.authToken;
+        }
         const res = await fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CLIENT-ID': USER_ID },
+            headers,
             body: JSON.stringify(data)
         });
         if (!res.ok) {
@@ -110,6 +128,22 @@ async function apiPost(endpoint, data) {
         return await res.json();
     } catch (e) {
         console.error('API POST Error:', e);
+        return null;
+    }
+}
+
+async function authGet(endpoint) {
+    try {
+        const res = await fetch(endpoint, {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CLIENT-ID': USER_ID,
+                'X-AUTH-TOKEN': state.authToken
+            }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    } catch (e) {
         return null;
     }
 }
@@ -146,6 +180,104 @@ function openFeedbackModal() {
 function closeFeedbackModal() {
     elements.feedbackModal.classList.add('hidden');
     elements.feedbackModal.setAttribute('aria-hidden', 'true');
+}
+
+function renderAuthState() {
+    const email = state.authUser?.email || "";
+    const isLoggedIn = Boolean(email);
+    elements.authOpenBtn?.classList.toggle('hidden', isLoggedIn);
+    elements.authUserPill?.classList.toggle('hidden', !isLoggedIn);
+    if (elements.authUserEmail) elements.authUserEmail.textContent = email;
+    if (elements.mobileAuthOpenBtn) {
+        elements.mobileAuthOpenBtn.textContent = isLoggedIn ? "已登录" : "登录";
+    }
+}
+
+function openAuthModal() {
+    if (!elements.authModal) return;
+    elements.authModal.classList.remove('hidden');
+    elements.authModal.setAttribute('aria-hidden', 'false');
+    elements.authStatus.textContent = '';
+    if (state.authUser?.email) {
+        elements.authEmail.value = state.authUser.email;
+    }
+    elements.authEmail.focus();
+}
+
+function closeAuthModal() {
+    elements.authModal?.classList.add('hidden');
+    elements.authModal?.setAttribute('aria-hidden', 'true');
+}
+
+async function loadAuthUser() {
+    if (!state.authToken) {
+        renderAuthState();
+        return;
+    }
+    const res = await authGet('/auth/me');
+    if (res && res.success && res.user) {
+        state.authUser = res.user;
+    } else {
+        state.authToken = "";
+        state.authUser = null;
+        localStorage.removeItem('historyAppAuthToken');
+    }
+    renderAuthState();
+}
+
+async function requestAuthCode() {
+    const email = elements.authEmail.value.trim();
+    if (!email) {
+        elements.authStatus.textContent = '先填邮箱。';
+        return;
+    }
+    elements.authSendCodeBtn.disabled = true;
+    elements.authStatus.textContent = '正在发送验证码...';
+    const res = await apiPost('/auth/email/request_code', { email });
+    elements.authSendCodeBtn.disabled = false;
+    if (!res || !res.success) {
+        elements.authStatus.textContent = '发送失败，请稍后再试。';
+        return;
+    }
+    elements.authStatus.textContent = res.dev_code
+        ? `本地验证码：${res.dev_code}`
+        : '验证码已发送，请查看邮箱。';
+    elements.authCode.focus();
+}
+
+async function loginWithEmail() {
+    const email = elements.authEmail.value.trim();
+    const code = elements.authCode.value.trim();
+    if (!email || !code) {
+        elements.authStatus.textContent = '邮箱和验证码都要填。';
+        return;
+    }
+    elements.authLoginBtn.disabled = true;
+    elements.authStatus.textContent = '正在登录...';
+    const res = await apiPost('/auth/email/login', { email, code });
+    elements.authLoginBtn.disabled = false;
+    if (!res || !res.success || !res.token) {
+        elements.authStatus.textContent = '登录失败，请检查验证码。';
+        return;
+    }
+    state.authToken = res.token;
+    state.authUser = res.user;
+    localStorage.setItem('historyAppAuthToken', res.token);
+    renderAuthState();
+    elements.authStatus.textContent = '登录成功。';
+    showToast('登录成功');
+    setTimeout(closeAuthModal, 600);
+}
+
+async function logoutAuth() {
+    if (state.authToken) {
+        await apiPost('/auth/logout', {}, { auth: true });
+    }
+    state.authToken = "";
+    state.authUser = null;
+    localStorage.removeItem('historyAppAuthToken');
+    renderAuthState();
+    showToast('已退出登录');
 }
 
 function showToast(message) {
@@ -250,6 +382,7 @@ function enterFromHome() {
 
 async function init() {
     trackAnalytics('visit');
+    loadAuthUser();
     // 1. 获取导航目录
     const res = await apiGet('/events_list');
     if(res && res.success) {
@@ -331,6 +464,9 @@ async function init() {
     elements.guessUserAnswer.addEventListener('click', handleUserYesNoAnswer);
     elements.feedbackOpenBtn?.addEventListener('click', openFeedbackModal);
     elements.mobileFeedbackBtn?.addEventListener('click', openFeedbackModal);
+    elements.authOpenBtn?.addEventListener('click', openAuthModal);
+    elements.mobileAuthOpenBtn?.addEventListener('click', openAuthModal);
+    elements.authLogoutBtn?.addEventListener('click', logoutAuth);
     document.querySelectorAll('[data-copy-group]').forEach(button => {
         button.addEventListener('click', copyQQGroup);
     });
@@ -339,6 +475,15 @@ async function init() {
         if (e.target === elements.feedbackModal) closeFeedbackModal();
     });
     elements.feedbackSubmitBtn.addEventListener('click', submitFeedback);
+    elements.authCloseBtn?.addEventListener('click', closeAuthModal);
+    elements.authModal?.addEventListener('click', (e) => {
+        if (e.target === elements.authModal) closeAuthModal();
+    });
+    elements.authSendCodeBtn?.addEventListener('click', requestAuthCode);
+    elements.authLoginBtn?.addEventListener('click', loginWithEmail);
+    elements.authCode?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loginWithEmail();
+    });
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
     loadSiteConfig();
 }
