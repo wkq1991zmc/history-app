@@ -1533,7 +1533,9 @@ async def get_events_list():
 
         matched_image = data.get('image', 'https://s3.bmp.ovh/2026/05/02/1WWWIewB.png')
         
-        simple_title = full_name.split('·')[-1] if '·' in full_name else full_name
+        simple_title = data.get("nav_title") or (full_name.split('·')[-1] if '·' in full_name else full_name)
+        is_summary = data.get("summary_type") == "dynasty_skeleton"
+        is_side_quest = data.get("nav_type") == "side"
         
         dyn_id = dynasty
         if dynasty == "五代":
@@ -1552,7 +1554,9 @@ async def get_events_list():
             "desc": desc,
             "image": matched_image,
             "isImage": True,
-            "isSummary": data.get("summary_type") == "dynasty_skeleton"
+            "isSummary": is_summary,
+            "isSideQuest": is_side_quest,
+            "navOrder": 2 if is_side_quest else (1 if is_summary else 0)
         }
         events_list.append(event_item)
         
@@ -1576,7 +1580,7 @@ async def get_events_list():
         return weight
         
     # 对 events_list 进行原地排序
-    events_list.sort(key=lambda x: (x.get("isSummary", False), get_sort_weight(x['year'])))
+    events_list.sort(key=lambda x: (x.get("navOrder", 0), get_sort_weight(x['year'])))
     # === 结束：排序算法 ===
         
     return {

@@ -228,6 +228,16 @@ h1, h2, h3, h4, h5, h6 {
     display: none;
 }
 
+.nav-item-side {
+    color: #b89a82 !important;
+}
+
+.nav-item-side::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+}
+
 /* 导航栏黑红质感定制 */
 .nav-dark::-webkit-scrollbar {
     width: 3px;
@@ -273,6 +283,13 @@ h1, h2, h3, h4, h5, h6 {
 /* 修复加粗样式：只有单独成段的首个 <b> 才是标题，普通文本中的 <b> 只加粗不变色不带横线 */
 .story-prose b {
     font-weight: bold;
+}
+
+.story-prose .story-keyword {
+    color: #1d1713;
+    font-weight: 800;
+    background: none;
+    padding: 0;
 }
 
 /* 专门针对段落开头（或行首）的小标题样式 */

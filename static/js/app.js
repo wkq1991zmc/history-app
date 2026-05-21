@@ -16,6 +16,23 @@ const DEFAULT_EVENT_ID = "\u79e6\u671d\u00b7\u4e00\u7edf\u516d\u56fd";
 const AUTH_REMEMBER_KEY = "historyAppRememberLogin";
 const GUEST_CHAT_LIMIT = 2;
 const GUEST_CHAT_COUNT_KEY = "historyAppGuestChatCount";
+const STORY_KEYWORDS = [
+    "法家治国理想", "个人宗族私欲", "中央集权", "大一统", "皇权合法性", "政治合法性",
+    "帝国继承权", "权力交接", "权力过渡", "权力结构", "政治结构", "制度设计",
+    "制度化削藩", "制度性拆解", "制度修补", "国家机器", "国家能力", "国家信用",
+    "郡国并行", "郡县制", "分封秩序", "诸侯王国", "地方封国", "地方军事化",
+    "休养生息", "轻徭薄赋", "黄老政治", "文景积累", "国力恢复", "国力积累",
+    "财政压力", "战争财政", "盐铁官营", "均输平准", "民力压力", "政策刹车",
+    "思想整合", "官方政治语言", "儒学正统", "士人政治", "清议", "党人声望",
+    "外戚政治", "宦官专权", "幼主政治", "豪强社会", "门生故吏", "土地兼并",
+    "基层秩序", "民间宗教动员", "地方武装", "军阀割据", "中央权威",
+    "战略视野", "战略咽喉", "边疆经营", "丝绸之路", "河西四郡", "西域都护",
+    "托孤辅政", "权臣废立", "王朝更替", "禅让仪式", "三国前夜",
+    "遗诏", "伪造皇帝诏书", "沙丘政变", "宫廷斗争", "父子相残", "信息封锁",
+    "异姓王问题", "功臣集团", "兔死狗烹", "鸟尽弓藏", "军功集团", "皇权巩固",
+    "御驾亲征", "后勤困境", "军事指挥体系", "宦官制度", "削藩政策",
+    "宏大工程", "民生极限", "举国体制", "后勤灾难", "通货膨胀", "基层统治"
+];
 
 async function getFirebaseAuth() {
     if (firebaseAuth && firebaseAuthApi) {
@@ -726,12 +743,13 @@ function renderNav(events) {
             <ul class="nav-dynasty-list space-y-1">
         `;
         groupByDynasty[dynasty].forEach(ev => {
+            const sideClass = ev.isSideQuest ? ' nav-item-side' : '';
             html += `
                 <li>
                     <a href="#${encodeURIComponent(ev.id)}"
                        data-event-id="${escapeAttr(ev.id)}"
                        id="${safeId(ev.id)}"
-                       class="nav-item block px-4 py-2 text-sm text-[#d4c3af] hover:bg-[#c62828]/10 hover:text-[#f0c9a8] rounded border-l-2 border-transparent transition-all truncate"
+                       class="nav-item${sideClass} block px-4 py-2 text-sm text-[#d4c3af] hover:bg-[#c62828]/10 hover:text-[#f0c9a8] rounded border-l-2 border-transparent transition-all truncate"
                        title="${escapeAttr(ev.title)}">
                        └─ ${escapeHtml(ev.title)}
                     </a>
@@ -839,7 +857,7 @@ function renderStory(data) {
     // 渲染正文HTML
     let storyHtml = isDynastySkeleton
         ? renderDynastySkeleton(data)
-        : sanitizeStoryHtml(data.story || '');
+        : enhanceStoryKeywords(sanitizeStoryHtml(data.story || ''), data.keywords || []);
     if (data.next_event) {
         const nextTitle = String(data.next_event).split('·').pop();
         const nextNote = data.next_note || `读完本案，可以继续看「${nextTitle}」，把这一段历史接起来。`;
@@ -1313,6 +1331,70 @@ function sanitizeStoryHtml(html) {
             if (name.startsWith('on') || ((name === 'href' || name === 'src') && value.startsWith('javascript:'))) {
                 node.removeAttribute(attr.name);
             }
+        });
+    });
+    return template.innerHTML;
+}
+
+function escapeRegExp(text) {
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function enhanceStoryKeywords(html, localKeywords = []) {
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    const keywords = [...new Set([...STORY_KEYWORDS, ...localKeywords]
+        .map(item => String(item || '').trim())
+        .filter(item => item.length >= 2))]
+        .sort((a, b) => b.length - a.length);
+    if (keywords.length === 0) return template.innerHTML;
+
+    const keywordPattern = new RegExp(keywords.map(escapeRegExp).join('|'), 'g');
+    const usedKeywords = new Set();
+    template.content.querySelectorAll('p').forEach(paragraph => {
+        let highlightedCount = 0;
+        const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT, {
+            acceptNode(node) {
+                const parent = node.parentElement;
+                if (!parent || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+                if (parent.closest('b, strong, a, script, style, .story-keyword')) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        });
+        const textNodes = [];
+        while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+        textNodes.forEach(node => {
+            if (highlightedCount >= 4) return;
+            const text = node.nodeValue;
+            keywordPattern.lastIndex = 0;
+            let match;
+            let cursor = 0;
+            const fragment = document.createDocumentFragment();
+            let changed = false;
+
+            while ((match = keywordPattern.exec(text)) && highlightedCount < 4) {
+                if (usedKeywords.has(match[0])) continue;
+                if (match.index > cursor) {
+                    fragment.appendChild(document.createTextNode(text.slice(cursor, match.index)));
+                }
+                const keyword = document.createElement('b');
+                keyword.className = 'story-keyword';
+                keyword.textContent = match[0];
+                fragment.appendChild(keyword);
+                cursor = match.index + match[0].length;
+                highlightedCount += 1;
+                usedKeywords.add(match[0]);
+                changed = true;
+            }
+
+            if (!changed) return;
+            if (cursor < text.length) {
+                fragment.appendChild(document.createTextNode(text.slice(cursor)));
+            }
+            node.replaceWith(fragment);
         });
     });
     return template.innerHTML;
