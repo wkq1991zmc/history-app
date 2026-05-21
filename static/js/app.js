@@ -14,6 +14,8 @@ let firebaseReadyPromise = null;
 let firebaseObserverStarted = false;
 const DEFAULT_EVENT_ID = "\u79e6\u671d\u00b7\u4e00\u7edf\u516d\u56fd";
 const AUTH_REMEMBER_KEY = "historyAppRememberLogin";
+const GUEST_CHAT_LIMIT = 2;
+const GUEST_CHAT_COUNT_KEY = "historyAppGuestChatCount";
 
 async function getFirebaseAuth() {
     if (firebaseAuth && firebaseAuthApi) {
@@ -265,6 +267,21 @@ async function applyAuthPersistence() {
 
 function isLoggedIn() {
     return Boolean(state.authUser?.email);
+}
+
+function getGuestChatCount() {
+    const count = Number(localStorage.getItem(GUEST_CHAT_COUNT_KEY) || "0");
+    return Number.isFinite(count) ? count : 0;
+}
+
+function incrementGuestChatCount() {
+    if (isLoggedIn()) return;
+    localStorage.setItem(GUEST_CHAT_COUNT_KEY, String(getGuestChatCount() + 1));
+}
+
+function promptLoginForMoreChat() {
+    openAuthModal();
+    elements.authStatus.textContent = '你已经体验了 2 次 AI 对话。登录后可以继续提问，并保留之后的探索记录。';
 }
 
 function setPendingEntry(target = "") {
@@ -556,11 +573,6 @@ function getDefaultEvent() {
 }
 
 function enterFromHome() {
-    if (!isLoggedIn()) {
-        const event = getDefaultEvent();
-        requireLogin(event?.id || "");
-        return;
-    }
     const event = getDefaultEvent();
     if (event) {
         loadEvent(event.id);
@@ -590,11 +602,7 @@ async function init() {
                 requireLogin("guess-game", { silent: true });
             }
         } else if(hash) {
-            if (isLoggedIn()) {
-                loadEvent(hash);
-            } else {
-                requireLogin(hash, { silent: true });
-            }
+            loadEvent(hash);
         } else {
             showHome();
         }
@@ -627,10 +635,6 @@ async function init() {
         const link = e.target.closest('.nav-item');
         if (!link) return;
         e.preventDefault();
-        if (!isLoggedIn()) {
-            requireLogin(link.dataset.eventId);
-            return;
-        }
         loadEvent(link.dataset.eventId);
     });
 
@@ -644,10 +648,6 @@ async function init() {
         const link = e.target.closest('[data-event-link]');
         if (!link) return;
         e.preventDefault();
-        if (!isLoggedIn()) {
-            requireLogin(link.dataset.eventLink);
-            return;
-        }
         loadEvent(link.dataset.eventLink);
     });
 
@@ -866,10 +866,10 @@ function renderDynastySkeleton(data) {
     const titleParts = String(data.title || '').split(/[：:]/);
     const heroTitle = titleParts[0] || data.title || '';
     const heroSubtitle = titleParts.slice(1).join('：') || data.summary_title || '';
-    const heroTags = [
-        nodes[0]?.label || '一统六国',
-        pillars[1]?.title || '郡县制度',
-        '二世而亡'
+    const heroTags = data.hero_tags || [
+        nodes[0]?.label || '朝代开端',
+        pillars[1]?.title || '制度骨架',
+        cracks[0]?.title || '历史转折'
     ];
 
     const nodeHtml = nodes.map((node, index) => `
@@ -916,7 +916,7 @@ function renderDynastySkeleton(data) {
             </div>
 
             <div class="skeleton-section skeleton-line-section">
-                <div class="skeleton-section-title">帝国主线：大秦兴亡十一章</div>
+                <div class="skeleton-section-title">${escapeHtml(data.skeleton_line_title || '帝国主线：朝代兴亡关键节点')}</div>
                 <div class="skeleton-flow">${nodeHtml}</div>
             </div>
 
@@ -1322,6 +1322,10 @@ function sanitizeStoryHtml(html) {
 async function handleUserSubmit() {
     const text = elements.chatInput.value.trim();
     if(!text) return;
+    if (!isLoggedIn() && getGuestChatCount() >= GUEST_CHAT_LIMIT) {
+        promptLoginForMoreChat();
+        return;
+    }
     const eventCharacters = state.currentEventData?.characters || [];
     if (eventCharacters.length === 0) {
         showToast("请先进入具体事件，再向历史人物提问。");
@@ -1406,6 +1410,7 @@ async function handleUserSubmit() {
             updateAssistantBubble(assistantMessageIndex, assistantMessage.content);
             saveChatToServer();
         }
+        incrementGuestChatCount();
         
     } catch (e) {
         console.error("对话异常", e);
