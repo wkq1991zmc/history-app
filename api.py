@@ -1511,6 +1511,14 @@ async def get_events_list():
     """获取所有事件列表，供小程序首页展示"""
     print("前端请求全量事件列表")
     events_list = []
+    dynasty_nav_order = {}
+    for summary in EVENTS_DB.values():
+        if not isinstance(summary, dict) or summary.get("summary_type") != "dynasty_skeleton":
+            continue
+        for index, node in enumerate(summary.get("skeleton_nodes") or []):
+            event_name = node.get("event")
+            if event_name:
+                dynasty_nav_order[event_name] = index
     
     for full_name, data in EVENTS_DB.items():
         parts = full_name.split('·')
@@ -1556,7 +1564,8 @@ async def get_events_list():
             "isImage": True,
             "isSummary": is_summary,
             "isSideQuest": is_side_quest,
-            "navOrder": 2 if is_side_quest else (1 if is_summary else 0)
+            "navOrder": 2 if is_side_quest else (1 if is_summary else 0),
+            "storyOrder": dynasty_nav_order.get(full_name)
         }
         events_list.append(event_item)
         
@@ -1580,7 +1589,10 @@ async def get_events_list():
         return weight
         
     # 对 events_list 进行原地排序
-    events_list.sort(key=lambda x: (x.get("navOrder", 0), get_sort_weight(x['year'])))
+    events_list.sort(key=lambda x: (
+        x.get("navOrder", 0),
+        x.get("storyOrder") if x.get("storyOrder") is not None else get_sort_weight(x['year'])
+    ))
     # === 结束：排序算法 ===
         
     return {

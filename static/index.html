@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -31,9 +31,7 @@
   <div id="mobile-topbar" class="hidden fixed top-0 left-0 right-0 z-50 bg-[#16110f] border-b border-[#3e2c26] px-4 py-3 flex items-center justify-between">
     <button id="mobile-menu-btn" class="text-[#e8d5c4] text-2xl leading-none p-1">☰</button>
     <h1 class="text-lg font-bold text-[#f0c9a8] tracking-widest" style="font-family: 'Ma Shan Zheng', serif;">时空印证系统</h1>
-    <div class="mobile-topbar-actions">
-      <button id="mobile-auth-open-btn" type="button" class="mobile-feedback-top-btn">登录</button>
-      <button id="mobile-qq-group-btn" type="button" class="mobile-feedback-top-btn" data-copy-group="1073677465">QQ群</button>
+    <div class="mobile-topbar-actions">      <button id="mobile-qq-group-btn" type="button" class="mobile-feedback-top-btn" data-copy-group="1073677465">QQ群</button>
       <button id="mobile-feedback-top-btn" type="button" class="mobile-feedback-top-btn">反馈</button>
     </div>
   </div>
@@ -64,13 +62,7 @@
           获取机密卷宗中...
         </div>
       </div>
-      <div class="sidebar-feedback">
-        <button id="auth-open-btn" type="button" class="auth-open-btn">邮箱登录</button>
-        <div id="auth-user-pill" class="auth-user-pill hidden">
-          <span id="auth-user-email"></span>
-          <button id="auth-logout-btn" type="button">退出</button>
-        </div>
-        <div class="sidebar-community">
+      <div class="sidebar-feedback">        <div class="sidebar-community">
           <div class="sidebar-community-label">交流群</div>
           <button type="button" class="qq-group-btn" data-copy-group="1073677465">QQ群 1073677465</button>
           <div class="sidebar-community-note">欢迎反馈史实问题和体验建议</div>
@@ -257,29 +249,6 @@
       </div>
     </div>
   </div>
-
-  <div id="auth-modal" class="auth-modal hidden" aria-hidden="true">
-    <div class="auth-card">
-      <button id="auth-close-btn" type="button" class="auth-close-btn" aria-label="关闭登录">×</button>
-      <div class="auth-title">邮箱登录</div>
-      <p class="auth-copy">输入邮箱和密码登录。第一次使用时点注册，之后用同一邮箱登录。</p>
-      <input id="auth-email" type="email" maxlength="120" placeholder="你的邮箱">
-      <input id="auth-password" type="password" minlength="6" maxlength="80" placeholder="密码（至少 6 位）">
-      <label class="auth-remember-row">
-        <input id="auth-remember" type="checkbox" checked>
-        <span>记住我，下次自动保持登录</span>
-      </label>
-      <div class="auth-actions auth-actions-stack">
-        <span id="auth-status"></span>
-        <div class="auth-button-row">
-          <button id="auth-login-btn" type="button">登录</button>
-          <button id="auth-signup-btn" type="button">注册</button>
-        </div>
-        <button id="auth-reset-btn" type="button" class="auth-reset-btn">忘记密码</button>
-      </div>
-    </div>
-  </div>
-
-  <script type="module" src="/static/js/app.js?v=concept-keywords-20260521"></script>
+  <script type="module" src="/static/js/app.js?v=no-auth-20260521"></script>
 </body>
 </html>

@@ -598,13 +598,7 @@ function enterFromHome() {
 
 async function init() {
     trackAnalytics('visit');
-    initRememberLoginOption();
-    loadAuthUser();
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
-    elements.authLoginBtn?.addEventListener('click', loginWithEmail);
-    elements.authSignupBtn?.addEventListener('click', signupWithEmail);
-    elements.authResetBtn?.addEventListener('click', resetAuthPassword);
-    elements.authCloseBtn?.addEventListener('click', closeAuthModal);
     // 1. 获取导航目录
     const res = await apiGet('/events_list');
     if(res && res.success) {
@@ -613,11 +607,7 @@ async function init() {
         
         const hash = decodeURIComponent(window.location.hash.substring(1));
         if(hash === "guess-game") {
-            if (isLoggedIn()) {
-                showGuessGame();
-            } else {
-                requireLogin("guess-game", { silent: true });
-            }
+            showGuessGame();
         } else if(hash) {
             loadEvent(hash);
         } else {
@@ -636,10 +626,6 @@ async function init() {
         const gameLink = e.target.closest('[data-game]');
         if (gameLink) {
             e.preventDefault();
-            if (!isLoggedIn()) {
-                requireLogin("guess-game");
-                return;
-            }
             showGuessGame();
             return;
         }
@@ -696,9 +682,6 @@ async function init() {
     elements.mobileFeedbackBtn?.addEventListener('click', openFeedbackModal);
     elements.homeAuthOpenBtn?.addEventListener('click', openAuthModal);
     elements.homeAuthLogoutBtn?.addEventListener('click', logoutAuth);
-    elements.authOpenBtn?.addEventListener('click', openAuthModal);
-    elements.mobileAuthOpenBtn?.addEventListener('click', openAuthModal);
-    elements.authLogoutBtn?.addEventListener('click', logoutAuth);
     document.querySelectorAll('[data-copy-group]').forEach(button => {
         button.addEventListener('click', copyQQGroup);
     });
@@ -707,15 +690,6 @@ async function init() {
         if (e.target === elements.feedbackModal) closeFeedbackModal();
     });
     elements.feedbackSubmitBtn.addEventListener('click', submitFeedback);
-    elements.authModal?.addEventListener('click', (e) => {
-        if (e.target === elements.authModal) closeAuthModal();
-    });
-    elements.authRemember?.addEventListener('change', () => {
-        localStorage.setItem(AUTH_REMEMBER_KEY, shouldRememberLogin() ? "1" : "0");
-    });
-    elements.authPassword?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') loginWithEmail();
-    });
     loadSiteConfig();
 }
 
@@ -1404,10 +1378,6 @@ function enhanceStoryKeywords(html, localKeywords = []) {
 async function handleUserSubmit() {
     const text = elements.chatInput.value.trim();
     if(!text) return;
-    if (!isLoggedIn() && getGuestChatCount() >= GUEST_CHAT_LIMIT) {
-        promptLoginForMoreChat();
-        return;
-    }
     const eventCharacters = state.currentEventData?.characters || [];
     if (eventCharacters.length === 0) {
         showToast("请先进入具体事件，再向历史人物提问。");
@@ -1492,8 +1462,6 @@ async function handleUserSubmit() {
             updateAssistantBubble(assistantMessageIndex, assistantMessage.content);
             saveChatToServer();
         }
-        incrementGuestChatCount();
-        
     } catch (e) {
         console.error("对话异常", e);
         alert("访谈信号混乱，请重试！");
