@@ -925,6 +925,47 @@ def _format_event_deep_context(event_data: Dict, character: str) -> str:
 
     return "\n".join(lines)
 
+def _format_event_fast_context(event_data: Dict, character: str) -> str:
+    lines = []
+    source_notes = event_data.get("source_notes") or []
+    misconceptions = event_data.get("common_misconceptions") or []
+    character_cards = event_data.get("character_cards") or {}
+    character_card = character_cards.get(character) if isinstance(character_cards, dict) else None
+
+    if source_notes:
+        lines.append("【核心史实边界】")
+        lines.extend(f"- {item}" for item in source_notes[:2])
+    if misconceptions:
+        lines.append("【容易误解处】")
+        lines.extend(f"- {item}" for item in misconceptions[:2])
+    if isinstance(character_card, dict):
+        lines.append(f"【{character}人物口吻】")
+        for key, label in (
+            ("stance", "立场"),
+            ("fear", "顾虑"),
+            ("blind_spot", "盲点"),
+            ("answer_style", "回答风格"),
+        ):
+            if character_card.get(key):
+                lines.append(f"- {label}: {character_card[key]}")
+
+    return "\n".join(lines)
+
+def _chat_mode_instruction(answer_mode: Optional[str]) -> str:
+    if answer_mode == "fast":
+        return (
+            "本轮是快速模式：回答要快，但不能浅。请用2到4句讲清楚，至少包含一个具体史实依据、"
+            "一个因果判断或处境判断。不要只回一句空泛结论，不要展开成长篇。"
+        )
+    return (
+        "本轮是专家模式：短而准，重史实、重处境、重因果。"
+        "【半原文】控制在80字以内，【白话文解】控制在120字以内；"
+        "除非用户明确要求展开，否则不要铺陈长背景。"
+    )
+
+def _chat_turn_instruction(followup_question_rule: str, answer_mode: Optional[str]) -> str:
+    return f"{_chat_mode_instruction(answer_mode)}\n{followup_question_rule}"
+
 def _yes_no_only(raw_answer: str) -> str:
     answer = (raw_answer or "").strip()
     first_yes = answer.find("是")
@@ -1289,7 +1330,11 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
             if request.character in line:
                 char_note = raw_notes
                 break
-        deep_context = _format_event_deep_context(event_data, request.character)
+        deep_context = (
+            _format_event_fast_context(event_data, request.character)
+            if request.answer_mode == "fast"
+            else _format_event_deep_context(event_data, request.character)
+        )
 
         character_reply_count = sum(
             1
@@ -1303,6 +1348,9 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
             followup_question_rule = "本轮允许在结尾自然地向用户提出一个问题，但只能问一个，且必须和当前话题强相关；如果没有必要，仍然不要提问。"
         else:
             followup_question_rule = "本轮禁止向用户反问，也不要用问题作结尾；请直接回答用户的问题，让对话自然停在一个完整陈述上。"
+        turn_instruction = _chat_turn_instruction(followup_question_rule, request.answer_mode)
+        followup_question_rule = "请遵守最后一条用户消息中的本轮反问规则；默认不要为了延长对话而反问。"
+        chat_max_tokens = 480 if request.answer_mode == "fast" else 550
 
         system_prompt = f"""你是【{request.character}】，正在参与一场跨越千年的时空访谈。事件：{request.event_name}。
 原则：只据正史，不用野史小说，不知即说不知。以第一人称、半文半白回答。
@@ -1339,13 +1387,14 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
             content_text = m.get("content", "")
             message_history.append({"role": "user" if m.get("role") == "user" else "assistant", "content": content_text})
 
-        final_messages = [{"role": "system", "content": system_prompt}] + message_history + [{"role": "user", "content": request.message}]
+        final_user_message = f"{turn_instruction}\n\n用户本轮问题：{request.message}"
+        final_messages = [{"role": "system", "content": system_prompt}] + message_history + [{"role": "user", "content": final_user_message}]
         
         if is_miniprogram:
             stream = await dashscope_client.chat.completions.create(
                 model=DASHSCOPE_MODEL,
                 messages=final_messages,
-                max_tokens=800,
+                max_tokens=chat_max_tokens,
                 temperature=0.7,
                 stream=True,
             )
@@ -1360,7 +1409,7 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
             resp = await gemini_client.chat.completions.create(
                 model=GEMINI_MODEL,
                 messages=final_messages,
-                max_tokens=800,
+                max_tokens=chat_max_tokens,
                 temperature=0.7,
             )
             reply_content = resp.choices[0].message.content
@@ -1409,7 +1458,11 @@ async def ai_chat_stream(request: ChatRequest, x_client_id: Optional[str] = Head
         if request.character in line:
             char_note = raw_notes
             break
-    deep_context = _format_event_deep_context(event_data, request.character)
+    deep_context = (
+        _format_event_fast_context(event_data, request.character)
+        if request.answer_mode == "fast"
+        else _format_event_deep_context(event_data, request.character)
+    )
 
     character_reply_count = sum(
         1
@@ -1423,6 +1476,9 @@ async def ai_chat_stream(request: ChatRequest, x_client_id: Optional[str] = Head
         followup_question_rule = "本轮允许在结尾自然地向用户提出一个问题，但只能问一个，且必须和当前话题强相关；如果没有必要，仍然不要提问。"
     else:
         followup_question_rule = "本轮禁止向用户反问，也不要用问题作结尾；请直接回答用户的问题，让对话自然停在一个完整陈述上。"
+    turn_instruction = _chat_turn_instruction(followup_question_rule, request.answer_mode)
+    followup_question_rule = "请遵守最后一条用户消息中的本轮反问规则；默认不要为了延长对话而反问。"
+    chat_max_tokens = 480 if request.answer_mode == "fast" else 550
 
     system_prompt = f"""你是【{request.character}】，正在参与一场跨越千年的时空访谈。事件：{request.event_name}。
 原则：只据正史，不用野史小说，不知即说不知。以第一人称、半文半白回答。
@@ -1456,7 +1512,8 @@ async def ai_chat_stream(request: ChatRequest, x_client_id: Optional[str] = Head
         content_text = m.get("content", "")
         message_history.append({"role": "user" if m.get("role") == "user" else "assistant", "content": content_text})
 
-    final_messages = [{"role": "system", "content": system_prompt}] + message_history + [{"role": "user", "content": request.message}]
+    final_user_message = f"{turn_instruction}\n\n用户本轮问题：{request.message}"
+    final_messages = [{"role": "system", "content": system_prompt}] + message_history + [{"role": "user", "content": final_user_message}]
 
     async def event_stream():
         try:
@@ -1464,7 +1521,7 @@ async def ai_chat_stream(request: ChatRequest, x_client_id: Optional[str] = Head
             stream = await gemini_client.chat.completions.create(
                 model=selected_model,
                 messages=final_messages,
-                max_tokens=800,
+                max_tokens=chat_max_tokens,
                 temperature=0.7,
                 stream=True,
             )
