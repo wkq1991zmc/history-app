@@ -54,12 +54,19 @@ dashscope_client = AsyncOpenAI(
 
 GEMINI_API_KEY = os.environ.get("WEB_API_KEY") or os.environ.get("GEMINI_API_KEY") or os.environ.get("DASHSCOPE_API_KEY")
 GEMINI_MODEL = os.environ.get("WEB_MODEL", "qwen3.6-plus") # 默认换成qwen的
+WEB_FAST_MODEL = os.environ.get("WEB_FAST_MODEL", "qwen3.6-flash")
+WEB_FAST_ENABLE_THINKING = os.environ.get("WEB_FAST_ENABLE_THINKING", "").lower() in ("1", "true", "yes", "on")
 GEMINI_BASE_URL = os.environ.get("WEB_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
 gemini_client = AsyncOpenAI(
     api_key=GEMINI_API_KEY,
     base_url=GEMINI_BASE_URL,
     timeout=httpx.Timeout(180.0, connect=10.0),
 )
+
+def _chat_model_extra_body(model: str, answer_mode: Optional[str]) -> Dict:
+    if answer_mode == "fast" and model.startswith("qwen3") and not WEB_FAST_ENABLE_THINKING:
+        return {"enable_thinking": False}
+    return {}
 
 # ======== API 限流保护 ========
 rate_limit_store = defaultdict(list)
@@ -1676,11 +1683,14 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
                 if delta.content:
                     reply_content += delta.content
         else:
+            selected_model = WEB_FAST_MODEL if request.answer_mode == "fast" else GEMINI_MODEL
+            extra_body = _chat_model_extra_body(selected_model, request.answer_mode)
             resp = await gemini_client.chat.completions.create(
-                model=GEMINI_MODEL,
+                model=selected_model,
                 messages=final_messages,
                 max_tokens=chat_max_tokens,
                 temperature=0.7,
+                **({"extra_body": extra_body} if extra_body else {}),
             )
             reply_content = resp.choices[0].message.content
         
@@ -1787,13 +1797,15 @@ async def ai_chat_stream(request: ChatRequest, x_client_id: Optional[str] = Head
 
     async def event_stream():
         try:
-            selected_model = "qwen-turbo" if request.answer_mode == "fast" else "qwen3.6-plus"
+            selected_model = WEB_FAST_MODEL if request.answer_mode == "fast" else GEMINI_MODEL
+            extra_body = _chat_model_extra_body(selected_model, request.answer_mode)
             stream = await gemini_client.chat.completions.create(
                 model=selected_model,
                 messages=final_messages,
                 max_tokens=chat_max_tokens,
                 temperature=0.7,
                 stream=True,
+                **({"extra_body": extra_body} if extra_body else {}),
             )
             async for chunk in stream:
                 if not chunk.choices:
