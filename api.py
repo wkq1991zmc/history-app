@@ -6,6 +6,7 @@ from typing import List, Dict, Optional
 from openai import AsyncOpenAI
 import os
 import httpx
+import asyncio
 import json
 import re
 import secrets
@@ -91,6 +92,7 @@ GUESS_DYNASTY_WORDS = [
     "北宋", "南宋", "辽朝", "金朝", "蒙古帝国", "元朝", "明朝", "南明", "清朝"
 ]
 guess_game_sessions = {}
+time_travel_sessions = {}
 
 # ======== 轻量访问统计，仅管理员可见 ========
 ANALYTICS_DATA_DIR = Path("analytics_data").resolve()
@@ -112,6 +114,9 @@ SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USERNAME).strip()
 SMTP_USE_SSL = os.environ.get("SMTP_USE_SSL", "").lower() in ("true", "1", "yes")
 SMTP_STARTTLS = os.environ.get("SMTP_STARTTLS", "true").lower() not in ("false", "0", "no")
 AUTH_EMAIL_DEV_MODE = os.environ.get("AUTH_EMAIL_DEV_MODE", "").lower() in ("true", "1", "yes")
+TIME_TRAVEL_MODEL_TIMEOUT = float(os.environ.get("TIME_TRAVEL_MODEL_TIMEOUT", "120"))
+TIME_TRAVEL_FAST_MODEL = os.environ.get("TIME_TRAVEL_FAST_MODEL", "qwen-turbo")
+TIME_TRAVEL_FAST_TIMEOUT = float(os.environ.get("TIME_TRAVEL_FAST_TIMEOUT", "45"))
 _AUTH_MEMORY_CONN = None
 _AUTH_SQLITE_DISK_FAILED = False
 
@@ -708,7 +713,7 @@ async def analytics_visit(req: AnalyticsVisitRequest, x_client_id: Optional[str]
 
 @app.post("/analytics/event")
 async def analytics_event(req: AnalyticsEventRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
-    if req.event_type not in ("event_view", "guess_action"):
+    if req.event_type not in ("event_view", "guess_action", "time_travel"):
         raise HTTPException(status_code=400, detail="未知统计事件")
     recorded = _safe_record_analytics(req.event_type, x_client_id or "anonymous", req.event_name or "", req.character or "", req.detail or "")
     return {"success": True, "recorded": recorded}
@@ -880,6 +885,18 @@ class GuessGameGuessRequest(BaseModel):
 class GuessGameRevealRequest(BaseModel):
     session_id: str
 
+class TimeTravelStartRequest(BaseModel):
+    seed: Optional[str] = ""
+
+class TimeTravelChoiceRequest(BaseModel):
+    session_id: str
+    choice_id: str
+
+class TimeTravelTalkRequest(BaseModel):
+    session_id: str
+    message: str
+    person: Optional[str] = ""
+
 def _normalize_person_name(name: str) -> str:
     return re.sub(r"[\s·・，。！？、,.!?《》〈〉“”\"'’‘]", "", name or "").lower()
 
@@ -1049,6 +1066,259 @@ def _get_guess_session(session_id: str) -> Dict:
     if not session:
         raise HTTPException(status_code=404, detail="游戏会话不存在，请重新开始")
     return session
+
+def _extract_json_object(raw_text: str) -> Dict:
+    clean = (raw_text or "").strip()
+    fence_match = re.search(r"```(?:json)?\s*(.*?)\s*```", clean, re.DOTALL)
+    if fence_match:
+        clean = fence_match.group(1).strip()
+    brace_match = re.search(r"\{.*\}", clean, re.DOTALL)
+    if brace_match:
+        clean = brace_match.group(0)
+    return json.loads(clean)
+
+def _travel_default_payload() -> Dict:
+    return {
+        "title": "秦末驿路求生",
+        "era": "秦末",
+        "year": "公元前209年",
+        "location": "蕲县附近的驿道",
+        "character": {
+            "age": 19,
+            "gender": "男",
+            "height": "七尺上下",
+            "weight": "偏瘦",
+            "identity": "被征发的戍卒",
+            "appearance": "衣衫破旧，脚上有血泡，身上只剩半袋粗粮。"
+        },
+        "status": {
+            "health": 72,
+            "hunger": 58,
+            "money": 4,
+            "reputation": 8,
+            "danger": 46
+        },
+        "scene": "暴雨刚停，驿道泥泞。你所在的队伍因误期而人人惶恐，远处县吏催促的声音越来越近。按秦律，失期可能受重罚，同行的人已经开始低声议论逃亡。",
+        "encountered": [
+            {"name": "老戍卒", "role": "同行役夫", "attitude": "劝你先保命"},
+            {"name": "县吏", "role": "押送小吏", "attitude": "警惕而急躁"}
+        ],
+        "choices": [
+            {"id": "A", "text": "跟着队伍继续赶路，赌能在天黑前到达。", "risk": "中", "hint": "稳妥，但体力会继续下降。"},
+            {"id": "B", "text": "听老戍卒的话，趁混乱离开驿道。", "risk": "高", "hint": "可能逃过刑罚，也可能被当作逃卒。"},
+            {"id": "C", "text": "去和县吏交涉，说明暴雨毁路。", "risk": "中", "hint": "需要一点胆量和说辞。"},
+            {"id": "D", "text": "先找附近农舍讨水和草鞋。", "risk": "低", "hint": "能缓一口气，但会耽误行程。"}
+        ],
+        "ended": False,
+        "ending": ""
+    }
+
+def _travel_system_prompt() -> str:
+    return """你是一个严谨的中国历史文字生存游戏导演。
+游戏定位：用户不是改写历史的主角，而是进入正史边缘的小人物，用生存选择贴近真实历史处境。
+当前第一版只允许生成秦末背景，时间范围锁定在公元前210年至公元前206年，优先围绕徭役、戍卒、秦律、陈胜吴广起义、地方官吏、逃亡、饥荒、驿道、县乡社会、楚汉之争前夜。
+硬规则：
+1. 不许出现现代物品、现代制度、玄幻能力、系统面板梗。
+2. 不许让用户轻易改变正史，只能影响自身、小范围遭遇和身边普通人的命运。
+3. 可以出现普通人和低级吏卒；陈胜、吴广、刘邦、项羽等正史人物必须低概率、间接或远距离出现。
+4. 每轮必须给 4 个选择，选择要有明确风险差异，不能都是同一种行动。
+5. 叙事要有历史质感，但语言要让现代用户能读懂。
+6. 必须只返回 JSON，不要解释。"""
+
+def _clamp_int(value, low=0, high=100) -> int:
+    try:
+        number = int(value)
+    except Exception:
+        number = low
+    return max(low, min(high, number))
+
+def _normalize_travel_payload(data: Dict, fallback: Optional[Dict] = None) -> Dict:
+    base = fallback or _travel_default_payload()
+    if not isinstance(data, dict):
+        data = {}
+    payload = dict(base)
+    for key in ("title", "era", "year", "location", "scene", "ending"):
+        if data.get(key):
+            payload[key] = str(data.get(key))[:1600]
+    payload["ended"] = bool(data.get("ended", payload.get("ended", False)))
+    if isinstance(data.get("character"), dict):
+        character = dict(base.get("character", {}))
+        character.update({k: str(v)[:120] for k, v in data["character"].items() if v is not None})
+        payload["character"] = character
+    if isinstance(data.get("status"), dict):
+        status = dict(base.get("status", {}))
+        for key in ("health", "hunger", "money", "reputation", "danger"):
+            if key in data["status"]:
+                status[key] = _clamp_int(data["status"][key], 0, 100)
+        payload["status"] = status
+    if isinstance(data.get("encountered"), list):
+        people = []
+        for item in data["encountered"][:4]:
+            if isinstance(item, dict):
+                people.append({
+                    "name": str(item.get("name") or "陌生人")[:24],
+                    "role": str(item.get("role") or "路人")[:36],
+                    "attitude": str(item.get("attitude") or "观望")[:60],
+                })
+        if people:
+            payload["encountered"] = people
+    choices = []
+    if isinstance(data.get("choices"), list):
+        for index, item in enumerate(data["choices"][:4]):
+            if not isinstance(item, dict):
+                continue
+            choices.append({
+                "id": str(item.get("id") or chr(65 + index))[:8],
+                "text": str(item.get("text") or "")[:120],
+                "risk": str(item.get("risk") or "中")[:12],
+                "hint": str(item.get("hint") or "")[:120],
+            })
+    if len(choices) >= 2:
+        payload["choices"] = choices[:4]
+    return payload
+
+def _get_travel_session(session_id: str) -> Dict:
+    session = time_travel_sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="穿越记录不存在，请重新开始。")
+    return session
+
+async def _call_travel_model(
+    messages: List[Dict],
+    max_tokens: int = 1100,
+    model: str = "qwen3.6-plus",
+    timeout_seconds: Optional[float] = None,
+) -> Dict:
+    resp = await asyncio.wait_for(
+        gemini_client.chat.completions.create(
+            model=model,
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=0.92,
+        ),
+        timeout=timeout_seconds or TIME_TRAVEL_MODEL_TIMEOUT,
+    )
+    return _extract_json_object(resp.choices[0].message.content)
+
+@app.post("/time_travel/start")
+async def time_travel_start(req: TimeTravelStartRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    player_id = x_client_id if x_client_id else "unknown_player"
+    if not check_rate_limit(player_id):
+        raise HTTPException(status_code=429, detail="触发太快了，请稍等一下。")
+    seed = req.seed or f"{player_id}-{time.time()}"
+    prompt = f"""{_travel_system_prompt()}
+
+请生成一局秦末穿越文字生存游戏的开局。随机分配用户的年龄、性别、身高体重、身份、地点和初始处境，但必须符合秦末社会。
+返回 JSON 字段：
+title, era, year, location,
+character: {{age, gender, height, weight, identity, appearance}},
+status: {{health, hunger, money, reputation, danger}},
+scene,
+encountered: [{{name, role, attitude}}],
+choices: [{{id, text, risk, hint}}],
+ended, ending
+随机种子：{seed}
+"""
+    try:
+        data = await _call_travel_model(
+            [{"role": "user", "content": prompt}],
+            model=GEMINI_MODEL,
+            timeout_seconds=TIME_TRAVEL_MODEL_TIMEOUT,
+        )
+        payload = _normalize_travel_payload(data)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="时空生成失败，请稍后重试。") from exc
+    session_id = str(uuid.uuid4())
+    time_travel_sessions[session_id] = {
+        "payload": payload,
+        "history": [{"type": "start", "scene": payload.get("scene", "")}],
+        "created_at": time.time(),
+    }
+    _safe_record_analytics("time_travel", player_id, "秦末穿越", "", "start")
+    return {"success": True, "session_id": session_id, **payload}
+
+@app.post("/time_travel/choose")
+async def time_travel_choose(req: TimeTravelChoiceRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    player_id = x_client_id if x_client_id else "unknown_player"
+    if not check_rate_limit(player_id):
+        raise HTTPException(status_code=429, detail="触发太快了，请稍等一下。")
+    session = _get_travel_session(req.session_id)
+    current = session["payload"]
+    selected = next((item for item in current.get("choices", []) if str(item.get("id")) == str(req.choice_id)), None)
+    if not selected:
+        raise HTTPException(status_code=400, detail="这个选择已经失效，请重新选择。")
+    prompt = f"""{_travel_system_prompt()}
+
+这是当前游戏状态：
+{json.dumps(current, ensure_ascii=False)}
+
+最近历史：
+{json.dumps(session.get("history", [])[-6:], ensure_ascii=False)}
+
+用户选择了：
+{json.dumps(selected, ensure_ascii=False)}
+
+请推进一轮剧情。你要判断选择后果、更新地点/人物/状态，并生成下一轮 4 个选择。
+如果角色死亡或被捕到本局无法继续，ended 为 true，并写 ending；否则 ended 为 false。
+返回 JSON 字段：
+result, title, era, year, location, character, status, scene, encountered, choices, ended, ending
+"""
+    try:
+        data = await _call_travel_model(
+            [{"role": "user", "content": prompt}],
+            max_tokens=760,
+            model=TIME_TRAVEL_FAST_MODEL,
+            timeout_seconds=TIME_TRAVEL_FAST_TIMEOUT,
+        )
+        fallback = dict(current)
+        if data.get("result"):
+            fallback["scene"] = f"{data.get('result')}\n\n{data.get('scene', '')}".strip()
+        payload = _normalize_travel_payload(data, fallback=fallback)
+        if data.get("result"):
+            payload["result"] = str(data.get("result"))[:1200]
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="这一轮剧情生成失败，请重试。") from exc
+    session["payload"] = payload
+    session["history"].append({"type": "choice", "choice": selected, "result": payload.get("result", ""), "scene": payload.get("scene", "")})
+    _safe_record_analytics("time_travel", player_id, "秦末穿越", "", "choose")
+    return {"success": True, "session_id": req.session_id, **payload}
+
+@app.post("/time_travel/talk")
+async def time_travel_talk(req: TimeTravelTalkRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    player_id = x_client_id if x_client_id else "unknown_player"
+    if not check_rate_limit(player_id):
+        raise HTTPException(status_code=429, detail="说话太快了，请稍等一下。")
+    if not req.message.strip() or len(req.message) > 300:
+        raise HTTPException(status_code=400, detail="对话内容不能为空，且不要超过 300 字。")
+    session = _get_travel_session(req.session_id)
+    current = session["payload"]
+    people = current.get("encountered") or []
+    person_name = req.person or (people[0].get("name") if people else "路人")
+    prompt = f"""{_travel_system_prompt()}
+
+当前游戏状态：
+{json.dumps(current, ensure_ascii=False)}
+
+用户正在和「{person_name}」说话。请以这个人物的身份回答。这个人物可以不知道大历史全貌，只能按自身身份、见闻和利益说话。
+用户的话：{req.message.strip()}
+
+返回 JSON：{{"speaker":"人物名","reply":"回答内容","attitude":"态度变化"}}
+"""
+    try:
+        data = await _call_travel_model(
+            [{"role": "user", "content": prompt}],
+            max_tokens=360,
+            model=TIME_TRAVEL_FAST_MODEL,
+            timeout_seconds=TIME_TRAVEL_FAST_TIMEOUT,
+        )
+        speaker = str(data.get("speaker") or person_name)[:24]
+        reply = str(data.get("reply") or "那人沉默片刻，没有立刻回答。")[:900]
+        attitude = str(data.get("attitude") or "")[:80]
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="人物对话生成失败，请重试。") from exc
+    session["history"].append({"type": "talk", "speaker": speaker, "message": req.message.strip(), "reply": reply})
+    _safe_record_analytics("time_travel", player_id, "秦末穿越", speaker, "talk")
+    return {"success": True, "speaker": speaker, "reply": reply, "attitude": attitude}
 
 @app.post("/guess_game/start")
 async def guess_game_start(req: GuessGameStartRequest):
