@@ -1620,7 +1620,7 @@ async def ai_chat(request: ChatRequest, x_wx_openid: Optional[str] = Header(None
             followup_question_rule = "本轮禁止向用户反问，也不要用问题作结尾；请直接回答用户的问题，让对话自然停在一个完整陈述上。"
         turn_instruction = _chat_turn_instruction(followup_question_rule, request.answer_mode)
         followup_question_rule = "请遵守最后一条用户消息中的本轮反问规则；默认不要为了延长对话而反问。"
-        chat_max_tokens = 480 if request.answer_mode == "fast" else 550
+        chat_max_tokens = 480 if request.answer_mode == "fast" else 800
 
         system_prompt = f"""你是【{request.character}】，正在参与一场跨越千年的时空访谈。事件：{request.event_name}。
 原则：只据正史，不用野史小说，不知即说不知。以第一人称、半文半白回答。
@@ -1748,7 +1748,7 @@ async def ai_chat_stream(request: ChatRequest, x_client_id: Optional[str] = Head
         followup_question_rule = "本轮禁止向用户反问，也不要用问题作结尾；请直接回答用户的问题，让对话自然停在一个完整陈述上。"
     turn_instruction = _chat_turn_instruction(followup_question_rule, request.answer_mode)
     followup_question_rule = "请遵守最后一条用户消息中的本轮反问规则；默认不要为了延长对话而反问。"
-    chat_max_tokens = 480 if request.answer_mode == "fast" else 550
+    chat_max_tokens = 480 if request.answer_mode == "fast" else 800
 
     system_prompt = f"""你是【{request.character}】，正在参与一场跨越千年的时空访谈。事件：{request.event_name}。
 原则：只据正史，不用野史小说，不知即说不知。以第一人称、半文半白回答。
