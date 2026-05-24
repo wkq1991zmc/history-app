@@ -122,8 +122,9 @@ SMTP_USE_SSL = os.environ.get("SMTP_USE_SSL", "").lower() in ("true", "1", "yes"
 SMTP_STARTTLS = os.environ.get("SMTP_STARTTLS", "true").lower() not in ("false", "0", "no")
 AUTH_EMAIL_DEV_MODE = os.environ.get("AUTH_EMAIL_DEV_MODE", "").lower() in ("true", "1", "yes")
 TIME_TRAVEL_MODEL_TIMEOUT = float(os.environ.get("TIME_TRAVEL_MODEL_TIMEOUT", "120"))
-TIME_TRAVEL_FAST_MODEL = os.environ.get("TIME_TRAVEL_FAST_MODEL", "qwen-turbo")
+TIME_TRAVEL_FAST_MODEL = os.environ.get("TIME_TRAVEL_FAST_MODEL", "qwen3.6-flash")
 TIME_TRAVEL_FAST_TIMEOUT = float(os.environ.get("TIME_TRAVEL_FAST_TIMEOUT", "45"))
+TIME_TRAVEL_FAST_ENABLE_THINKING = os.environ.get("TIME_TRAVEL_FAST_ENABLE_THINKING", "").lower() in ("1", "true", "yes", "on")
 _AUTH_MEMORY_CONN = None
 _AUTH_SQLITE_DISK_FAILED = False
 
@@ -1084,53 +1085,287 @@ def _extract_json_object(raw_text: str) -> Dict:
         clean = brace_match.group(0)
     return json.loads(clean)
 
-def _travel_default_payload() -> Dict:
-    return {
-        "title": "秦末驿路求生",
-        "era": "秦末",
-        "year": "公元前209年",
-        "location": "蕲县附近的驿道",
-        "character": {
-            "age": 19,
-            "gender": "男",
-            "height": "七尺上下",
-            "weight": "偏瘦",
-            "identity": "被征发的戍卒",
-            "appearance": "衣衫破旧，脚上有血泡，身上只剩半袋粗粮。"
-        },
-        "status": {
-            "health": 72,
-            "hunger": 58,
-            "money": 4,
-            "reputation": 8,
-            "danger": 46
-        },
-        "scene": "暴雨刚停，驿道泥泞。你所在的队伍因误期而人人惶恐，远处县吏催促的声音越来越近。按秦律，失期可能受重罚，同行的人已经开始低声议论逃亡。",
-        "encountered": [
-            {"name": "老戍卒", "role": "同行役夫", "attitude": "劝你先保命"},
-            {"name": "县吏", "role": "押送小吏", "attitude": "警惕而急躁"}
+INTRIGUE_SCENES = [
+    {
+        "scene_id": "qin_shaqiu_edict",
+        "title": "沙丘诏书",
+        "era": "秦朝",
+        "year": "公元前210年",
+        "location": "上郡军中",
+        "brief": "始皇帝巡游在外，行在消息迟迟未明。一封由中车府令赵高、丞相李斯相关的诏书抵达上郡，命公子扶苏自尽，蒙恬交出兵权。军中人心震动，但诏书名义上来自皇帝。",
+        "public_state": "始皇帝巡游在外，行在消息迟迟未明。一封诏书抵达上郡，命公子扶苏自尽，蒙恬交出兵权。军中人心震动，但诏书名义上来自皇帝。",
+        "hidden_truth": "秦始皇已死，赵高、李斯、胡亥秘不发丧，并以始皇帝名义矫诏夺权。",
+        "stakes": "扶苏要在守法守孝、诏书真伪、边军安危和宫廷夺权风险之间做决断。",
+        "npc_context": "公开可知：始皇帝巡游在外，行在消息迟迟未明；上郡只收到命扶苏自尽、蒙恬交兵权的诏书。局中人可以怀疑诏书来路、印信、使者和赵高李斯相关安排，但不能确认始皇帝已经驾崩，也不能知道胡亥即位等后事。",
+        "forbidden_knowledge": [
+            "始皇帝已经死亡、驾崩、崩逝、大行、宾天",
+            "赵高、李斯、胡亥伪造诏书是已经坐实的事实",
+            "胡亥即位、赵高得势、秦朝崩解等后续正史"
+        ],
+        "forbidden_patterns": [
+            "始皇帝(已|已经|早已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
+            "皇帝(已|已经|早已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
+            "陛下(已|已经|早已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
+            "始皇(已|已经|早已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
+            "胡亥(即位|登基|继位)",
+            "赵高(得势|专权)",
+            "秦朝(很快)?(崩解|灭亡)"
+        ],
+        "branch_axes": [
+            {"key": "verify_in_xianyang", "label": "亲赴咸阳核验", "keywords": ["咸阳", "面圣", "进京", "亲自", "查明", "核验"], "plan": "扶苏暂不自尽，由蒙恬稳住上郡军，扶苏亲自赴咸阳核验诏书来源，并要求公开始皇帝行在真实状况。", "impact": "扶苏离开上郡核验诏书，会逼迫沙丘一方提前暴露或动用道路与宫禁控制拦截扶苏。"},
+            {"key": "detain_envoy", "label": "扣留使者验诏", "keywords": ["扣留", "使者", "印信", "诏书", "封泥"], "plan": "先扣留使者并验明印信、诏书来路，再决定是否奉诏。", "impact": "上郡军暂时压住诏书执行，但抗诏名义会迅速升高，军中也会分化。"},
+            {"key": "public_council", "label": "公开召集将吏议诏", "keywords": ["召集", "将吏", "公开", "共议", "军议"], "plan": "召集军中将吏共同验诏，把奉诏与否变成公开军议。", "impact": "责任被摊开，军心更稳，但消息也更容易外泄。"}
+        ],
+        "historical_anchor": [
+            "《史记》记载，秦始皇死于沙丘平台后，赵高、李斯与胡亥秘不发丧。",
+            "扶苏、蒙恬收到赐死诏书后，扶苏自杀，蒙恬疑诏而被囚。",
+            "胡亥即位后，秦政更急，帝国内部裂痕迅速扩大。"
+        ],
+        "orthodox_history": "正史中，扶苏接诏后自杀，蒙恬虽怀疑诏书却未能扭转局面。胡亥即位，赵高得势，秦朝很快走向崩解。",
+        "roles": [
+            {"name": "扶苏", "identity": "秦始皇长子", "power": "有名分，但受诏书压制", "goal": "既要守孝守法，又要判断诏书真假。"},
+            {"name": "蒙恬", "identity": "北边主将", "power": "握有边军威望", "goal": "保全军心，避免被伪诏夺兵。"},
+            {"name": "军中使者", "identity": "传诏来使", "power": "手持皇帝诏书", "goal": "催促扶苏、蒙恬立刻奉诏。"},
+            {"name": "上郡军吏", "identity": "边军属吏", "power": "熟悉军中粮道与士气", "goal": "避免边防动荡，也怕卷入宫廷大变。"}
+        ],
+        "openings": [
+            {"speaker": "军中使者", "text": "诏书已至，公子与将军不可迟疑。若军中再议，便是抗诏。"},
+            {"speaker": "蒙恬", "text": "陛下在外，诏书来得急促，印信虽在，事理却未必无疑。公子，当先问清来路。"},
+            {"speaker": "上郡军吏", "text": "边军一乱，匈奴在北，咸阳在南。此事若处置失当，未必只伤一人。"}
         ],
         "choices": [
-            {"id": "A", "text": "跟着队伍继续赶路，赌能在天黑前到达。", "risk": "中", "hint": "稳妥，但体力会继续下降。"},
-            {"id": "B", "text": "听老戍卒的话，趁混乱离开驿道。", "risk": "高", "hint": "可能逃过刑罚，也可能被当作逃卒。"},
-            {"id": "C", "text": "去和县吏交涉，说明暴雨毁路。", "risk": "中", "hint": "需要一点胆量和说辞。"},
-            {"id": "D", "text": "先找附近农舍讨水和草鞋。", "risk": "低", "hint": "能缓一口气，但会耽误行程。"}
+            {"id": "A", "text": "先不奉诏，扣留使者，派亲信快马去咸阳核验。", "risk": "高", "hint": "有机会识破伪诏，也可能被定为抗命。"},
+            {"id": "B", "text": "扶苏暂避锋芒，由蒙恬控制军营，等待始皇帝公开消息。", "risk": "中高", "hint": "保留筹码，但军中名义压力很大。"},
+            {"id": "C", "text": "按诏书行事，以守臣子之礼。", "risk": "极高", "hint": "最合表面法度，却会把主动权交给胡亥、赵高。"},
+            {"id": "D", "text": "召集军中将吏共同验诏，把责任变成公开议决。", "risk": "中", "hint": "能稳住部分军心，也会拖长冲突。"}
         ],
+    },
+    {
+        "scene_id": "han_baideng_court",
+        "title": "白登之后的朝议",
+        "era": "西汉",
+        "year": "公元前200年后",
+        "location": "长安朝堂",
+        "brief": "刘邦刚从白登之围脱身。匈奴骑兵的压力真实存在，汉朝又刚结束楚汉战争，民力、财力和军心都在恢复边缘。朝堂必须决定：立刻复仇、暂行和亲、整顿边防，还是另寻牵制之策。",
+        "public_state": "刘邦刚从白登之围脱身。匈奴骑兵的压力真实存在，汉朝又刚结束楚汉战争，民力、财力和军心都在恢复边缘。",
+        "hidden_truth": "汉初国力尚弱，长期和亲、边防与休养生息为后来反击匈奴积累条件。",
+        "stakes": "朝堂争论的是皇帝威望、军心、边防安全和新朝承受长期战争的能力。",
+        "npc_context": "公开可知：刘邦刚从白登之围脱身，朝堂知道汉军受挫、国力未复、匈奴仍强。局中人不能知道后世文景之治或汉武帝大规模反击的完整结果，只能从当下国力和边患推断。",
+        "forbidden_knowledge": [
+            "后世文景之治的完整结果",
+            "汉武帝时期主动反击匈奴的完整后事"
+        ],
+        "forbidden_patterns": [
+            "文景之治",
+            "汉武帝(时期)?(大规模)?(反击|北伐|征伐)匈奴",
+            "后世"
+        ],
+        "branch_axes": [
+            {"key": "immediate_revenge", "label": "立即北上复仇", "keywords": ["北上", "北伐", "回击", "反击", "复仇", "报仇", "雪耻", "出兵", "主战", "大获全胜"], "plan": "立即北上回击匈奴，吸取白登之围中皇帝与主力脱节的教训，集中主力主动寻战，争取一战雪耻。", "impact": "汉军会重新集结主力，试图用粮道、斥候和步骑配合弥补白登之失，但汉初民力未复，风险极高。"},
+            {"key": "limited_counterattack", "label": "有限反击", "keywords": ["小规模", "有限", "夺回", "军心", "声势"], "plan": "以有限反击夺回军心和边境声势，但避免立刻陷入全面决战。", "impact": "军心会得到安抚，也可能刺激匈奴报复，朝廷仍要准备后续边防。"},
+            {"key": "heqin_recover", "label": "和亲休养", "keywords": ["和亲", "休养", "稳住", "国力", "百姓", "粮草"], "plan": "暂行和亲以稳边，同时保护民力粮仓，等待国力恢复。", "impact": "朝廷会承受屈辱和军中不满，但能把危机转为长期准备。"},
+            {"key": "mixed_strategy", "label": "外和内备", "keywords": ["边防", "骑兵", "马政", "暗修", "训练", "互市"], "plan": "表面和亲稳边，暗中整顿边防、蓄养马政与骑兵。", "impact": "短期避战，长期积累反制匈奴的条件。"}
+        ],
+        "historical_anchor": [
+            "《史记》《汉书》记载，刘邦曾被匈奴围于白登，后脱险。",
+            "汉初国力未稳，长期采用和亲、边防、休养生息并行的策略。",
+            "到汉武帝时期，汉朝才转入大规模主动反击匈奴。"
+        ],
+        "orthodox_history": "正史中，汉初没有立刻全面北伐，而是以和亲、互市、边防和休养生息争取时间。这个选择屈辱但现实，为文景之治和后来的反击积累了条件。",
+        "roles": [
+            {"name": "刘邦", "identity": "汉帝国开国皇帝", "power": "最终拍板", "goal": "既要保住皇帝威望，又不能把新朝拖入无底战事。"},
+            {"name": "萧何", "identity": "相国", "power": "掌财政与后方", "goal": "保护民力粮仓，避免新朝财政被北伐耗空。"},
+            {"name": "樊哙", "identity": "武将", "power": "代表军中血气", "goal": "维护军心和汉军尊严，反对过度退让。"},
+            {"name": "张良", "identity": "谋臣", "power": "以谋略影响皇帝", "goal": "用时间换空间，避免被匈奴牵着走。"}
+        ],
+        "openings": [
+            {"speaker": "樊哙", "text": "陛下新脱白登之围，军中皆以为耻。若此时只言和亲，边将如何抬头？"},
+            {"speaker": "萧何", "text": "楚汉之战才息，关中仓廪未实。今日若轻言大举北伐，明年百姓又从何处出粮？"},
+            {"speaker": "张良", "text": "匈奴强在骑兵与草原纵深，汉强在田亩、城邑与制度。此时争一日之气，未必胜过争十年之势。"}
+        ],
+        "choices": [
+            {"id": "A", "text": "主张暂行和亲，先稳边境，再整顿国力。", "risk": "低", "hint": "现实稳妥，但会被武将视为屈辱。"},
+            {"id": "B", "text": "主张小规模反击，夺回声势，但避免全面决战。", "risk": "中", "hint": "能安抚军心，也可能刺激匈奴报复。"},
+            {"id": "C", "text": "主张全国动员北伐，趁皇帝威望尚在雪耻。", "risk": "极高", "hint": "最振奋，也最可能耗空新朝。"},
+            {"id": "D", "text": "主张一边和亲，一边暗修边塞、训练骑兵。", "risk": "中低", "hint": "表面退让，实则换取准备时间。"}
+        ],
+    },
+    {
+        "scene_id": "han_tui_en_ling",
+        "title": "推恩令前夜",
+        "era": "西汉",
+        "year": "汉武帝时期",
+        "location": "未央宫议政殿",
+        "brief": "诸侯王势力仍大，直接削藩容易激起反叛；放任不管，又会让中央权威被慢慢架空。主父偃提出让诸侯把封地分给更多子弟，名义上是施恩，实际上是切碎诸侯国。",
+        "public_state": "诸侯王势力仍大，直接削藩容易激起反叛；放任不管，又会让中央权威被慢慢架空。主父偃提出让诸侯把封地分给更多子弟，名义上是施恩。",
+        "hidden_truth": "推恩令会让诸侯国在继承中不断分小，中央逐步收回控制力。",
+        "stakes": "汉武帝要在中央集权、诸侯反弹、制度名义和削藩速度之间选择。",
+        "proposal_stage": "未颁布",
+        "npc_context": "公开可知：诸侯王势力仍大，七国之乱的记忆未远，主父偃刚提出以推恩名义分封诸侯子弟；推恩令尚未颁布，仍是朝议中的方案。局中人不能说“收回成命”“前功尽弃”或把它当成既定国策，只能根据制度逻辑和当下风险判断。",
+        "forbidden_knowledge": [
+            "推恩令最终长期奏效的完整后世结果",
+            "推恩令已经发布或已经成为成命"
+        ],
+        "forbidden_patterns": [
+            "最终(会|将)?长期奏效",
+            "后世",
+            "正史证明",
+            "收回成命",
+            "前功尽弃",
+            "已经(颁布|施行|推行|下诏)",
+            "既然陛下已经(决定|下诏|颁令)",
+            "成命"
+        ],
+        "branch_axes": [
+            {"key": "postpone", "label": "暂缓推恩", "keywords": ["暂缓", "暂时不要", "不要实施", "不实施", "先不", "放弃", "搁置", "缓行"], "plan": "暂缓推恩令，不立刻把主父偃的方案变成正式诏令，先观察诸侯反应并另设约束。", "impact": "朝廷不会立刻启动推恩分封，诸侯短期松一口气，但中央削弱封国的窗口也会被拖延。"},
+            {"key": "tui_en", "label": "推恩分封", "keywords": ["推恩", "分封", "子弟", "继承", "施恩"], "plan": "以推恩令名义分封诸侯子弟，让封国在继承中自然分小。", "impact": "中央以恩赏名义改写继承规则，诸侯短期较难公开反对，但制度拉扯会持续加深。"},
+            {"key": "direct_cut", "label": "直接削藩", "keywords": ["削藩", "削地", "夺地", "强压", "武力"], "plan": "直接削去强藩土地，以皇权压服诸侯。", "impact": "见效快，但会显著提高诸侯联合反弹的风险。"},
+            {"key": "appease", "label": "暂缓安抚", "keywords": ["暂缓", "赏赐", "联姻", "安抚"], "plan": "暂缓削藩，先用赏赐和联姻安抚诸侯。", "impact": "短期平稳，但中央权威被架空的问题仍会积累。"},
+            {"key": "system_combo", "label": "制度组合削藩", "keywords": ["监察", "财政", "迁徙", "配合", "一起推进"], "plan": "推恩令配合监察、迁徙和财政控制一起推进。", "impact": "更系统，但更容易让诸侯察觉中央收权意图。"}
+        ],
+        "historical_anchor": [
+            "汉景帝时期七国之乱显示，诸侯王问题已经威胁中央。",
+            "汉武帝采纳主父偃建议，推行推恩令。",
+            "推恩令以制度方式削弱诸侯，比直接强攻更稳。"
+        ],
+        "orthodox_history": "正史中，汉武帝采用主父偃的推恩令，让诸侯国在继承中不断分小，中央逐步收回控制力。这是削藩史上很聪明的一步。",
+        "roles": [
+            {"name": "汉武帝", "identity": "皇帝", "power": "最高决策", "goal": "加强中央权力，同时避免立刻引发诸侯反弹。"},
+            {"name": "主父偃", "identity": "谋臣", "power": "提出制度方案", "goal": "用看似施恩的办法拆解诸侯根基。"},
+            {"name": "诸侯王使者", "identity": "封国代表", "power": "能传达诸侯不满", "goal": "保住封国完整和王室利益。"},
+            {"name": "朝中老臣", "identity": "谨慎派大臣", "power": "影响朝议风向", "goal": "担心削藩过急，重演七国之乱。"}
+        ],
+        "openings": [
+            {"speaker": "主父偃", "text": "陛下若明削诸侯，天下皆知中央逼迫；若名为推恩，使诸侯子弟皆得封土，则势分而怨轻。"},
+            {"speaker": "诸侯王使者", "text": "诸侯世守宗庙，若朝廷一纸令下便分割国土，恐怕各国都难安心。"},
+            {"speaker": "朝中老臣", "text": "七国之乱未远。削藩要削，但一步踏错，便是兵连祸结。"}
+        ],
+        "choices": [
+            {"id": "A", "text": "支持推恩令，用继承规则慢慢拆小诸侯国。", "risk": "中低", "hint": "温和而有效，但需要长期执行。"},
+            {"id": "B", "text": "主张直接削去强藩土地，以皇权压服诸侯。", "risk": "高", "hint": "见效快，也最容易逼反。"},
+            {"id": "C", "text": "暂缓削藩，先用赏赐和联姻安抚诸侯。", "risk": "中", "hint": "短期平稳，长期问题仍在。"},
+            {"id": "D", "text": "推恩令配合监察、迁徙和财政控制一起推进。", "risk": "中", "hint": "更系统，但会引发更多贵族不满。"}
+        ],
+    },
+]
+
+def _pick_intrigue_scene(seed_text: str = "") -> Dict:
+    seed = int(hashlib.sha256((seed_text or str(time.time())).encode("utf-8")).hexdigest()[:8], 16)
+    return INTRIGUE_SCENES[seed % len(INTRIGUE_SCENES)]
+
+def _decision_maker_name(scene: Dict) -> str:
+    return {
+        "qin_shaqiu_edict": "扶苏",
+        "han_baideng_court": "刘邦",
+        "han_tui_en_ling": "汉武帝",
+    }.get(scene.get("scene_id", ""), "")
+
+def _role_by_name(scene: Dict, name: str) -> Dict:
+    return next((role for role in scene.get("roles", []) if role.get("name") == name), {})
+
+def _build_initial_adviser_debate(scene: Dict, user_role: Dict) -> List[Dict]:
+    scene_id = scene.get("scene_id", "")
+    if scene_id == "qin_shaqiu_edict":
+        return [
+            {"speaker": "军中使者", "role": "传诏来使", "text": "诏书已至，公子不可迟疑。若军中再议，便是抗诏。", "kind": "ai"},
+            {"speaker": "蒙恬", "role": "北边主将", "text": "诏命关乎公子性命与边军安危。臣以为，诏书来得急促，仍当验明来路。", "kind": "ai"},
+            {"speaker": "上郡军吏", "role": "边军属吏", "text": "若奉诏，公子性命不保；若不奉诏，军中便有抗命之名。此事须先稳住营中人心。", "kind": "ai"},
+        ]
+    if scene_id == "han_baideng_court":
+        return [
+            {"speaker": "樊哙", "role": "武将", "text": "白登之围，军中皆以为耻。若今日只言和亲，边将如何抬头？", "kind": "ai"},
+            {"speaker": "萧何", "role": "相国", "text": "国库未丰，百姓未安。若此时倾力北伐，粮草从何而出？", "kind": "ai"},
+            {"speaker": "张良", "role": "谋臣", "text": "匈奴强在骑兵与草原纵深。若要复仇，先要问能否不再落入白登之局。", "kind": "ai"},
+        ]
+    if scene_id == "han_tui_en_ling":
+        return [
+            {"speaker": "主父偃", "role": "谋臣", "text": "明削诸侯，诸侯必怨；名为推恩，使其子弟皆得封土，则势分而怨轻。", "kind": "ai"},
+            {"speaker": "诸侯王使者", "role": "封国代表", "text": "诸侯世守宗庙，若朝廷以推恩为名分割国土，各国岂能安心？", "kind": "ai"},
+            {"speaker": "朝中老臣", "role": "谨慎派大臣", "text": "七国之乱未远。削藩要削，但若一步太急，便是兵连祸结。", "kind": "ai"},
+        ]
+    people = [role for role in scene.get("roles", []) if role.get("name") != user_role.get("name")]
+    return [
+        {"speaker": role.get("name", "局中人"), "role": role.get("identity", "参与者"), "text": role.get("goal", "臣愿听候决断。"), "kind": "ai"}
+        for role in people[:3]
+    ]
+
+def _build_intrigue_payload(scene: Dict, seed_text: str = "") -> Dict:
+    seed = int(hashlib.sha256((seed_text + scene["scene_id"]).encode("utf-8")).hexdigest()[:8], 16)
+    roles = scene.get("roles", [])
+    decision_name = _decision_maker_name(scene)
+    decision_maker = _role_by_name(scene, decision_name) or (roles[0] if roles else {})
+    user_role = decision_maker or {"name": "决策者", "identity": "历史现场决策者", "power": "最高决策", "goal": "在约束中做出判断。"}
+    people = [role for role in roles if role.get("name") != user_role.get("name")]
+    counterpart_candidates = [
+        role for role in roles
+        if role.get("name") != user_role.get("name")
+    ]
+    counterpart = counterpart_candidates[(seed // 7) % len(counterpart_candidates)] if counterpart_candidates else {}
+    public_state = scene.get("public_state") or scene.get("brief", "")
+    scene_text = (
+        f"{public_state}\n\n"
+        f"你的任务：你就是「{user_role.get('name')}」，需要听取众人意见，亲自追问并做出决定。"
+        "你可以继续询问，也可以直接下令；一旦下令，本局历史会按你的决定推演。"
+    ).strip()
+    dialogue = _build_initial_adviser_debate(scene, user_role)
+    return {
+        "mode": "intrigue",
+        "scene_id": scene.get("scene_id", ""),
+        "title": scene.get("title", "入局"),
+        "era": scene.get("era", ""),
+        "year": scene.get("year", ""),
+        "location": scene.get("location", ""),
+        "brief": scene.get("brief", ""),
+        "public_state": public_state,
+        "hidden_truth": scene.get("hidden_truth", ""),
+        "stakes": scene.get("stakes", ""),
+        "proposal_stage": scene.get("proposal_stage", ""),
+        "npc_context": scene.get("npc_context", ""),
+        "forbidden_knowledge": scene.get("forbidden_knowledge", []),
+        "forbidden_patterns": scene.get("forbidden_patterns", []),
+        "branch_axes": scene.get("branch_axes", []),
+        "historical_anchor": scene.get("historical_anchor", []),
+        "orthodox_history": scene.get("orthodox_history", ""),
+        "user_role": user_role,
+        "decision_maker": decision_maker,
+        "counterpart": counterpart,
+        "round": 0,
+        "dialogue": dialogue,
+        "character": {
+            "age": "",
+            "gender": "",
+            "height": "",
+            "weight": "",
+            "identity": f"{user_role.get('name')} · {user_role.get('identity')}",
+            "appearance": f"权力边界：{user_role.get('power')}。目标：{user_role.get('goal')}"
+        },
+        "status": {},
+        "scene": scene_text,
+        "encountered": [
+            {"name": role.get("name", "局中人"), "role": role.get("identity", "参与者"), "attitude": role.get("goal", "观望")}
+            for role in people[:4]
+        ],
+        "choices": [],
         "ended": False,
         "ending": ""
     }
 
+def _travel_default_payload() -> Dict:
+    return _build_intrigue_payload(INTRIGUE_SCENES[1], "default")
+
 def _travel_system_prompt() -> str:
-    return """你是一个严谨的中国历史文字生存游戏导演。
-游戏定位：用户不是改写历史的主角，而是进入正史边缘的小人物，用生存选择贴近真实历史处境。
-当前第一版只允许生成秦末背景，时间范围锁定在公元前210年至公元前206年，优先围绕徭役、戍卒、秦律、陈胜吴广起义、地方官吏、逃亡、饥荒、驿道、县乡社会、楚汉之争前夜。
+    return """你是一个严谨的中国历史“入局”玩法导演。
+游戏定位：用户进入一个有正史约束的历史决策现场，并扮演最终决策者。AI 只扮演臣子、将领、使者、旁白，不替用户做决定。
 硬规则：
 1. 不许出现现代物品、现代制度、玄幻能力、系统面板梗。
-2. 不许让用户轻易改变正史，只能影响自身、小范围遭遇和身边普通人的命运。
-3. 可以出现普通人和低级吏卒；陈胜、吴广、刘邦、项羽等正史人物必须低概率、间接或远距离出现。
-4. 每轮必须给 4 个选择，选择要有明确风险差异，不能都是同一种行动。
+2. 正史是参照，不是剧情枷锁；本局历史可以因玩家的决定而改变。若玩家下令，必须让本局行动真的发生，并继续推演改变后的局势。
+3. NPC 必须按自己的身份、利益和时代见识说话，不能替用户开天眼。
+4. 必须直接回应玩家刚才的问题或命令，不要只说“有理但仍受约束”这类空话。
 5. 叙事要有历史质感，但语言要让现代用户能读懂。
-6. 必须只返回 JSON，不要解释。"""
+6. 如果用户越出现实条件、身份职责或时代知识，NPC 或旁白要指出来。
+7. 旁白可以说“正史中如何”，但不能用正史强行覆盖本局已经发生的分支。
+8. 不得随意编造夸张兵力、财政或地理条件；若没有明确依据，用“主力”“亲卫”“边军”“数路兵马”等模糊但可信的表述。
+9. 必须只返回 JSON，不要解释。"""
 
 def _clamp_int(value, low=0, high=100) -> int:
     try:
@@ -1144,9 +1379,36 @@ def _normalize_travel_payload(data: Dict, fallback: Optional[Dict] = None) -> Di
     if not isinstance(data, dict):
         data = {}
     payload = dict(base)
-    for key in ("title", "era", "year", "location", "scene", "ending"):
+    for key in (
+        "mode", "scene_id", "title", "era", "year", "location", "scene", "ending",
+        "brief", "public_state", "hidden_truth", "stakes", "npc_context",
+        "orthodox_history", "result", "narration", "player_plan", "branch_key"
+    ):
         if data.get(key):
             payload[key] = str(data.get(key))[:1600]
+    for list_key in ("forbidden_knowledge", "forbidden_patterns", "branch_axes"):
+        if isinstance(data.get(list_key), list):
+            payload[list_key] = data[list_key][:12]
+    if isinstance(data.get("historical_anchor"), list):
+        payload["historical_anchor"] = [str(item)[:220] for item in data["historical_anchor"][:5]]
+    for role_key in ("user_role", "decision_maker", "counterpart"):
+        if isinstance(data.get(role_key), dict):
+            role_data = dict(base.get(role_key, {}))
+            role_data.update({k: str(v)[:160] for k, v in data[role_key].items() if v is not None})
+            payload[role_key] = role_data
+    if "round" in data:
+        payload["round"] = _clamp_int(data.get("round"), 0, 20)
+    if isinstance(data.get("dialogue"), list):
+        dialogue = []
+        for item in data["dialogue"][-24:]:
+            if isinstance(item, dict):
+                dialogue.append({
+                    "speaker": str(item.get("speaker") or "局中人")[:24],
+                    "role": str(item.get("role") or "")[:36],
+                    "text": str(item.get("text") or "")[:1200],
+                    "kind": str(item.get("kind") or "ai")[:16],
+                })
+        payload["dialogue"] = dialogue
     payload["ended"] = bool(data.get("ended", payload.get("ended", False)))
     if isinstance(data.get("character"), dict):
         character = dict(base.get("character", {}))
@@ -1154,7 +1416,7 @@ def _normalize_travel_payload(data: Dict, fallback: Optional[Dict] = None) -> Di
         payload["character"] = character
     if isinstance(data.get("status"), dict):
         status = dict(base.get("status", {}))
-        for key in ("health", "hunger", "money", "reputation", "danger"):
+        for key in ("health", "hunger", "money", "reputation", "danger", "historical_fit", "role_fit", "persuasion", "risk_control", "tension"):
             if key in data["status"]:
                 status[key] = _clamp_int(data["status"][key], 0, 100)
         payload["status"] = status
@@ -1184,6 +1446,494 @@ def _normalize_travel_payload(data: Dict, fallback: Optional[Dict] = None) -> Di
         payload["choices"] = choices[:4]
     return payload
 
+def _intrigue_choice_fallback(current: Dict, selected: Dict) -> Dict:
+    status = dict(current.get("status", {}))
+    choice_text = selected.get("text", "谨慎发言")
+    risk_text = selected.get("risk", "中")
+    tension_delta = 8 if "高" in risk_text or "极高" in risk_text else 2
+    status["persuasion"] = _clamp_int(status.get("persuasion", 55) + 7)
+    status["role_fit"] = _clamp_int(status.get("role_fit", 70) + 4)
+    status["risk_control"] = _clamp_int(status.get("risk_control", 55) - tension_delta + 4)
+    status["tension"] = _clamp_int(status.get("tension", 65) + tension_delta)
+    result = f"你提出「{choice_text}」。朝堂没有立刻定论，但这句话把争论从情绪拉回到利害权衡。"
+    scene = (
+        f"{result}\n\n"
+        "局中人开始重新估量这一步的代价：有人看重名分与军心，有人担心粮草、边防和朝廷威信。"
+        "这不是一键改写历史的时刻，而是一次在有限条件里争取更好结果的发言。"
+    )
+    return _normalize_travel_payload({
+        **current,
+        "result": result,
+        "scene": scene,
+        "narration": f"旁白：若此议被采纳，局势大概率会短暂偏向你的立场，但仍要受兵力、财政与名义约束。正史中，{current.get('orthodox_history', '')}",
+        "status": status,
+        "choices": [
+            {"id": "A", "text": "补充理由，把主张说得更能落地。", "risk": "低", "hint": "提高说服力，但不会制造奇迹。"},
+            {"id": "B", "text": "请反对者先说出最大担忧，再逐条回应。", "risk": "中", "hint": "能打开局面，也可能暴露弱点。"},
+            {"id": "C", "text": "退一步提出折中方案，保住核心目标。", "risk": "中低", "hint": "更稳，但立场会显得不够强。"},
+            {"id": "D", "text": "要求立刻拍板执行，抢占主动。", "risk": "高", "hint": "有气势，也容易激化反弹。"}
+        ],
+        "ended": False,
+    }, fallback=current)
+
+def _intrigue_talk_fallback(current: Dict, person_name: str, message: str) -> Dict:
+    round_no = int(current.get("round") or 0) + 1
+    counterpart = current.get("counterpart") or {"name": person_name or "另一位大臣", "identity": "朝臣", "goal": "谨慎观望"}
+    plan = _intrigue_player_plan(current, message)
+    short_message = (message or "你的主张").strip()[:80]
+    if _intrigue_is_player_decision(message):
+        resolution = _intrigue_resolution_text(current, message)
+        messages = [
+            {
+                "speaker": counterpart.get("name", "另一位大臣"),
+                "role": counterpart.get("identity", "朝臣"),
+                "text": f"臣明白您的决断：{plan}。此令一出，局势便会转向新路；但臣仍要提醒：{counterpart.get('goal', '此策不能只看一时得失。')}",
+                "kind": "ai",
+            },
+            {
+                "speaker": "旁白",
+                "role": "本局推演 / 正史对照",
+                "text": resolution,
+                "kind": "system",
+            },
+        ]
+        return {
+            "messages": messages,
+            "ended": True,
+            "ending": "你已经做出决定，本局进入新的历史分支。",
+            "round": round_no,
+        }
+    if _intrigue_wants_all_advisers(message):
+        people = current.get("encountered") or []
+        address = _intrigue_address(current)
+        messages = []
+        for person in people[:4]:
+            concern = person.get("attitude") or person.get("goal") or "此事仍要看兵力、民力与名义能否相合"
+            messages.append({
+                "speaker": person.get("name", "朝臣"),
+                "role": person.get("role") or person.get("identity") or "朝臣",
+                "text": f"{address}既命臣等各陈所见，臣以为：{concern}。若要继续推进，还需先定第一步由谁执行、若有反复由谁收束。",
+                "kind": "ai",
+            })
+        if messages:
+            return {
+                "messages": messages,
+                "ended": False,
+                "ending": "",
+                "round": round_no,
+            }
+    messages = [
+        {
+            "speaker": counterpart.get("name", "另一位大臣"),
+            "role": counterpart.get("identity", "朝臣"),
+            "text": f"臣听见您问「{short_message}」。若按此思路推进，关键不在口号，而在第一步由谁执行、失败时如何收场。臣所忧者是：{counterpart.get('goal', '此事必须说明风险由谁承担。')}",
+            "kind": "ai",
+        },
+    ]
+    return {
+        "messages": messages,
+        "ended": False,
+        "ending": "",
+        "round": round_no,
+    }
+
+def _intrigue_player_plan(current: Dict, message: str) -> str:
+    text = message or ""
+    scene_id = current.get("scene_id", "")
+    if text.startswith(("扶苏暂不自尽", "立即北上回击匈奴", "以推恩令名义", "削藩不单靠武力")):
+        return text[:180]
+    branch = _intrigue_branch_axis(current, text)
+    if branch and branch.get("plan"):
+        return str(branch.get("plan"))[:220]
+    if scene_id == "qin_shaqiu_edict":
+        if any(word in text for word in ("京城", "咸阳", "面圣", "进京", "查明", "核验", "亲自")):
+            if any(word in text for word in ("亲自", "自己", "扶苏", "面圣", "进京", "咸阳")):
+                return "扶苏暂不自尽，由蒙恬稳住上郡军，扶苏亲自赴咸阳核验诏书来源，并要求公开始皇帝真实状况"
+            return "暂不奉诏，先扣留使者、稳住军中，再派可信之人赴咸阳核验诏书来源"
+        if any(word in text for word in ("扣留", "使者", "印信", "诏书")):
+            return "先扣留使者并验明印信、诏书来路，再决定是否奉诏"
+        return "暂缓自尽与交兵权，先查清诏命来源，再决定下一步"
+    if scene_id == "han_baideng_court":
+        war_words = ("北上", "北伐", "回击", "反击", "复仇", "报仇", "雪耻", "报白登", "大获全胜", "攻打", "出兵", "主战")
+        full_war_words = ("必须", "决定", "定能", "大获全胜", "主力", "全面", "立刻", "马上", "倾国", "举兵")
+        if any(word in text for word in war_words) and any(word in text for word in full_war_words):
+            return "立即北上回击匈奴，吸取白登之围中皇帝与主力脱节的教训，集中主力主动寻战，争取一战雪耻"
+        if any(word in text for word in war_words):
+            return "不做全面北伐，只以有限反击夺回军心，并避免再次陷入匈奴主场"
+        if any(word in text for word in ("和亲", "休养", "稳住", "国力", "边防", "骑兵")):
+            return "暂行和亲以稳边，同时整顿边防、蓄养马政与骑兵，等待国力恢复"
+        return "先保全汉初国力，再寻找反制匈奴的时机"
+    if scene_id == "han_tui_en_ling":
+        if any(word in text for word in ("推恩", "分封", "子弟", "继承")):
+            return "以推恩令名义分封诸侯子弟，让封国在继承中自然分小"
+        if any(word in text for word in ("削藩", "监察", "财政", "迁徙")):
+            return "削藩不单靠武力，而以监察、财政和迁徙制度配合推进"
+        return "削弱诸侯但避免立刻逼反，以制度方式慢慢收权"
+    return text.strip()[:120] or "先稳住局面，再作下一步判断"
+
+def _intrigue_branch_axis(current: Dict, message: str) -> Optional[Dict]:
+    text = message or ""
+    best_axis = None
+    best_score = 0
+    for axis in current.get("branch_axes") or []:
+        if not isinstance(axis, dict):
+            continue
+        keywords = axis.get("keywords") or []
+        score = sum(1 for word in keywords if str(word) and str(word) in text)
+        if axis.get("key") in ("postpone", "appease"):
+            score += sum(2 for word in ("不", "不要", "暂缓", "暂时", "先不", "放弃", "搁置", "缓行") if word in text)
+        if score > best_score:
+            best_axis = axis
+            best_score = score
+    return best_axis if best_score > 0 else None
+
+def _intrigue_intent(current: Dict, message: str) -> str:
+    text = (message or "").strip()
+    if _intrigue_is_unclear_message(current, text):
+        return "unclear"
+    if _intrigue_wants_all_advisers(text):
+        return "ask_all"
+    if _intrigue_is_player_decision(text):
+        return "command"
+    if any(mark in text for mark in ("？", "?", "如何", "为何", "为什么", "可否", "是否", "吗", "么")):
+        return "ask"
+    return "debate"
+
+def _intrigue_is_player_decision(message: str) -> bool:
+    text = message or ""
+    decision_words = (
+        "我决定", "朕决定", "孤决定", "下令", "传令", "命", "采纳", "准奏",
+        "就这么办", "照此", "按此", "必须", "立刻", "马上", "我要", "我不",
+        "我意已决", "决意", "不自尽", "北上", "出兵", "推行", "实行", "颁布",
+        "暂缓", "放弃", "不要实施", "不实施", "先不"
+    )
+    question_marks = ("?", "？", "如何", "可否", "是否", "吗", "么")
+    return any(word in text for word in decision_words) and not text.strip().endswith(question_marks)
+
+def _intrigue_wants_all_advisers(message: str) -> bool:
+    text = message or ""
+    all_words = ("各位", "诸位", "大家", "所有人", "你们都", "都说", "分别说", "逐一", "每个人", "一人一句")
+    ask_words = ("想法", "意见", "看法", "怎么想", "说说", "陈奏", "表态", "怎么看")
+    return any(word in text for word in all_words) and any(word in text for word in ask_words)
+
+def _intrigue_address(current: Dict) -> str:
+    user = current.get("user_role", {}) or {}
+    name = user.get("name") or current.get("character", {}).get("name") or ""
+    identity = user.get("identity") or ""
+    if "皇帝" in identity or name in ("刘邦", "汉武帝"):
+        return "陛下"
+    if name == "扶苏" or "公子" in identity:
+        return "公子"
+    return "主上"
+
+def _intrigue_prompt_state(current: Dict) -> Dict:
+    visible_roles = []
+    role_sources = current.get("encountered") or []
+    for role in role_sources:
+        if not isinstance(role, dict):
+            continue
+        visible_roles.append({
+            "name": role.get("name", ""),
+            "role": role.get("role", ""),
+            "position": role.get("attitude", ""),
+        })
+    branch_options = []
+    for axis in current.get("branch_axes") or []:
+        if not isinstance(axis, dict):
+            continue
+        branch_options.append({
+            "key": axis.get("key", ""),
+            "label": axis.get("label", ""),
+        })
+    state = {
+        "scene_id": current.get("scene_id", ""),
+        "title": current.get("title", ""),
+        "era": current.get("era", ""),
+        "year": current.get("year", ""),
+        "location": current.get("location", ""),
+        "public_state": current.get("public_state") or current.get("brief") or current.get("scene", ""),
+        "stakes": current.get("stakes", ""),
+        "proposal_stage": current.get("proposal_stage", ""),
+        "user_role": current.get("user_role", {}),
+        "visible_roles": visible_roles,
+        "branch_options": branch_options,
+        "dialogue": list(current.get("dialogue") or [])[-12:],
+        "round": int(current.get("round") or 0),
+    }
+    if current.get("scene_id") == "qin_shaqiu_edict" and not state.get("public_state"):
+        state["public_state"] = "始皇帝巡游在外，行在消息迟迟未明；上郡只收到命扶苏自尽、蒙恬交兵权的诏书。"
+    return state
+
+def _intrigue_npc_context(current: Dict) -> str:
+    if current.get("npc_context"):
+        return str(current.get("npc_context"))
+    if current.get("scene_id") == "qin_shaqiu_edict":
+        return "公开可知：始皇帝巡游在外，行在消息迟迟未明；上郡只收到命扶苏自尽、蒙恬交兵权的诏书。局中人可以怀疑诏书来路、印信、使者和赵高李斯相关安排，但不能确认始皇帝已经驾崩，也不能知道胡亥即位等后事。"
+    return "只允许依据当下公开信息与自身身份判断。"
+
+def _intrigue_forbidden_knowledge(current: Dict) -> List[str]:
+    if current.get("forbidden_knowledge"):
+        return list(current.get("forbidden_knowledge") or [])
+    if current.get("scene_id") == "qin_shaqiu_edict":
+        return [
+            "始皇帝已经死亡、驾崩、崩逝、大行、宾天",
+            "赵高、李斯、胡亥伪造诏书是已经坐实的事实",
+            "胡亥即位、赵高得势、秦朝崩解等后续正史",
+        ]
+    return []
+
+def _sanitize_intrigue_forbidden_knowledge(current: Dict, messages: List[Dict]) -> List[Dict]:
+    configured_patterns = [str(item) for item in (current.get("forbidden_patterns") or []) if item]
+    if not configured_patterns and current.get("scene_id") != "qin_shaqiu_edict":
+        return messages
+    patterns = configured_patterns or [
+        r"始皇帝(已|已经|早已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
+        r"皇帝(已|已经|早已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
+        r"陛下(已|已经|早已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
+        r"始皇(已|已经|早已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
+        r"胡亥(即位|登基|继位)",
+        r"赵高(得势|专权)",
+        r"秦朝(很快)?(崩解|灭亡)",
+    ]
+    replacement = "当下尚不可知"
+    if current.get("scene_id") == "qin_shaqiu_edict":
+        replacement = "行在消息未明"
+    elif current.get("scene_id") == "han_tui_en_ling":
+        replacement = "日后"
+    cleaned = []
+    for item in messages:
+        new_item = dict(item)
+        if new_item.get("kind") == "system":
+            cleaned.append(new_item)
+            continue
+        text = str(new_item.get("text") or "")
+        for pattern in patterns:
+            text = re.sub(pattern, replacement, text)
+        text = text.replace("皇帝至体违和", "行在消息不明")
+        text = text.replace("皇帝遗体", "行在消息")
+        new_item["text"] = text
+        cleaned.append(new_item)
+    return cleaned
+
+def _repair_intrigue_stage_language(current: Dict, messages: List[Dict]) -> List[Dict]:
+    stage = str(current.get("proposal_stage") or "")
+    if not stage:
+        return messages
+    repaired = []
+    for item in messages:
+        new_item = dict(item)
+        if new_item.get("kind") == "system":
+            repaired.append(new_item)
+            continue
+        text = str(new_item.get("text") or "")
+        if "未颁布" in stage:
+            text = text.replace("收回成命", "暂缓此议")
+            text = text.replace("前功尽弃", "此议难以成局")
+            text = text.replace("成命", "议案")
+            text = re.sub(r"既然陛下已经(决定|下诏|颁令)[，,。；;]?", "若陛下决定暂缓，", text)
+            text = re.sub(r"已经(颁布|施行|推行|下诏)", "尚未正式颁布", text)
+            text = text.replace("既定国策", "朝议方案")
+        new_item["text"] = text
+        repaired.append(new_item)
+    return repaired
+
+def _repair_all_adviser_messages(current: Dict, messages: List[Dict]) -> List[Dict]:
+    role_map = {
+        str(person.get("name") or ""): person
+        for person in (current.get("encountered") or [])
+        if isinstance(person, dict)
+    }
+    repaired = []
+    for item in messages:
+        new_item = dict(item)
+        if new_item.get("kind") == "system":
+            repaired.append(new_item)
+            continue
+        text = str(new_item.get("text") or "").strip()
+        text = re.sub(r"^(陛下|公子|主上)(圣明|明鉴)?[，,。；;\s]*臣(谨)?(附议|赞同|同意)(前议|此议)?[，,。；;\s]*", r"\1\2，臣以为，", text)
+        text = re.sub(r"^臣(谨)?(附议|赞同|同意)(前议|此议)?[，,。；;\s]*", "臣以为，", text)
+        text = re.sub(r"^(附议|赞同|同意)(前议|此议)?[，,。；;\s]*", "臣以为，", text)
+        text = re.sub(r"(今|既然)?陛下意在[“\"「][^”\"」]+[”\"」][，,。；;]?", "陛下垂询群臣，臣以为，", text)
+        text = re.sub(r"(今|既然)?(公子|主上)意在[“\"「][^”\"」]+[”\"」][，,。；;]?", r"\2垂询群臣，臣以为，", text)
+        text = re.sub(r"(赐|拨|给|发|调)(臣)?(精兵|精锐|骑兵|铁骑)(数十万|[一二三四五六七八九十百千万0-9]+万)", r"\1\2一支精锐兵马", text)
+        text = re.sub(r"(精兵|精锐|骑兵|铁骑)(数十万|[一二三四五六七八九十百千万0-9]+万)", "精锐兵马", text)
+        text = re.sub(r"(领|率|发|调)(十万|数十万|[一二三四五六七八九十百千万0-9]+万)(精骑|铁骑|骑兵)", r"\1精锐骑兵", text)
+        text = re.sub(r"(十万|数十万|[一二三四五六七八九十百千万0-9]+万)(精骑|铁骑)", "精锐骑兵", text)
+        if text in ("臣以为，", "臣以为。", ""):
+            person = role_map.get(str(new_item.get("speaker") or ""), {})
+            concern = person.get("attitude") or person.get("goal") or "此事仍要看名义、民力与风险能否相称"
+            address = _intrigue_address(current)
+            text = f"{address}明鉴。臣的看法是：{concern}。"
+        new_item["text"] = text
+        repaired.append(new_item)
+    return repaired
+
+def _intrigue_is_unclear_message(current: Dict, message: str) -> bool:
+    text = (message or "").strip()
+    if not text:
+        return True
+    if _intrigue_wants_all_advisers(text) or _intrigue_is_player_decision(text):
+        return False
+    if len(text) <= 1:
+        return True
+    if re.fullmatch(r"[\W\dA-Za-z_]+", text):
+        return True
+    if text in {"哈哈", "测试", "随便", "不知道", "无所谓", "嗯", "哦", "啊"}:
+        return True
+    question_words = ("怎么", "如何", "为何", "为什么", "说说", "想法", "意见", "可否", "是否", "吗", "？", "?")
+    if any(word in text for word in question_words):
+        return False
+    relevance_terms = {
+        "诏书", "使者", "咸阳", "面圣", "自尽", "蒙恬", "扶苏", "赵高", "胡亥", "秦始皇",
+        "匈奴", "白登", "和亲", "北上", "复仇", "出兵", "边防", "粮草", "骑兵", "刘邦",
+        "削藩", "推恩", "诸侯", "封国", "继承", "汉武帝", "主父偃", "采纳", "下令",
+    }
+    for person in current.get("encountered") or []:
+        if person.get("name"):
+            relevance_terms.add(str(person["name"]))
+        if person.get("role"):
+            relevance_terms.add(str(person["role"]))
+    return len(text) <= 12 and not any(term in text for term in relevance_terms)
+
+def _intrigue_clarification_messages(current: Dict, message: str, person_name: str) -> List[Dict]:
+    people = current.get("encountered") or []
+    counterpart = current.get("counterpart") or {}
+    person = next((item for item in people if item.get("name") == person_name), None) or counterpart or (people[0] if people else {})
+    address = _intrigue_address(current)
+    quoted = (message or "").strip()[:40]
+    return [{
+        "speaker": person.get("name") or person_name or "朝臣",
+        "role": person.get("role") or person.get("identity") or "朝臣",
+        "text": f"{address}所言「{quoted}」，臣不敢妄解。您是要臣等按某一策再议，还是另有所指？请把想问或想令的事说清，臣等再据此陈奏。",
+        "kind": "ai",
+    }]
+
+def _merge_intrigue_plan(current: Dict, new_plan: str) -> str:
+    previous = str(current.get("player_plan") or "")
+    if not previous:
+        return new_plan
+    scene_id = current.get("scene_id", "")
+    if scene_id == "qin_shaqiu_edict":
+        if "扶苏亲自赴咸阳" in previous and "扶苏亲自赴咸阳" not in new_plan:
+            return previous
+        if "扶苏亲自赴咸阳" in new_plan:
+            return new_plan
+    if scene_id == "han_baideng_court":
+        if "立即北上回击匈奴" in new_plan:
+            return new_plan
+        if "立即北上回击匈奴" in previous and "立即北上回击匈奴" not in new_plan:
+            return previous
+    return new_plan if len(new_plan) >= len(previous) * 0.7 else previous
+
+def _orthodox_history_text(current: Dict) -> str:
+    text = str(current.get("orthodox_history") or "").strip()
+    return re.sub(r"^正史中[，,：:\s]*", "", text)
+
+def _trim_sentence_end(text: str) -> str:
+    return re.sub(r"[。；;，,\s]+$", "", str(text or ""))
+
+def _intrigue_ruler_acceptance_text(current: Dict, plan: str) -> str:
+    scene_id = current.get("scene_id", "")
+    decision_maker = current.get("decision_maker", {}) or {}
+    ruler_name = decision_maker.get("name") or "我"
+    if scene_id == "qin_shaqiu_edict":
+        return (
+            f"我采纳此议：{plan}。"
+            "我暂不奉死诏，先由蒙恬稳住上郡军心，挑选可信骑从，亲赴咸阳核验诏书来路。"
+            "若途中有诈，便以此举反证宫中有变。"
+        )
+    if scene_id == "han_baideng_court" and any(word in plan for word in ("立即北上", "集中主力", "主动寻战")):
+        return (
+            f"我采纳此议：{plan}。"
+            "但此战不可再犯白登之失，粮道、斥候、主力联络必须先定，再命诸将北上。"
+        )
+    return f"{ruler_name}采纳此议：{plan}。今日起，本局便照此推进，后续风险由相关人等共同承担。"
+
+def _intrigue_resolution_text(current: Dict, message: str) -> str:
+    plan = _trim_sentence_end(_intrigue_player_plan(current, message))
+    branch = _intrigue_branch_axis(current, message)
+    if not branch and current.get("branch_key"):
+        branch = next((axis for axis in current.get("branch_axes") or [] if axis.get("key") == current.get("branch_key")), None)
+    impact = str((branch or {}).get("impact") or "")
+    scene_id = current.get("scene_id", "")
+    orthodox = _orthodox_history_text(current)
+    if scene_id == "qin_shaqiu_edict":
+        return (
+            f"本局推演：决策者采纳了你的方案，{plan}。"
+            f"{_trim_sentence_end(impact) or '扶苏不再立即自尽，而是先稳住上郡军心，查验诏书来路'}。"
+            f"幕后真相是：{current.get('hidden_truth') or '沙丘一方正在隐瞒关键消息。'}"
+            f"正史中，{orthodox}"
+        )
+    if scene_id == "han_baideng_court":
+        if any(word in plan for word in ("立即北上", "集中主力", "主动寻战")):
+            return (
+                f"本局推演：刘邦采纳了你的方案，{plan}。"
+                f"{_trim_sentence_end(impact) or '汉军会开始重新集结主力，试图弥补白登之围的失误，但汉初民力未复，风险极高'}。"
+                f"正史中，{orthodox}"
+            )
+        return (
+            f"本局推演：刘邦采纳了你的方案，{plan}。"
+            f"{_trim_sentence_end(impact) or '这不会让汉朝立刻战胜匈奴，但会把朝议从泄愤转向长期准备'}。"
+            f"正史中，{orthodox}"
+        )
+    if scene_id == "han_tui_en_ling":
+        return (
+            f"本局推演：汉武帝采纳了你的方案，{plan}。"
+            f"{_trim_sentence_end(impact) or '诸侯短期未必立刻反叛，但中央与封国之间的制度拉扯会持续加深'}。"
+            f"正史中，{orthodox}"
+        )
+    return f"本局推演：决策者采纳了你的方案，{plan}。{_trim_sentence_end(impact)}。正史中，{orthodox}"
+
+def _sanitize_intrigue_messages(
+    current: Dict,
+    raw_messages: List[Dict],
+    round_no: int,
+    person_name: str,
+    allow_system: bool = False,
+    all_advisers: bool = False,
+) -> List[Dict]:
+    user_name = current.get("user_role", {}).get("name") or ""
+    user_identity = current.get("user_role", {}).get("identity") or ""
+    user_key = _normalize_person_name(user_name)
+    user_identity_key = _normalize_person_name(user_identity)
+    cleaned = []
+    for item in raw_messages:
+        if not isinstance(item, dict):
+            continue
+        speaker = str(item.get("speaker") or person_name or "局中人")[:24]
+        text = str(item.get("text") or "").strip()[:1200]
+        if not text:
+            continue
+        speaker_key = _normalize_person_name(speaker)
+        role_key = _normalize_person_name(str(item.get("role") or ""))
+        if user_key and speaker_key and (speaker_key == user_key or user_key in speaker_key or speaker_key in user_key):
+            continue
+        if user_identity_key and role_key and role_key == user_identity_key:
+            continue
+        kind = str(item.get("kind") or "ai")[:16]
+        if kind == "ruler":
+            continue
+        if not allow_system and kind == "system":
+            continue
+        cleaned.append({
+            "speaker": speaker,
+            "role": str(item.get("role") or "")[:36],
+            "text": text,
+            "kind": kind,
+        })
+
+    adviser_limit = max(2, len(current.get("encountered") or [])) if all_advisers else 2
+    advisers = [item for item in cleaned if item["kind"] not in ("ruler", "system")][:adviser_limit]
+    if not allow_system:
+        if advisers:
+            return advisers
+        return _intrigue_talk_fallback(current, person_name, "").get("messages", [])[:adviser_limit]
+    system = next((item for item in reversed(cleaned) if item["kind"] == "system" and "本局推演" in item.get("text", "")), None)
+    if not system:
+        system = next((item for item in reversed(cleaned) if item["kind"] == "system"), None)
+    compact = [*advisers, *([system] if system else [])]
+    return compact[:3] if compact else _intrigue_talk_fallback(current, person_name, "").get("messages", [])
+
 def _get_travel_session(session_id: str) -> Dict:
     session = time_travel_sessions.get(session_id)
     if not session:
@@ -1196,12 +1946,16 @@ async def _call_travel_model(
     model: str = "qwen3.6-plus",
     timeout_seconds: Optional[float] = None,
 ) -> Dict:
+    extra_body = {}
+    if model.startswith("qwen3") and "flash" in model and not TIME_TRAVEL_FAST_ENABLE_THINKING:
+        extra_body = {"enable_thinking": False}
     resp = await asyncio.wait_for(
         gemini_client.chat.completions.create(
             model=model,
             messages=messages,
             max_tokens=max_tokens,
             temperature=0.92,
+            **({"extra_body": extra_body} if extra_body else {}),
         ),
         timeout=timeout_seconds or TIME_TRAVEL_MODEL_TIMEOUT,
     )
@@ -1213,35 +1967,15 @@ async def time_travel_start(req: TimeTravelStartRequest, x_client_id: Optional[s
     if not check_rate_limit(player_id):
         raise HTTPException(status_code=429, detail="触发太快了，请稍等一下。")
     seed = req.seed or f"{player_id}-{time.time()}"
-    prompt = f"""{_travel_system_prompt()}
-
-请生成一局秦末穿越文字生存游戏的开局。随机分配用户的年龄、性别、身高体重、身份、地点和初始处境，但必须符合秦末社会。
-返回 JSON 字段：
-title, era, year, location,
-character: {{age, gender, height, weight, identity, appearance}},
-status: {{health, hunger, money, reputation, danger}},
-scene,
-encountered: [{{name, role, attitude}}],
-choices: [{{id, text, risk, hint}}],
-ended, ending
-随机种子：{seed}
-"""
-    try:
-        data = await _call_travel_model(
-            [{"role": "user", "content": prompt}],
-            model=GEMINI_MODEL,
-            timeout_seconds=TIME_TRAVEL_MODEL_TIMEOUT,
-        )
-        payload = _normalize_travel_payload(data)
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail="时空生成失败，请稍后重试。") from exc
+    scene = _pick_intrigue_scene(seed)
+    payload = _build_intrigue_payload(scene, seed)
     session_id = str(uuid.uuid4())
     time_travel_sessions[session_id] = {
         "payload": payload,
         "history": [{"type": "start", "scene": payload.get("scene", "")}],
         "created_at": time.time(),
     }
-    _safe_record_analytics("time_travel", player_id, "秦末穿越", "", "start")
+    _safe_record_analytics("time_travel", player_id, payload.get("title", "入局"), payload.get("user_role", {}).get("name", ""), "start")
     return {"success": True, "session_id": session_id, **payload}
 
 @app.post("/time_travel/choose")
@@ -1265,10 +1999,11 @@ async def time_travel_choose(req: TimeTravelChoiceRequest, x_client_id: Optional
 用户选择了：
 {json.dumps(selected, ensure_ascii=False)}
 
-请推进一轮剧情。你要判断选择后果、更新地点/人物/状态，并生成下一轮 4 个选择。
-如果角色死亡或被捕到本局无法继续，ended 为 true，并写 ending；否则 ended 为 false。
+请推进一轮“入局”朝议/军议。你要判断这个主张的说服力、角色贴合度、风险控制和对正史的偏离。
+不要让用户轻易改写大历史。请写出局中人的反应，并用 narration 说明“若此议被采纳，可能如何”和“正史中如何”。
+如果这场讨论已经自然收束，ended 为 true，并写 ending；否则 ended 为 false。
 返回 JSON 字段：
-result, title, era, year, location, character, status, scene, encountered, choices, ended, ending
+result, title, era, year, location, character, user_role, status, scene, encountered, choices, narration, ended, ending
 """
     try:
         data = await _call_travel_model(
@@ -1283,11 +2018,11 @@ result, title, era, year, location, character, status, scene, encountered, choic
         payload = _normalize_travel_payload(data, fallback=fallback)
         if data.get("result"):
             payload["result"] = str(data.get("result"))[:1200]
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail="这一轮剧情生成失败，请重试。") from exc
+    except Exception:
+        payload = _intrigue_choice_fallback(current, selected)
     session["payload"] = payload
     session["history"].append({"type": "choice", "choice": selected, "result": payload.get("result", ""), "scene": payload.get("scene", "")})
-    _safe_record_analytics("time_travel", player_id, "秦末穿越", "", "choose")
+    _safe_record_analytics("time_travel", player_id, payload.get("title", "入局"), "", "choose")
     return {"success": True, "session_id": req.session_id, **payload}
 
 @app.post("/time_travel/talk")
@@ -1295,37 +2030,194 @@ async def time_travel_talk(req: TimeTravelTalkRequest, x_client_id: Optional[str
     player_id = x_client_id if x_client_id else "unknown_player"
     if not check_rate_limit(player_id):
         raise HTTPException(status_code=429, detail="说话太快了，请稍等一下。")
-    if not req.message.strip() or len(req.message) > 300:
-        raise HTTPException(status_code=400, detail="对话内容不能为空，且不要超过 300 字。")
+    if not req.message.strip() or len(req.message) > 2000:
+        raise HTTPException(status_code=400, detail="对话内容不能为空，且不要超过 2000 字。")
     session = _get_travel_session(req.session_id)
     current = session["payload"]
     people = current.get("encountered") or []
-    person_name = req.person or (people[0].get("name") if people else "路人")
+    counterpart = current.get("counterpart") or {}
+    person_name = req.person or counterpart.get("name") or (people[0].get("name") if people else "朝臣")
+    intent = _intrigue_intent(current, req.message.strip())
+    if intent == "unclear":
+        messages = _intrigue_clarification_messages(current, req.message.strip(), person_name)
+        user_message = {
+            "speaker": current.get("user_role", {}).get("name") or "你",
+            "role": current.get("user_role", {}).get("identity") or "玩家",
+            "text": req.message.strip(),
+            "kind": "user",
+        }
+        current_dialogue = list(current.get("dialogue") or [])
+        current_dialogue.extend([user_message, *messages])
+        current["dialogue"] = current_dialogue[-24:]
+        session["payload"] = current
+        session["history"].append({"type": "talk", "speaker": user_message["speaker"], "message": req.message.strip(), "messages": messages})
+        first_speaker = messages[0].get("speaker", "") if messages else ""
+        _safe_record_analytics("time_travel", player_id, current.get("title", "入局"), first_speaker, "talk")
+        return {
+            "success": True,
+            "messages": messages,
+            "ended": False,
+            "ending": "",
+            "round": int(current.get("round") or 0),
+        }
+    round_no = int(current.get("round") or 0) + 1
+    wants_all_advisers = intent == "ask_all"
+    branch = _intrigue_branch_axis(current, req.message.strip())
+    if branch:
+        current["branch_key"] = branch.get("key", "")
+    player_plan = _merge_intrigue_plan(current, _intrigue_player_plan(current, req.message.strip()))
+    current["player_plan"] = player_plan
+    adviser_instruction = ""
+    if wants_all_advisers:
+        adviser_names = "、".join(str(person.get("name") or "") for person in people if person.get("name"))
+        adviser_instruction = (
+            f"\n玩家正在要求所有在场者表态。本轮必须让这些人各自发言一次：{adviser_names}。不要漏人。"
+            "每个人都必须独立给出自己的判断和理由，不得用“附议”“赞同前议”“同意此议”作为开头或主体。"
+            "玩家此时只是垂询群臣，不代表已经有倾向；不得写“陛下意在……”“公子已经主张……”。"
+        )
     prompt = f"""{_travel_system_prompt()}
 
-当前游戏状态：
-{json.dumps(current, ensure_ascii=False)}
+当前游戏状态（这是局中人可见的信息，不包含后世正史真相）：
+{json.dumps(_intrigue_prompt_state(current), ensure_ascii=False)}
 
-用户正在和「{person_name}」说话。请以这个人物的身份回答。这个人物可以不知道大历史全貌，只能按自身身份、见闻和利益说话。
+局中人知识边界：
+{_intrigue_npc_context(current)}
+
+绝对禁止让局中人说出的后世或幕后知识：
+{json.dumps(_intrigue_forbidden_knowledge(current), ensure_ascii=False)}
+
+用户扮演「{current.get('user_role', {}).get('name') or current.get('character', {}).get('identity')}」，也就是本局最终决策者。
+这是第 {round_no} 轮玩家发言。
+系统识别到的玩家意图类型：{intent}
+系统识别到的玩家具体方案是：{player_plan}
+系统识别到的分支方向：{json.dumps({"key": (branch or {}).get("key", ""), "label": (branch or {}).get("label", "")}, ensure_ascii=False)}
+你必须把玩家理解为正在主张这个方案。若方案里出现“立即北上回击匈奴”，不得把玩家理解成主张和亲、退让或“不作为”。
+请生成臣子/将领/使者的回应。你不能扮演玩家本人，也不能替玩家拍板。
+绝对不要代替用户角色发言；messages 里不允许出现 speaker 为「{current.get('user_role', {}).get('name') or '用户角色'}」的内容。
+每轮最多返回 {len(people) if wants_all_advisers and people else 2} 条发言；如果玩家已经下令，最多返回 1 条臣子反应和 1 条旁白推演。{adviser_instruction}
+回应结构：
+1. 如果意图是 ask 或 debate，让臣子围绕玩家具体问题回答或互相驳论，不得结局。
+2. 如果意图是 ask_all，所有在场者必须各自表态一次，不得漏人，不得结局；每个人都要独立说明自己的立场，不得只说“附议”，也不得假定玩家已经有倾向。
+3. 如果意图是 command，臣子只能反应、提醒风险；旁白必须写出本局行动真的发生，例如“扶苏决定亲赴咸阳核验诏书”。
+4. 旁白要区分“本局推演”与“正史中实际发生”，但不能把本局分支强行拉回正史。
 用户的话：{req.message.strip()}
 
-返回 JSON：{{"speaker":"人物名","reply":"回答内容","attitude":"态度变化"}}
+返回 JSON：
+{{
+    "messages": [
+    {{"speaker":"人物名","role":"身份","text":"发言内容","kind":"ai|system"}}
+  ],
+  "ended": false,
+  "ending": ""
+}}
 """
     try:
         data = await _call_travel_model(
             [{"role": "user", "content": prompt}],
-            max_tokens=360,
+            max_tokens=760,
             model=TIME_TRAVEL_FAST_MODEL,
             timeout_seconds=TIME_TRAVEL_FAST_TIMEOUT,
         )
-        speaker = str(data.get("speaker") or person_name)[:24]
-        reply = str(data.get("reply") or "那人沉默片刻，没有立刻回答。")[:900]
-        attitude = str(data.get("attitude") or "")[:80]
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail="人物对话生成失败，请重试。") from exc
-    session["history"].append({"type": "talk", "speaker": speaker, "message": req.message.strip(), "reply": reply})
-    _safe_record_analytics("time_travel", player_id, "秦末穿越", speaker, "talk")
-    return {"success": True, "speaker": speaker, "reply": reply, "attitude": attitude}
+        messages = []
+        if isinstance(data.get("messages"), list):
+            for item in data["messages"][:4]:
+                if isinstance(item, dict):
+                    messages.append({
+                        "speaker": str(item.get("speaker") or person_name)[:24],
+                        "role": str(item.get("role") or "")[:36],
+                        "text": str(item.get("text") or "")[:1200],
+                        "kind": str(item.get("kind") or "ai")[:16],
+                    })
+        player_decided = intent == "command"
+        messages = _sanitize_intrigue_messages(
+            current,
+            messages,
+            round_no,
+            person_name,
+            allow_system=player_decided,
+            all_advisers=wants_all_advisers,
+        )
+        messages = _sanitize_intrigue_forbidden_knowledge(current, messages)
+        messages = _repair_intrigue_stage_language(current, messages)
+        if wants_all_advisers:
+            messages = _repair_all_adviser_messages(current, messages)
+        if wants_all_advisers and not player_decided:
+            present = {_normalize_person_name(item.get("speaker", "")) for item in messages}
+            for fallback_item in _intrigue_talk_fallback(current, person_name, req.message.strip()).get("messages", []):
+                speaker_key = _normalize_person_name(fallback_item.get("speaker", ""))
+                if speaker_key and speaker_key not in present:
+                    messages.append(fallback_item)
+                    present.add(speaker_key)
+        if not messages:
+            raise ValueError("empty intrigue messages")
+        ended = bool(data.get("ended", False)) if player_decided else False
+        ending = str(data.get("ending") or "")[:800] if player_decided else ""
+        if player_decided:
+            adviser_messages = [item for item in messages if item.get("kind") not in ("ruler", "system")][:1]
+            resolution_text = _intrigue_resolution_text(current, player_plan)
+            final_messages = [
+                {
+                    "speaker": "旁白",
+                    "role": "本局推演 / 正史对照",
+                    "text": resolution_text,
+                    "kind": "system",
+                },
+            ]
+            messages = adviser_messages + final_messages
+            ended = True
+            ending = "你已经做出决定，本局进入新的历史分支。"
+    except Exception:
+        data = _intrigue_talk_fallback(current, person_name, req.message.strip())
+        messages = _sanitize_intrigue_forbidden_knowledge(current, data["messages"])
+        messages = _repair_intrigue_stage_language(current, messages)
+        ended = bool(data.get("ended", False))
+        ending = str(data.get("ending") or "")[:800]
+    user_message = {
+        "speaker": current.get("user_role", {}).get("name") or "你",
+        "role": current.get("user_role", {}).get("identity") or "玩家",
+        "text": req.message.strip(),
+        "kind": "user",
+    }
+    current_dialogue = list(current.get("dialogue") or [])
+    current_dialogue.extend([user_message, *messages])
+    current["dialogue"] = current_dialogue[-24:]
+    current["round"] = round_no
+    current["ended"] = ended
+    current["ending"] = ending
+    session["payload"] = current
+    session["history"].append({"type": "talk", "speaker": user_message["speaker"], "message": req.message.strip(), "messages": messages})
+    first_speaker = messages[0].get("speaker", "") if messages else ""
+    _safe_record_analytics("time_travel", player_id, current.get("title", "入局"), first_speaker, "talk")
+    return {"success": True, "messages": messages, "ended": ended, "ending": ending, "round": round_no}
+
+@app.post("/time_travel/talk_stream")
+async def time_travel_talk_stream(req: TimeTravelTalkRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    result = await time_travel_talk(req, x_client_id)
+
+    async def event_stream():
+        for item in result.get("messages", []):
+            meta = {
+                "type": "message_start",
+                "speaker": item.get("speaker", ""),
+                "role": item.get("role", ""),
+                "kind": item.get("kind", "ai"),
+            }
+            yield f"data: {json.dumps(meta, ensure_ascii=False)}\n\n"
+            for char in str(item.get("text", "")):
+                yield f"data: {json.dumps({'type': 'delta', 'delta': char}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.004)
+            yield f"data: {json.dumps({'type': 'message_end'}, ensure_ascii=False)}\n\n"
+        done = {
+            "type": "done",
+            "success": True,
+            "ended": result.get("ended", False),
+            "ending": result.get("ending", ""),
+            "round": result.get("round", 0),
+            "messages": result.get("messages", []),
+        }
+        yield f"data: {json.dumps(done, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 @app.post("/guess_game/start")
 async def guess_game_start(req: GuessGameStartRequest):

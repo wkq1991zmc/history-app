@@ -9,7 +9,7 @@
   <script defer src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=time-travel-choice-fix-20260522">
+  <link rel="stylesheet" href="/static/css/styles.css?v=ruju-decision-20260524">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -149,66 +149,68 @@
           </div>
 
           <div id="time-travel-content" class="hidden relative">
-            <div class="text-[#64523e] text-xs tracking-[5px] mb-6 font-sans font-bold uppercase">TIME TRAVEL DEMO</div>
-            <h1 class="text-3xl xl:text-[42px] font-bold text-[#5c1313] mb-3 leading-tight" style="font-family: 'Ma Shan Zheng', serif;">秦末求生</h1>
-            <p class="text-[#64523e] text-sm mb-8 italic">第一版穿越样本：你会被抛进秦末乱局，以一个普通人的身份活下去。</p>
+            <div class="text-[#64523e] text-xs tracking-[5px] mb-6 font-sans font-bold uppercase">RUJU DEMO</div>
+            <h1 class="text-3xl xl:text-[42px] font-bold text-[#5c1313] mb-3 leading-tight" style="font-family: 'Ma Shan Zheng', serif;">入局</h1>
+            <p class="text-[#64523e] text-sm mb-8 italic">进入真实历史决策现场，坐上决策位，听取众人意见后亲自改写本局走向。</p>
 
             <section id="travel-start-panel" class="travel-panel travel-start-panel">
               <div>
-                <div class="game-panel-title">随机入史</div>
-                <p class="game-copy">系统会用 AI 随机生成你的年龄、身份、处境与第一轮遭遇。你不能轻易改写正史，只能在历史缝隙里求生。</p>
+                <div class="game-panel-title">随机入局</div>
+                <p class="game-copy">系统会抽取一场有正史依据的历史现场，让你成为最终决策者。没有选项，只有你的追问、命令和本局推演。</p>
               </div>
-              <button id="travel-start-btn" type="button">开始穿越</button>
+              <button id="travel-start-btn" type="button">随机入局</button>
             </section>
 
             <div id="travel-loading" class="travel-loading hidden">
               <div class="travel-loading-head">
-                <span id="travel-loading-title">正在打开时空裂隙...</span>
+                <span id="travel-loading-title">正在抽取历史现场...</span>
                 <b id="travel-loading-percent">0%</b>
               </div>
               <div class="travel-loading-bar"><span id="travel-loading-bar"></span></div>
               <ol id="travel-loading-steps">
-                <li data-step="0">正在加载朝代...</li>
-                <li data-step="1">正在加载人物...</li>
-                <li data-step="2">正在加载环境...</li>
-                <li data-step="3">正在生成遭遇...</li>
+                <li data-step="0">正在抽取局面...</li>
+                <li data-step="1">正在分配角色...</li>
+                <li data-step="2">正在召集局中人...</li>
+                <li data-step="3">正在生成开场...</li>
               </ol>
             </div>
 
-            <section id="travel-play-panel" class="travel-play-panel hidden">
-              <div class="travel-status-grid">
-                <div class="travel-character-card">
-                  <div class="travel-label">身份卷</div>
-                  <h2 id="travel-title">秦末驿路求生</h2>
+            <section id="travel-play-panel" class="travel-play-panel ruju-play-panel hidden">
+              <div class="ruju-board">
+                <div class="travel-talk-panel ruju-dialogue-panel">
+                  <div class="ruju-dialogue-head">
+                    <div>
+                      <div class="travel-label">朝议中</div>
+                      <h2 id="travel-title">白登之后的朝议</h2>
+                    </div>
+                    <span id="travel-round-pill">第 1 轮</span>
+                  </div>
+                  <div id="travel-talk-log" class="travel-talk-log ruju-talk-log"></div>
+                  <div class="travel-talk-row ruju-talk-row">
+                    <select id="travel-talk-person" class="hidden"></select>
+                    <textarea id="travel-talk-input" maxlength="2000" placeholder="你可以追问臣子，也可以直接下令。比如：我决定暂不奉诏，亲赴咸阳核验。"></textarea>
+                    <button id="travel-talk-btn" type="button">发令</button>
+                  </div>
+                </div>
+
+                <aside class="travel-character-card ruju-side-panel">
+                  <div class="travel-label">你的决策位</div>
                   <p id="travel-character-text"></p>
                   <div id="travel-meta" class="travel-meta"></div>
-                </div>
-                <div class="travel-stats-card">
-                  <div class="travel-label">生存状态</div>
-                  <div id="travel-stats" class="travel-stats"></div>
-                </div>
+
+                  <div class="travel-label ruju-side-label">前情提要</div>
+                  <p id="travel-scene"></p>
+
+                  <div class="travel-label ruju-side-label">局中人</div>
+                  <div id="travel-people" class="travel-people"></div>
+                </aside>
               </div>
 
-              <div class="travel-scene-card">
-                <div class="travel-label">当前遭遇</div>
-                <p id="travel-scene"></p>
-                <div id="travel-people" class="travel-people"></div>
-              </div>
-
-              <div id="travel-choice-list" class="travel-choice-list"></div>
-
-              <div class="travel-talk-panel">
-                <div class="travel-label">和遇到的人说话</div>
-                <div id="travel-talk-log" class="travel-talk-log"></div>
-                <div class="travel-talk-row">
-                  <select id="travel-talk-person"></select>
-                  <input id="travel-talk-input" type="text" maxlength="300" placeholder="问一句话，例如：这附近哪里能躲开官府？">
-                  <button id="travel-talk-btn" type="button">交谈</button>
-                </div>
-              </div>
+              <div id="travel-stats" class="hidden"></div>
+              <div id="travel-choice-list" class="hidden"></div>
 
               <div class="travel-actions">
-                <button id="travel-restart-btn" type="button" class="game-secondary-btn">重新穿越</button>
+                <button id="travel-restart-btn" type="button" class="game-secondary-btn">重新入局</button>
               </div>
             </section>
           </div>
@@ -314,6 +316,6 @@
       </div>
     </div>
   </div>
-  <script type="module" src="/static/js/app.js?v=time-travel-choice-fix-20260522"></script>
+  <script type="module" src="/static/js/app.js?v=ruju-decision-20260524"></script>
 </body>
 </html>

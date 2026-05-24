@@ -114,6 +114,61 @@ body {
     padding: 1.15rem;
 }
 
+.ruju-play-panel {
+    min-height: min(74vh, 48rem);
+}
+
+.ruju-board {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 23rem);
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.ruju-dialogue-panel {
+    min-height: 34rem;
+    display: flex;
+    flex-direction: column;
+    background:
+        linear-gradient(180deg, rgba(255, 250, 241, 0.78), rgba(239, 222, 197, 0.72));
+}
+
+.ruju-dialogue-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: start;
+    border-bottom: 1px solid rgba(129, 83, 54, 0.22);
+    padding-bottom: 0.85rem;
+    margin-bottom: 0.85rem;
+}
+
+.ruju-dialogue-head h2 {
+    color: #5c1313;
+    font-size: clamp(1.7rem, 3vw, 2.6rem);
+    margin: 0;
+    font-family: 'Ma Shan Zheng', serif;
+}
+
+#travel-round-pill {
+    border: 1px solid rgba(139, 35, 35, 0.28);
+    background: rgba(139, 35, 35, 0.08);
+    color: #7a211e;
+    padding: 0.32rem 0.68rem;
+    font-size: 0.82rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.ruju-side-panel {
+    align-self: stretch;
+    background: rgba(248, 237, 220, 0.64);
+}
+
+.ruju-side-label {
+    margin-top: 1.25rem;
+}
+
 .travel-label {
     color: #8b2323;
     font-size: 0.76rem;
@@ -248,20 +303,69 @@ body {
     margin-bottom: 0.8rem;
 }
 
+.ruju-talk-log {
+    flex: 1;
+    min-height: 19rem;
+    max-height: none;
+    align-content: start;
+    padding-right: 0.35rem;
+}
+
 .travel-talk-item {
     padding: 0.62rem 0.75rem;
     line-height: 1.75;
     background: rgba(255, 248, 239, 0.64);
     color: #35251a;
     border-left: 2px solid rgba(140, 103, 83, 0.34);
+    max-width: 92%;
 }
 
 .travel-talk-item.ai {
     border-left-color: #8b2323;
 }
 
+.travel-talk-item.ruler {
+    border-left-color: #5c1313;
+    background: rgba(92, 19, 19, 0.07);
+}
+
 .travel-talk-item.user {
     background: rgba(139, 35, 35, 0.08);
+    border-left: 0;
+    border-right: 2px solid rgba(139, 35, 35, 0.62);
+    justify-self: end;
+    text-align: left;
+}
+
+.travel-talk-item.system {
+    background: rgba(210, 164, 92, 0.14);
+    border-left-color: #c08a45;
+    color: #5c3d22;
+    max-width: 100%;
+}
+
+.travel-talk-speaker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: baseline;
+    margin-bottom: 0.25rem;
+}
+
+.travel-talk-speaker b {
+    color: #5c1313;
+    font-size: 0.95rem;
+}
+
+.travel-talk-speaker span {
+    color: #8c6c54;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.travel-talk-item p {
+    margin: 0;
+    white-space: pre-wrap;
 }
 
 .travel-talk-row {
@@ -271,12 +375,23 @@ body {
 }
 
 .travel-talk-row select,
-.travel-talk-row input {
+.travel-talk-row input,
+.travel-talk-row textarea {
     border: 1px solid #d4c3af;
     background: #f8f0e5;
     color: #35251a;
     padding: 0.75rem;
     outline: none;
+}
+
+.ruju-talk-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.ruju-talk-row textarea {
+    min-height: 7.5rem;
+    resize: vertical;
+    line-height: 1.75;
 }
 
 .travel-talk-row button,
@@ -304,13 +419,19 @@ body {
 @media (max-width: 760px) {
     .travel-start-panel,
     .travel-status-grid,
-    .travel-talk-row {
+    .travel-talk-row,
+    .ruju-board {
         grid-template-columns: 1fr;
     }
 
     .travel-loading ol {
         grid-template-columns: 1fr 1fr;
     }
+
+    .ruju-dialogue-panel {
+        min-height: 32rem;
+    }
+
 }
 
 .home-screen {

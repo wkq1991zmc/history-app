@@ -191,7 +191,8 @@ Object.assign(elements, {
     travelLoadingTitle: document.getElementById('travel-loading-title'),
     travelLoadingPercent: document.getElementById('travel-loading-percent'),
     travelLoadingBar: document.getElementById('travel-loading-bar'),
-    travelLoadingSteps: document.getElementById('travel-loading-steps')
+    travelLoadingSteps: document.getElementById('travel-loading-steps'),
+    travelRoundPill: document.getElementById('travel-round-pill')
 });
 
 // ================= API 请求 =================
@@ -724,7 +725,7 @@ async function init() {
     elements.travelChoiceList?.addEventListener('click', handleTravelChoice);
     elements.travelTalkBtn?.addEventListener('click', talkTimeTravel);
     elements.travelTalkInput?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             talkTimeTravel();
         }
@@ -1075,10 +1076,10 @@ function setTravelBusy(isBusy) {
 function setTravelLoadingStep(stepIndex, percent, titlesOverride) {
     if (!elements.travelLoading) return;
     const titles = titlesOverride || [
-        '正在加载朝代...',
-        '正在加载人物...',
-        '正在加载环境...',
-        '正在生成遭遇...'
+        '正在抽取局面...',
+        '正在分配角色...',
+        '正在召集局中人...',
+        '正在生成开场...'
     ];
     elements.travelLoading.classList.remove('hidden');
     elements.travelLoadingTitle.textContent = titles[Math.min(stepIndex, titles.length - 1)];
@@ -1093,7 +1094,7 @@ function setTravelLoadingStep(stepIndex, percent, titlesOverride) {
 function startTravelLoadingLoop(mode = 'start') {
     const isChoice = mode === 'choice';
     const titles = isChoice
-        ? ['正在回放选择...', '正在推演后果...', '正在更新处境...', '正在生成下一步...']
+        ? ['正在记录主张...', '正在推演反应...', '正在更新局势...', '正在生成下一步...']
         : null;
     const checkpoints = isChoice ? [
         { step: 0, percent: 18, delay: 0 },
@@ -1136,42 +1137,39 @@ function renderTravel(payload) {
     state.timeTravel.payload = payload;
     elements.travelStartPanel?.classList.add('hidden');
     elements.travelPlayPanel?.classList.remove('hidden');
-    elements.travelTitle.textContent = payload.title || '秦末求生';
+    const isIntrigue = payload.mode === 'intrigue';
+    elements.travelTitle.textContent = payload.title || (isIntrigue ? '入局' : '秦末求生');
+    if (elements.travelRoundPill) {
+        const round = Number(payload.round || 0) + 1;
+        elements.travelRoundPill.textContent = payload.ended ? '已定议' : `第 ${round} 轮`;
+    }
 
     const character = payload.character || {};
-    elements.travelCharacterText.textContent = [
-        `${character.age || '?'}岁`,
-        character.gender || '未知',
-        character.identity || '无名之人',
-        character.appearance || ''
-    ].filter(Boolean).join(' · ');
+    const role = payload.user_role || {};
+    elements.travelCharacterText.textContent = isIntrigue
+        ? [
+            character.identity || `${role.name || '局中人'} · ${role.identity || '历史现场参与者'}`,
+            role.power ? `权力边界：${role.power}` : '',
+            role.goal ? `目标：${role.goal}` : (character.appearance || '')
+        ].filter(Boolean).join('\n')
+        : [
+            `${character.age || '?'}岁`,
+            character.gender || '未知',
+            character.identity || '无名之人',
+            character.appearance || ''
+        ].filter(Boolean).join(' · ');
     elements.travelMeta.innerHTML = `
-        <span>${escapeHtml(payload.era || '秦末')}</span>
-        <span>${escapeHtml(payload.year || '公元前209年')}</span>
+        <span>${escapeHtml(payload.era || (isIntrigue ? '历史现场' : '秦末'))}</span>
+        <span>${escapeHtml(payload.year || (isIntrigue ? '史事节点' : '公元前209年'))}</span>
         <span>${escapeHtml(payload.location || '未知地点')}</span>
     `;
 
-    const status = payload.status || {};
-    const statItems = [
-        ['health', '体力'],
-        ['hunger', '饥饿'],
-        ['money', '钱粮'],
-        ['reputation', '名声'],
-        ['danger', '危险']
-    ];
-    elements.travelStats.innerHTML = statItems.map(([key, label]) => {
-        const value = Number(status[key] ?? 0);
-        return `
-            <div class="travel-stat">
-                <div class="travel-stat-head"><span>${label}</span><b>${value}</b></div>
-                <div class="travel-stat-bar"><span style="width:${Math.max(0, Math.min(100, value))}%"></span></div>
-            </div>
-        `;
-    }).join('');
+    if (elements.travelStats) elements.travelStats.innerHTML = '';
 
-    const sceneText = payload.ended && payload.ending
-        ? `${payload.scene || ''}\n\n【结局】${payload.ending}`
-        : payload.scene || '';
+    const sceneParts = [];
+    if (payload.scene) sceneParts.push(payload.scene);
+    if (payload.ended && payload.ending) sceneParts.push(`【本局结果】${payload.ending}`);
+    const sceneText = sceneParts.join('\n\n');
     elements.travelScene.textContent = sceneText;
 
     const people = payload.encountered || [];
@@ -1182,33 +1180,31 @@ function renderTravel(payload) {
         ? people.map(person => `<option value="${escapeAttr(person.name || '')}">${escapeHtml(person.name || '陌生人')}</option>`).join('')
         : '<option value="路人">路人</option>';
 
-    const choices = payload.ended ? [] : (payload.choices || []);
-    elements.travelChoiceList.innerHTML = choices.length
-        ? choices.map(choice => `
-            <button type="button" class="travel-choice" data-choice-id="${escapeAttr(choice.id)}">
-                <span class="travel-choice-id">${escapeHtml(choice.id)}</span>
-                <span class="travel-choice-main">
-                    <b>${escapeHtml(choice.text || '')}</b>
-                    <em>风险：${escapeHtml(choice.risk || '中')} · ${escapeHtml(choice.hint || '')}</em>
-                </span>
-            </button>
-        `).join('')
-        : '<div class="travel-ended-note">这一世已经落幕。可以重新穿越，再开一局。</div>';
+    if (elements.travelChoiceList) elements.travelChoiceList.innerHTML = '';
+    elements.travelTalkLog.innerHTML = '';
+    (payload.dialogue || []).forEach(item => {
+        appendTravelTalk(item.kind || 'ai', item.text || '', item.speaker || '', item.role || '');
+    });
+    if (payload.ended) {
+        appendTravelTalk('system', payload.ending || '这一局已经收束。可以重新入局，再换一个身份。', '本局结果', '');
+    }
+    elements.travelTalkInput.disabled = Boolean(payload.ended);
+    elements.travelTalkBtn.disabled = Boolean(payload.ended);
 }
 
 async function startTimeTravel() {
     if (state.timeTravel.isBusy) return;
     showTimeTravel();
     setTravelBusy(true);
-    elements.travelStartBtn.textContent = '正在穿越...';
+    elements.travelStartBtn.textContent = '正在入局...';
     startTravelLoadingLoop('start');
     elements.travelTalkLog.innerHTML = '';
     const res = await apiPost('/time_travel/start', { seed: `${USER_ID}-${Date.now()}` });
-    elements.travelStartBtn.textContent = '开始穿越';
+    elements.travelStartBtn.textContent = '随机入局';
     setTravelBusy(false);
     stopTravelLoading();
     if (!res || !res.success) {
-        alert(res?.error || '这次时空生成失败了，请稍后重试。');
+        alert(res?.error || '这次入局失败了，请稍后重试。');
         return;
     }
     state.timeTravel.sessionId = res.session_id;
@@ -1235,11 +1231,26 @@ async function handleTravelChoice(e) {
     trackAnalytics('time_travel', { detail: 'choose' });
 }
 
-function appendTravelTalk(role, text) {
+function appendTravelTalk(role, text, speaker = '', speakerRole = '') {
     const item = document.createElement('div');
     item.className = `travel-talk-item ${role}`;
-    item.textContent = text;
+    const name = speaker || (role === 'user' ? '你' : role === 'system' ? '旁白' : '局中人');
+    item.innerHTML = `
+        <div class="travel-talk-speaker">
+            <b>${escapeHtml(name)}</b>
+            ${speakerRole ? `<span>${escapeHtml(speakerRole)}</span>` : ''}
+        </div>
+        <p>${escapeHtml(text)}</p>
+    `;
     elements.travelTalkLog.appendChild(item);
+    elements.travelTalkLog.scrollTop = elements.travelTalkLog.scrollHeight;
+    return item;
+}
+
+function updateTravelTalkText(item, text) {
+    const textNode = item?.querySelector('p');
+    if (!textNode) return;
+    textNode.textContent = text;
     elements.travelTalkLog.scrollTop = elements.travelTalkLog.scrollHeight;
 }
 
@@ -1248,20 +1259,57 @@ async function talkTimeTravel() {
     if (!message || state.timeTravel.isBusy || !state.timeTravel.sessionId) return;
     const person = elements.travelTalkPerson.value;
     elements.travelTalkInput.value = '';
-    appendTravelTalk('user', `你：${message}`);
+    const role = state.timeTravel.payload?.user_role || {};
+    appendTravelTalk('user', message, role.name || '你', role.identity || '玩家');
     setTravelBusy(true);
-    const res = await apiPost('/time_travel/talk', {
-        session_id: state.timeTravel.sessionId,
-        person,
-        message
-    });
-    setTravelBusy(false);
-    if (!res || !res.success) {
-        appendTravelTalk('system', res?.error || '对方没有回应，时空连线似乎断了一下。');
+    const streamedMessages = [];
+    let streamItem = null;
+    let streamText = '';
+    let streamIndex = -1;
+    let res = null;
+    try {
+        await apiStreamPost('/time_travel/talk_stream', {
+            session_id: state.timeTravel.sessionId,
+            person,
+            message
+        }, (delta, payload) => {
+            if (payload?.type !== 'delta' || !streamItem) return;
+            streamText += delta;
+            if (streamedMessages[streamIndex]) streamedMessages[streamIndex].text = streamText;
+            updateTravelTalkText(streamItem, streamText);
+        }, (payload) => {
+            if (payload.type === 'message_start') {
+                streamText = '';
+                streamItem = appendTravelTalk(payload.kind || 'ai', '', payload.speaker || '', payload.role || '');
+                streamedMessages.push({
+                    speaker: payload.speaker || '',
+                    role: payload.role || '',
+                    text: '',
+                    kind: payload.kind || 'ai'
+                });
+                streamIndex = streamedMessages.length - 1;
+            } else if (payload.type === 'message_end') {
+                streamItem = null;
+                streamText = '';
+            } else if (payload.type === 'done') {
+                res = payload;
+            }
+        });
+    } catch (err) {
+        appendTravelTalk('system', err?.message || '对方没有回应，时空连线似乎断了一下。');
+        setTravelBusy(false);
         return;
     }
-    appendTravelTalk('ai', `${res.speaker}：${res.reply}`);
-    trackAnalytics('time_travel', { detail: 'talk', character: res.speaker });
+    setTravelBusy(false);
+    res = res || { success: true, messages: streamedMessages, ended: false, round: 0 };
+    if (elements.travelRoundPill) {
+        elements.travelRoundPill.textContent = res.ended ? '已定议' : `第 ${Number(res.round || 0) + 1} 轮`;
+    }
+    if (res.ended) {
+        elements.travelTalkInput.disabled = true;
+        elements.travelTalkBtn.disabled = true;
+    }
+    trackAnalytics('time_travel', { detail: 'talk', character: (streamedMessages || [])[0]?.speaker || '' });
 }
 
 function appendGuessLog(role, text) {
@@ -1447,7 +1495,7 @@ function handleUserYesNoAnswer(e) {
 }
 
 
-async function apiStreamPost(endpoint, data, onDelta) {
+async function apiStreamPost(endpoint, data, onDelta, onEvent) {
     const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CLIENT-ID': USER_ID },
@@ -1475,8 +1523,11 @@ async function apiStreamPost(endpoint, data, onDelta) {
             if (payload.error) {
                 throw new Error(payload.error);
             }
+            if (onEvent) {
+                onEvent(payload);
+            }
             if (payload.delta) {
-                onDelta(payload.delta);
+                onDelta(payload.delta, payload);
             }
         }
     }
