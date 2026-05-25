@@ -133,7 +133,7 @@
 <body>
   <main class="page">
     <h1>统计后台</h1>
-    <div class="sub">统计匿名访问、互动次数和用户提问；不展示 AI 完整回答和整段聊天记录。</div>
+    <div class="sub">统计匿名访问、注册用户、互动次数和用户提问；不展示 AI 完整回答和整段聊天记录。</div>
 
     <div id="login" class="login">
       <label for="admin-key">管理员密码</label>
@@ -164,6 +164,10 @@
         <section>
           <h2>最近动作</h2>
           <div id="recent-list" class="recent"></div>
+        </section>
+        <section>
+          <h2>最近注册用户</h2>
+          <div id="recent-users-list" class="recent"></div>
         </section>
         <section>
           <h2>用户反馈</h2>
@@ -206,6 +210,7 @@
       document.getElementById('cards').innerHTML = [
         ['访问次数', totals.visits || 0],
         ['独立访客', totals.unique_visitors || 0],
+        ['注册用户', totals.users || 0],
         ['事件浏览', totals.event_views || 0],
         ['AI 对话', totals.chats || 0],
         ['用户提问', totals.questions || 0],
@@ -217,6 +222,7 @@
         { key: 'date', label: '日期' },
         { key: 'visits', label: '访问' },
         { key: 'unique_visitors', label: '访客' },
+        { key: 'registered_users', label: '注册' },
         { key: 'chats', label: '对话' },
       ]);
       renderTable('views-table', data.top_events_by_views || [], [
@@ -234,6 +240,9 @@
       document.getElementById('recent-list').innerHTML = (data.recent || []).map(item =>
         `<div>${escapeHtml(item.time)} · ${escapeHtml(item.action)} · ${escapeHtml(item.event_name || item.detail || '')} ${escapeHtml(item.character || '')}</div>`
       ).join('');
+      document.getElementById('recent-users-list').innerHTML = (data.recent_users || []).map(item =>
+        `<div>${escapeHtml(item.created_at)} · ${escapeHtml(item.email)} · 最近登录 ${escapeHtml(item.last_login_at || '')}</div>`
+      ).join('') || '<div class="recent">还没有注册用户。</div>';
       document.getElementById('feedback-list').innerHTML = (data.feedbacks || []).map(item =>
         `<div class="feedback-item"><div class="feedback-meta">${escapeHtml(item.time)} · ${escapeHtml(item.event_name || item.page || '')}${item.email ? ' · ' + escapeHtml(item.email) : ''}</div>${escapeHtml(item.message)}</div>`
       ).join('') || '<div class="recent">还没有收到反馈。</div>';

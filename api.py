@@ -691,8 +691,36 @@ def _analytics_totals(cur) -> Dict:
         "questions": questions,
     }
 
+def _auth_user_stats() -> Dict:
+    _init_auth_db()
+    with _connect_auth_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) AS count FROM users")
+        total_users = int(cur.fetchone()[0])
+        cur.execute("""
+            SELECT SUBSTR(created_at, 1, 10) AS date, COUNT(*) AS registered_users
+            FROM users
+            GROUP BY SUBSTR(created_at, 1, 10)
+            ORDER BY date DESC
+            LIMIT 14
+        """)
+        registrations_by_day = _fetch_all(cur)
+        cur.execute("""
+            SELECT email, created_at, last_login_at
+            FROM users
+            ORDER BY created_at DESC
+            LIMIT 50
+        """)
+        recent_users = _fetch_all(cur)
+    return {
+        "total_users": total_users,
+        "registrations_by_day": registrations_by_day,
+        "recent_users": recent_users,
+    }
+
 def _admin_analytics_payload() -> Dict:
     _init_analytics_db()
+    user_stats = _auth_user_stats()
     with _connect_db() as conn:
         cur = conn.cursor()
         totals = _analytics_totals(cur)
@@ -710,6 +738,26 @@ def _admin_analytics_payload() -> Dict:
             LIMIT 14
         """)
         days = _fetch_all(cur)
+        days_by_date = {}
+        for row in days:
+            item = dict(row)
+            item["registered_users"] = 0
+            days_by_date[item["date"]] = item
+        for row in user_stats["registrations_by_day"]:
+            date = row.get("date", "")
+            if not date:
+                continue
+            item = days_by_date.setdefault(date, {
+                "date": date,
+                "visits": 0,
+                "unique_visitors": 0,
+                "event_views": 0,
+                "chats": 0,
+                "guess_actions": 0,
+                "registered_users": 0,
+            })
+            item["registered_users"] = row.get("registered_users", 0)
+        days = sorted(days_by_date.values(), key=lambda item: item["date"], reverse=True)[:14]
         cur.execute("""
             SELECT event_name AS name, COUNT(*) AS views
             FROM analytics_events
@@ -758,10 +806,13 @@ def _admin_analytics_payload() -> Dict:
             LIMIT 80
         """)
         questions = _fetch_all(cur)
+    totals["users"] = user_stats["total_users"]
     return {
         "success": True,
         "totals": totals,
         "days": days,
+        "registrations_by_day": user_stats["registrations_by_day"],
+        "recent_users": user_stats["recent_users"],
         "top_events_by_views": top_events_by_views,
         "top_events_by_chats": top_events_by_chats,
         "top_characters": top_characters,
