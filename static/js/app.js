@@ -2,7 +2,7 @@ const DEFAULT_EVENT_ID = "\u79e6\u671d\u00b7\u4e00\u7edf\u516d\u56fd";
 const AUTH_REMEMBER_KEY = "historyAppRememberLogin";
 const AUTH_TOKEN_KEY = "historyAppAuthToken";
 const AUTH_SESSION_TOKEN_KEY = "historyAppSessionAuthToken";
-const GUEST_CHAT_LIMIT = 2;
+const GUEST_CHAT_LIMIT = 1;
 const GUEST_CHAT_COUNT_KEY = "historyAppGuestChatCount";
 const STORY_KEYWORDS = [
     "法家治国理想", "个人宗族私欲", "中央集权", "大一统", "皇权合法性", "政治合法性",
@@ -296,7 +296,7 @@ function incrementGuestChatCount() {
 
 function promptLoginForMoreChat() {
     openAuthModal();
-    elements.authStatus.textContent = '你已经体验了 2 次 AI 对话。登录后可以继续提问，并保留之后的探索记录。';
+    elements.authStatus.textContent = '你已经体验过 1 次 AI 对话。登录或注册后可以继续提问，并保留之后的探索记录。';
 }
 
 function setPendingEntry(target = "") {
@@ -1761,6 +1761,10 @@ async function handleUserSubmit() {
         showToast("请先进入具体事件，再向历史人物提问。");
         return;
     }
+    if (!isLoggedIn() && getGuestChatCount() >= GUEST_CHAT_LIMIT) {
+        promptLoginForMoreChat();
+        return;
+    }
     
     // 阻止重复提交
     elements.chatInput.disabled = true;
@@ -1840,6 +1844,7 @@ async function handleUserSubmit() {
             updateAssistantBubble(assistantMessageIndex, assistantMessage.content);
             saveChatToServer();
         }
+        incrementGuestChatCount();
     } catch (e) {
         console.error("对话异常", e);
         alert("访谈信号混乱，请重试！");
