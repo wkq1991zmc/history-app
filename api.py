@@ -22,6 +22,15 @@ from collections import defaultdict
 from pathlib import Path
 from dotenv import load_dotenv
 
+try:
+    from alibabacloud_dm20151123.client import Client as AliyunDmClient
+    from alibabacloud_dm20151123 import models as aliyun_dm_models
+    from alibabacloud_tea_openapi import models as aliyun_openapi_models
+except Exception:
+    AliyunDmClient = None
+    aliyun_dm_models = None
+    aliyun_openapi_models = None
+
 load_dotenv()
 
 from load_data import EVENTS_DB 
@@ -120,6 +129,12 @@ SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "").strip()
 SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USERNAME).strip()
 SMTP_USE_SSL = os.environ.get("SMTP_USE_SSL", "").lower() in ("true", "1", "yes")
 SMTP_STARTTLS = os.environ.get("SMTP_STARTTLS", "true").lower() not in ("false", "0", "no")
+ALIYUN_DM_ACCESS_KEY_ID = os.environ.get("ALIYUN_DM_ACCESS_KEY_ID", "").strip()
+ALIYUN_DM_ACCESS_KEY_SECRET = os.environ.get("ALIYUN_DM_ACCESS_KEY_SECRET", "").strip()
+ALIYUN_DM_ACCOUNT_NAME = os.environ.get("ALIYUN_DM_ACCOUNT_NAME", SMTP_FROM).strip()
+ALIYUN_DM_FROM_ALIAS = os.environ.get("ALIYUN_DM_FROM_ALIAS", "Qianqiu Lu").strip()
+ALIYUN_DM_REGION = os.environ.get("ALIYUN_DM_REGION", "cn-hangzhou").strip()
+ALIYUN_DM_ENDPOINT = os.environ.get("ALIYUN_DM_ENDPOINT", "dm.aliyuncs.com").strip()
 AUTH_EMAIL_DEV_MODE = os.environ.get("AUTH_EMAIL_DEV_MODE", "").lower() in ("true", "1", "yes")
 TIME_TRAVEL_MODEL_TIMEOUT = float(os.environ.get("TIME_TRAVEL_MODEL_TIMEOUT", "120"))
 TIME_TRAVEL_FAST_MODEL = os.environ.get("TIME_TRAVEL_FAST_MODEL", "qwen3.6-flash")
@@ -384,10 +399,51 @@ def _make_login_code() -> str:
 def _smtp_configured() -> bool:
     return bool(SMTP_HOST and SMTP_FROM)
 
+def _aliyun_dm_configured() -> bool:
+    return bool(ALIYUN_DM_ACCESS_KEY_ID and ALIYUN_DM_ACCESS_KEY_SECRET and ALIYUN_DM_ACCOUNT_NAME)
+
+def _email_service_configured() -> bool:
+    return _aliyun_dm_configured() or _smtp_configured()
+
 def _auth_dev_code_enabled() -> bool:
-    return AUTH_EMAIL_DEV_MODE or (not _smtp_configured() and not _is_postgres())
+    return AUTH_EMAIL_DEV_MODE or (not _email_service_configured() and not _is_postgres())
+
+def _send_login_code_with_aliyun(email: str, code: str):
+    if not (AliyunDmClient and aliyun_dm_models and aliyun_openapi_models):
+        raise RuntimeError("Aliyun DirectMail SDK is not installed")
+
+    config = aliyun_openapi_models.Config(
+        access_key_id=ALIYUN_DM_ACCESS_KEY_ID,
+        access_key_secret=ALIYUN_DM_ACCESS_KEY_SECRET,
+        region_id=ALIYUN_DM_REGION,
+        endpoint=ALIYUN_DM_ENDPOINT,
+        read_timeout=15000,
+        connect_timeout=15000,
+    )
+    client = AliyunDmClient(config)
+    request = aliyun_dm_models.SingleSendMailRequest(
+        account_name=ALIYUN_DM_ACCOUNT_NAME,
+        address_type=1,
+        reply_to_address=False,
+        to_address=email,
+        from_alias=ALIYUN_DM_FROM_ALIAS or None,
+        subject="千秋录登录验证码",
+        text_body=(
+            f"你的登录验证码是：{code}\n\n"
+            f"验证码将在 {AUTH_CODE_TTL_SECONDS // 60} 分钟后过期。"
+        ),
+    )
+    client.single_send_mail(request)
 
 def _send_login_code_email(email: str, code: str):
+    if _aliyun_dm_configured():
+        try:
+            _send_login_code_with_aliyun(email, code)
+            return
+        except Exception as exc:
+            print(f"阿里云邮件推送发送登录邮件失败: {exc}")
+            raise HTTPException(status_code=503, detail="验证码邮件发送失败，请稍后再试")
+
     if not _smtp_configured():
         if _auth_dev_code_enabled():
             return
