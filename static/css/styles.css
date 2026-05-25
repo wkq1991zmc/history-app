@@ -24,6 +24,24 @@ body {
     padding: 1.35rem;
 }
 
+.travel-test-selector {
+    display: grid;
+    gap: 0.35rem;
+    max-width: 22rem;
+    margin-top: 1rem;
+    color: #6f5745;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.travel-test-selector select {
+    border: 1px solid #d4c3af;
+    background: #fffaf1;
+    color: #35251a;
+    padding: 0.6rem 0.7rem;
+    outline: none;
+}
+
 .travel-loading {
     border-top: 1px dashed rgba(140, 103, 83, 0.34);
     border-bottom: 1px dashed rgba(140, 103, 83, 0.22);
@@ -388,6 +406,13 @@ body {
     grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.ruju-command-stack {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 0.5rem;
+    min-width: 5.2rem;
+}
+
 .ruju-talk-row textarea {
     min-height: 7.5rem;
     resize: vertical;
@@ -403,6 +428,12 @@ body {
     font-weight: 900;
 }
 
+.travel-decide-btn,
+#travel-decision-publish {
+    background: #5c1313 !important;
+    border-color: rgba(92, 19, 19, 0.8) !important;
+}
+
 .travel-actions {
     display: flex;
     justify-content: flex-end;
@@ -413,6 +444,80 @@ body {
     background: rgba(139, 35, 35, 0.08);
     color: #5c1313;
     padding: 1rem;
+    font-weight: 900;
+}
+
+.travel-decision-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    place-items: center;
+    padding: 1.25rem;
+    background: rgba(25, 16, 10, 0.52);
+}
+
+.travel-decision-modal.hidden {
+    display: none;
+}
+
+.travel-decision-dialog {
+    width: min(620px, 100%);
+    border: 1px solid rgba(92, 19, 19, 0.35);
+    background: #f8f0e5;
+    box-shadow: 0 24px 80px rgba(20, 12, 7, 0.38);
+    padding: 1.2rem;
+}
+
+.travel-decision-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.travel-decision-head h2 {
+    margin: 0.15rem 0 0;
+    color: #5c1313;
+    font-size: 1.35rem;
+    font-weight: 900;
+}
+
+#travel-decision-close {
+    border: 1px solid rgba(92, 19, 19, 0.28);
+    background: rgba(139, 35, 35, 0.08);
+    color: #5c1313;
+    width: 2.2rem;
+    height: 2.2rem;
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+#travel-decision-input {
+    width: 100%;
+    min-height: 9rem;
+    resize: vertical;
+    border: 1px solid #d4c3af;
+    background: #fffaf1;
+    color: #35251a;
+    padding: 0.85rem;
+    line-height: 1.75;
+    outline: none;
+}
+
+.travel-decision-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.travel-decision-actions button {
+    border: 1px solid rgba(92, 19, 19, 0.58);
+    background: #8b2323;
+    color: #f7e5c9;
+    padding: 0.7rem 1rem;
     font-weight: 900;
 }
 
@@ -430,6 +535,11 @@ body {
 
     .ruju-dialogue-panel {
         min-height: 32rem;
+    }
+
+    .ruju-command-stack {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto;
     }
 
 }
@@ -1504,6 +1614,29 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.9rem;
 }
 
+.auth-code-row {
+    display: grid;
+    grid-template-columns: 1fr 7.5rem;
+    gap: 0.55rem;
+    align-items: stretch;
+}
+
+.auth-code-row button {
+    border: 1px solid #8b2323;
+    background: #8b2323;
+    color: #fff;
+    padding: 0.62rem 0.7rem;
+    margin-top: 0.6rem;
+    font-size: 0.82rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.auth-code-row button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .auth-button-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1519,6 +1652,10 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.82rem;
     font-weight: 800;
     white-space: nowrap;
+}
+
+.auth-button-row-single {
+    grid-template-columns: 1fr;
 }
 
 .auth-button-row button:disabled {

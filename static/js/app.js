@@ -1,19 +1,7 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyBpxBagzoxMN_9TJWffR6Bqik0-sRkfGrQ",
-    authDomain: "history-app-3e6cb.firebaseapp.com",
-    projectId: "history-app-3e6cb",
-    storageBucket: "history-app-3e6cb.firebasestorage.app",
-    messagingSenderId: "1017339099255",
-    appId: "1:1017339099255:web:ad853b976fa52546666e72",
-    measurementId: "G-EY27HDP84N"
-};
-
-let firebaseAuth = null;
-let firebaseAuthApi = null;
-let firebaseReadyPromise = null;
-let firebaseObserverStarted = false;
 const DEFAULT_EVENT_ID = "\u79e6\u671d\u00b7\u4e00\u7edf\u516d\u56fd";
 const AUTH_REMEMBER_KEY = "historyAppRememberLogin";
+const AUTH_TOKEN_KEY = "historyAppAuthToken";
+const AUTH_SESSION_TOKEN_KEY = "historyAppSessionAuthToken";
 const GUEST_CHAT_LIMIT = 2;
 const GUEST_CHAT_COUNT_KEY = "historyAppGuestChatCount";
 const STORY_KEYWORDS = [
@@ -33,28 +21,6 @@ const STORY_KEYWORDS = [
     "御驾亲征", "后勤困境", "军事指挥体系", "宦官制度", "削藩政策",
     "宏大工程", "民生极限", "举国体制", "后勤灾难", "通货膨胀", "基层统治"
 ];
-
-async function getFirebaseAuth() {
-    if (firebaseAuth && firebaseAuthApi) {
-        return { auth: firebaseAuth, api: firebaseAuthApi };
-    }
-    if (!firebaseReadyPromise) {
-        firebaseReadyPromise = Promise.all([
-            import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"),
-            import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js")
-        ]).then(([appApi, authApi]) => {
-            const firebaseApp = appApi.initializeApp(firebaseConfig);
-            firebaseAuth = authApi.getAuth(firebaseApp);
-            firebaseAuthApi = authApi;
-            return authApi.setPersistence(firebaseAuth, authApi.browserLocalPersistence)
-                .catch((err) => {
-                    console.warn("Firebase persistence setup failed", err);
-                })
-                .then(() => ({ auth: firebaseAuth, api: firebaseAuthApi }));
-        });
-    }
-    return firebaseReadyPromise;
-}
 
 // 用户身份标识（UUID，首次访问自动生成，存于 localStorage）
 function getUserId() {
@@ -163,11 +129,10 @@ Object.assign(elements, {
     authModal: document.getElementById('auth-modal'),
     authCloseBtn: document.getElementById('auth-close-btn'),
     authEmail: document.getElementById('auth-email'),
-    authPassword: document.getElementById('auth-password'),
+    authCode: document.getElementById('auth-code'),
+    authCodeBtn: document.getElementById('auth-code-btn'),
     authRemember: document.getElementById('auth-remember'),
     authLoginBtn: document.getElementById('auth-login-btn'),
-    authSignupBtn: document.getElementById('auth-signup-btn'),
-    authResetBtn: document.getElementById('auth-reset-btn'),
     authStatus: document.getElementById('auth-status')
 });
 
@@ -175,6 +140,7 @@ Object.assign(elements, {
     travelStartPanel: document.getElementById('travel-start-panel'),
     travelPlayPanel: document.getElementById('travel-play-panel'),
     travelStartBtn: document.getElementById('travel-start-btn'),
+    travelSceneSelect: document.getElementById('travel-scene-select'),
     travelRestartBtn: document.getElementById('travel-restart-btn'),
     travelTitle: document.getElementById('travel-title'),
     travelCharacterText: document.getElementById('travel-character-text'),
@@ -187,6 +153,12 @@ Object.assign(elements, {
     travelTalkPerson: document.getElementById('travel-talk-person'),
     travelTalkInput: document.getElementById('travel-talk-input'),
     travelTalkBtn: document.getElementById('travel-talk-btn'),
+    travelDecideBtn: document.getElementById('travel-decide-btn'),
+    travelDecisionModal: document.getElementById('travel-decision-modal'),
+    travelDecisionClose: document.getElementById('travel-decision-close'),
+    travelDecisionCancel: document.getElementById('travel-decision-cancel'),
+    travelDecisionPublish: document.getElementById('travel-decision-publish'),
+    travelDecisionInput: document.getElementById('travel-decision-input'),
     travelLoading: document.getElementById('travel-loading'),
     travelLoadingTitle: document.getElementById('travel-loading-title'),
     travelLoadingPercent: document.getElementById('travel-loading-percent'),
@@ -290,7 +262,7 @@ function openAuthModal() {
     if (state.authUser?.email) {
         elements.authEmail.value = state.authUser.email;
     }
-    if (elements.authPassword) elements.authPassword.value = '';
+    if (elements.authCode) elements.authCode.value = '';
     elements.authEmail.focus();
 }
 
@@ -306,15 +278,6 @@ function initRememberLoginOption() {
 
 function shouldRememberLogin() {
     return elements.authRemember ? elements.authRemember.checked : true;
-}
-
-async function applyAuthPersistence() {
-    const remember = shouldRememberLogin();
-    localStorage.setItem(AUTH_REMEMBER_KEY, remember ? "1" : "0");
-    const { auth, api } = await getFirebaseAuth();
-    const persistence = remember ? api.browserLocalPersistence : api.browserSessionPersistence;
-    await api.setPersistence(auth, persistence);
-    return { auth, api };
 }
 
 function isLoggedIn() {
@@ -371,80 +334,125 @@ function continueAfterLogin() {
 }
 
 async function loadAuthUser() {
-    localStorage.removeItem('historyAppAuthToken');
-    if (firebaseObserverStarted) return;
-    firebaseObserverStarted = true;
-    getFirebaseAuth().then(({ auth, api }) => {
-        api.onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                state.authToken = "";
-                state.authUser = null;
-                state.authReady = true;
-                renderAuthState();
-                return;
-            }
-            state.authToken = await user.getIdToken();
-            state.authUser = {
-                id: user.uid,
-                email: user.email || ""
-            };
-            state.authReady = true;
-            renderAuthState();
-            continueAfterLogin();
-        });
-    }).catch((err) => {
-        console.warn("Firebase auth failed to initialize", err);
+    const token = localStorage.getItem(AUTH_TOKEN_KEY) || sessionStorage.getItem(AUTH_SESSION_TOKEN_KEY) || "";
+    if (!token) {
+        state.authToken = "";
+        state.authUser = null;
         state.authReady = true;
         renderAuthState();
+        return;
+    }
+    state.authToken = token;
+    const res = await apiGet('/auth/me', {
+        headers: { 'X-AUTH-TOKEN': token }
     });
+    if (!res?.success) {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        sessionStorage.removeItem(AUTH_SESSION_TOKEN_KEY);
+        state.authToken = "";
+        state.authUser = null;
+        state.authReady = true;
+        renderAuthState();
+        return;
+    }
+    state.authUser = res.user;
+    state.authReady = true;
+    renderAuthState();
+    continueAfterLogin();
 }
 
 function authErrorMessage(error) {
-    const code = error?.code || "";
-    if (code === "auth/email-already-in-use") return "这个邮箱已经注册过了，请直接登录。";
-    if (code === "auth/invalid-email") return "邮箱格式不正确。";
-    if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
-        return "邮箱或密码不正确。";
-    }
-    if (code === "auth/weak-password") return "密码至少需要 6 位。";
-    if (code === "auth/too-many-requests") return "尝试次数太多，请稍后再试。";
-    if (code === "auth/unauthorized-domain") return "当前域名还没有加入 Firebase 授权域名。";
+    const message = error?.detail || error?.message || "";
+    if (message) return message;
     return "登录服务暂时不可用，请稍后再试。";
 }
 
-function getAuthInputs() {
-    const email = elements.authEmail.value.trim();
-    const password = elements.authPassword.value;
+function getAuthEmail() {
+    const email = elements.authEmail?.value.trim() || "";
     if (!email) {
         elements.authStatus.textContent = '先填邮箱。';
         return null;
     }
-    if (!password || password.length < 6) {
-        elements.authStatus.textContent = '密码至少需要 6 位。';
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        elements.authStatus.textContent = '邮箱格式不正确。';
         return null;
     }
-    return { email, password };
+    return email;
+}
+
+function getAuthCode() {
+    const code = elements.authCode?.value.trim() || "";
+    if (!/^\d{6}$/.test(code)) {
+        elements.authStatus.textContent = '请输入 6 位验证码。';
+        return null;
+    }
+    return code;
 }
 
 function setAuthBusy(isBusy) {
-    elements.authLoginBtn.disabled = isBusy;
-    elements.authSignupBtn.disabled = isBusy;
-    elements.authResetBtn.disabled = isBusy;
+    if (elements.authLoginBtn) elements.authLoginBtn.disabled = isBusy;
+    if (elements.authCodeBtn) elements.authCodeBtn.disabled = isBusy;
+}
+
+async function parseApiError(response) {
+    try {
+        const data = await response.json();
+        return data?.detail || data?.message || '请求失败，请稍后再试。';
+    } catch (err) {
+        return '请求失败，请稍后再试。';
+    }
+}
+
+async function requestAuthCode() {
+    const email = getAuthEmail();
+    if (!email) return;
+    setAuthBusy(true);
+    elements.authStatus.textContent = '正在发送验证码...';
+    try {
+        const response = await fetch('/auth/email/request_code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CLIENT-ID': USER_ID },
+            body: JSON.stringify({ email })
+        });
+        if (!response.ok) throw new Error(await parseApiError(response));
+        const data = await response.json();
+        elements.authStatus.textContent = data.dev_code
+            ? `本地验证码：${data.dev_code}`
+            : (data.message || '验证码已发送，请查看邮箱。');
+        elements.authCode?.focus();
+    } catch (err) {
+        elements.authStatus.textContent = authErrorMessage(err);
+    } finally {
+        setAuthBusy(false);
+    }
 }
 
 async function loginWithEmail() {
-    const values = getAuthInputs();
-    if (!values) return;
+    const email = getAuthEmail();
+    const code = getAuthCode();
+    if (!email || !code) return;
     setAuthBusy(true);
     elements.authStatus.textContent = '正在登录...';
     try {
-        const { auth, api } = await applyAuthPersistence();
-        const credential = await api.signInWithEmailAndPassword(auth, values.email, values.password);
-        state.authToken = await credential.user.getIdToken();
-        state.authUser = {
-            id: credential.user.uid,
-            email: credential.user.email || values.email
-        };
+        const response = await fetch('/auth/email/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CLIENT-ID': USER_ID },
+            body: JSON.stringify({ email, code })
+        });
+        if (!response.ok) throw new Error(await parseApiError(response));
+        const data = await response.json();
+        if (!data?.success || !data.token) throw new Error('登录失败，请重新获取验证码。');
+        const remember = shouldRememberLogin();
+        localStorage.setItem(AUTH_REMEMBER_KEY, remember ? "1" : "0");
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        sessionStorage.removeItem(AUTH_SESSION_TOKEN_KEY);
+        if (remember) {
+            localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+        } else {
+            sessionStorage.setItem(AUTH_SESSION_TOKEN_KEY, data.token);
+        }
+        state.authToken = data.token;
+        state.authUser = data.user;
         renderAuthState();
         elements.authStatus.textContent = '登录成功。';
         showToast('登录成功');
@@ -457,54 +465,13 @@ async function loginWithEmail() {
     }
 }
 
-async function signupWithEmail() {
-    const values = getAuthInputs();
-    if (!values) return;
-    setAuthBusy(true);
-    elements.authStatus.textContent = '正在注册...';
-    try {
-        const { auth, api } = await applyAuthPersistence();
-        const credential = await api.createUserWithEmailAndPassword(auth, values.email, values.password);
-        state.authToken = await credential.user.getIdToken();
-        state.authUser = {
-            id: credential.user.uid,
-            email: credential.user.email || values.email
-        };
-        renderAuthState();
-        elements.authStatus.textContent = '注册成功。';
-        showToast('注册成功');
-        continueAfterLogin();
-        setTimeout(closeAuthModal, 600);
-    } catch (err) {
-        elements.authStatus.textContent = authErrorMessage(err);
-    } finally {
-        setAuthBusy(false);
-    }
-}
-
-async function resetAuthPassword() {
-    const email = elements.authEmail.value.trim();
-    if (!email) {
-        elements.authStatus.textContent = '先填邮箱，再重置密码。';
-        return;
-    }
-    setAuthBusy(true);
-    elements.authStatus.textContent = '正在发送重置邮件...';
-    try {
-        const { auth, api } = await getFirebaseAuth();
-        await api.sendPasswordResetEmail(auth, email);
-        elements.authStatus.textContent = '重置邮件已发送，请查看邮箱。';
-    } catch (err) {
-        elements.authStatus.textContent = authErrorMessage(err);
-    } finally {
-        setAuthBusy(false);
-    }
-}
-
 async function logoutAuth() {
     try {
-        const { auth, api } = await getFirebaseAuth();
-        await api.signOut(auth);
+        if (state.authToken) {
+            await apiPost('/auth/logout', {}, { auth: true });
+        }
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        sessionStorage.removeItem(AUTH_SESSION_TOKEN_KEY);
         state.authToken = "";
         state.authUser = null;
         renderAuthState();
@@ -632,9 +599,28 @@ function enterFromHome() {
     }
 }
 
+async function loadTravelScenes() {
+    if (!elements.travelSceneSelect) return;
+    const res = await apiGet('/time_travel/scenes');
+    if (!res?.success || !Array.isArray(res.scenes)) return;
+    const currentValue = elements.travelSceneSelect.value;
+    const options = ['<option value="">随机抽取</option>'];
+    res.scenes.forEach(scene => {
+        if (!scene?.scene_id || !scene?.title) return;
+        const labelParts = [scene.era, scene.title].filter(Boolean);
+        const label = labelParts.length ? labelParts.join(' · ') : scene.title;
+        options.push(`<option value="${escapeHtml(scene.scene_id)}">${escapeHtml(label)}</option>`);
+    });
+    elements.travelSceneSelect.innerHTML = options.join('');
+    if ([...elements.travelSceneSelect.options].some(option => option.value === currentValue)) {
+        elements.travelSceneSelect.value = currentValue;
+    }
+}
+
 async function init() {
     trackAnalytics('visit');
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
+    loadTravelScenes();
     // 1. 获取导航目录
     const res = await apiGet('/events_list');
     if(res && res.success) {
@@ -724,16 +710,47 @@ async function init() {
     elements.travelRestartBtn?.addEventListener('click', startTimeTravel);
     elements.travelChoiceList?.addEventListener('click', handleTravelChoice);
     elements.travelTalkBtn?.addEventListener('click', talkTimeTravel);
+    elements.travelDecideBtn?.addEventListener('click', openTravelDecisionModal);
+    elements.travelDecisionClose?.addEventListener('click', closeTravelDecisionModal);
+    elements.travelDecisionCancel?.addEventListener('click', closeTravelDecisionModal);
+    elements.travelDecisionPublish?.addEventListener('click', publishTravelDecision);
+    elements.travelDecisionModal?.addEventListener('click', (e) => {
+        if (e.target === elements.travelDecisionModal) closeTravelDecisionModal();
+    });
     elements.travelTalkInput?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             talkTimeTravel();
         }
     });
+    elements.travelDecisionInput?.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            publishTravelDecision();
+        }
+    });
     elements.feedbackOpenBtn?.addEventListener('click', openFeedbackModal);
     elements.mobileFeedbackBtn?.addEventListener('click', openFeedbackModal);
     elements.homeAuthOpenBtn?.addEventListener('click', openAuthModal);
     elements.homeAuthLogoutBtn?.addEventListener('click', logoutAuth);
+    elements.authCloseBtn?.addEventListener('click', closeAuthModal);
+    elements.authModal?.addEventListener('click', (e) => {
+        if (e.target === elements.authModal) closeAuthModal();
+    });
+    elements.authCodeBtn?.addEventListener('click', requestAuthCode);
+    elements.authLoginBtn?.addEventListener('click', loginWithEmail);
+    elements.authEmail?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            requestAuthCode();
+        }
+    });
+    elements.authCode?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            loginWithEmail();
+        }
+    });
     document.querySelectorAll('[data-copy-group]').forEach(button => {
         button.addEventListener('click', copyQQGroup);
     });
@@ -742,6 +759,8 @@ async function init() {
         if (e.target === elements.feedbackModal) closeFeedbackModal();
     });
     elements.feedbackSubmitBtn.addEventListener('click', submitFeedback);
+    initRememberLoginOption();
+    loadAuthUser();
     loadSiteConfig();
 }
 
@@ -1064,7 +1083,7 @@ function showTimeTravel() {
 
 function setTravelBusy(isBusy) {
     state.timeTravel.isBusy = isBusy;
-    [elements.travelStartBtn, elements.travelRestartBtn, elements.travelTalkBtn]
+    [elements.travelStartBtn, elements.travelRestartBtn, elements.travelTalkBtn, elements.travelDecideBtn, elements.travelDecisionPublish]
         .forEach(button => {
             if (button) button.disabled = isBusy;
         });
@@ -1190,6 +1209,7 @@ function renderTravel(payload) {
     }
     elements.travelTalkInput.disabled = Boolean(payload.ended);
     elements.travelTalkBtn.disabled = Boolean(payload.ended);
+    if (elements.travelDecideBtn) elements.travelDecideBtn.disabled = Boolean(payload.ended);
 }
 
 async function startTimeTravel() {
@@ -1199,7 +1219,11 @@ async function startTimeTravel() {
     elements.travelStartBtn.textContent = '正在入局...';
     startTravelLoadingLoop('start');
     elements.travelTalkLog.innerHTML = '';
-    const res = await apiPost('/time_travel/start', { seed: `${USER_ID}-${Date.now()}` });
+    const sceneId = elements.travelSceneSelect?.value || '';
+    const res = await apiPost('/time_travel/start', {
+        seed: `${USER_ID}-${Date.now()}`,
+        scene_id: sceneId
+    });
     elements.travelStartBtn.textContent = '随机入局';
     setTravelBusy(false);
     stopTravelLoading();
@@ -1257,8 +1281,32 @@ function updateTravelTalkText(item, text) {
 async function talkTimeTravel() {
     const message = elements.travelTalkInput.value.trim();
     if (!message || state.timeTravel.isBusy || !state.timeTravel.sessionId) return;
-    const person = elements.travelTalkPerson.value;
     elements.travelTalkInput.value = '';
+    await submitTravelTalk(message, false);
+}
+
+function openTravelDecisionModal() {
+    if (state.timeTravel.isBusy || !state.timeTravel.sessionId || state.timeTravel.payload?.ended) return;
+    elements.travelDecisionInput.value = '';
+    elements.travelDecisionModal?.classList.remove('hidden');
+    elements.travelDecisionModal?.setAttribute('aria-hidden', 'false');
+    setTimeout(() => elements.travelDecisionInput?.focus(), 0);
+}
+
+function closeTravelDecisionModal() {
+    elements.travelDecisionModal?.classList.add('hidden');
+    elements.travelDecisionModal?.setAttribute('aria-hidden', 'true');
+}
+
+async function publishTravelDecision() {
+    const message = elements.travelDecisionInput.value.trim();
+    if (!message || state.timeTravel.isBusy || !state.timeTravel.sessionId) return;
+    closeTravelDecisionModal();
+    await submitTravelTalk(message, true);
+}
+
+async function submitTravelTalk(message, forceDecision = false) {
+    const person = elements.travelTalkPerson.value;
     const role = state.timeTravel.payload?.user_role || {};
     appendTravelTalk('user', message, role.name || '你', role.identity || '玩家');
     setTravelBusy(true);
@@ -1271,7 +1319,8 @@ async function talkTimeTravel() {
         await apiStreamPost('/time_travel/talk_stream', {
             session_id: state.timeTravel.sessionId,
             person,
-            message
+            message,
+            force_decision: forceDecision
         }, (delta, payload) => {
             if (payload?.type !== 'delta' || !streamItem) return;
             streamText += delta;
@@ -1308,8 +1357,9 @@ async function talkTimeTravel() {
     if (res.ended) {
         elements.travelTalkInput.disabled = true;
         elements.travelTalkBtn.disabled = true;
+        if (elements.travelDecideBtn) elements.travelDecideBtn.disabled = true;
     }
-    trackAnalytics('time_travel', { detail: 'talk', character: (streamedMessages || [])[0]?.speaker || '' });
+    trackAnalytics('time_travel', { detail: forceDecision ? 'decision' : 'talk', character: (streamedMessages || [])[0]?.speaker || '' });
 }
 
 function appendGuessLog(role, text) {
