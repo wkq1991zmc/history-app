@@ -9,7 +9,7 @@
   <script defer src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=ruju-decision-20260524">
+  <link rel="stylesheet" href="/static/css/styles.css?v=email-auth-20260525">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,7 +31,9 @@
   <div id="mobile-topbar" class="hidden fixed top-0 left-0 right-0 z-50 bg-[#16110f] border-b border-[#3e2c26] px-4 py-3 flex items-center justify-between">
     <button id="mobile-menu-btn" class="text-[#e8d5c4] text-2xl leading-none p-1">☰</button>
     <h1 class="text-lg font-bold text-[#f0c9a8] tracking-widest" style="font-family: 'Ma Shan Zheng', serif;">时空印证系统</h1>
-    <div class="mobile-topbar-actions">      <button id="mobile-qq-group-btn" type="button" class="mobile-feedback-top-btn" data-copy-group="1073677465">QQ群</button>
+    <div class="mobile-topbar-actions">
+      <button id="mobile-auth-open-btn" type="button" class="mobile-feedback-top-btn">登录</button>
+      <button id="mobile-qq-group-btn" type="button" class="mobile-feedback-top-btn" data-copy-group="1073677465">QQ群</button>
       <button id="mobile-feedback-top-btn" type="button" class="mobile-feedback-top-btn">反馈</button>
     </div>
   </div>
@@ -62,7 +64,13 @@
           获取机密卷宗中...
         </div>
       </div>
-      <div class="sidebar-feedback">        <div class="sidebar-community">
+      <div class="sidebar-feedback">
+          <button id="auth-open-btn" type="button" class="auth-open-btn">登录 / 注册</button>
+          <div id="auth-user-pill" class="auth-user-pill hidden">
+            <span id="auth-user-email"></span>
+            <button id="auth-logout-btn" type="button">退出登录</button>
+          </div>
+        <div class="sidebar-community">
           <div class="sidebar-community-label">交流群</div>
           <button type="button" class="qq-group-btn" data-copy-group="1073677465">QQ群 1073677465</button>
           <div class="sidebar-community-note">欢迎反馈史实问题和体验建议</div>
@@ -157,6 +165,15 @@
               <div>
                 <div class="game-panel-title">随机入局</div>
                 <p class="game-copy">系统会抽取一场有正史依据的历史现场，让你成为最终决策者。没有选项，只有你的追问、命令和本局推演。</p>
+                <label class="travel-test-selector">
+                  <span>测试事件</span>
+                  <select id="travel-scene-select">
+                    <option value="">随机抽取</option>
+                    <option value="qin_shaqiu_edict">秦朝 · 沙丘诏书</option>
+                    <option value="han_baideng_court">西汉 · 白登之后的朝议</option>
+                    <option value="han_tui_en_ling">西汉 · 推恩令前夜</option>
+                  </select>
+                </label>
               </div>
               <button id="travel-start-btn" type="button">随机入局</button>
             </section>
@@ -188,8 +205,11 @@
                   <div id="travel-talk-log" class="travel-talk-log ruju-talk-log"></div>
                   <div class="travel-talk-row ruju-talk-row">
                     <select id="travel-talk-person" class="hidden"></select>
-                    <textarea id="travel-talk-input" maxlength="2000" placeholder="你可以追问臣子，也可以直接下令。比如：我决定暂不奉诏，亲赴咸阳核验。"></textarea>
-                    <button id="travel-talk-btn" type="button">发令</button>
+                    <textarea id="travel-talk-input" maxlength="2000" placeholder="你可以追问、质疑、让臣子继续争论。正式拍板请点右侧“决定”。"></textarea>
+                    <div class="ruju-command-stack">
+                      <button id="travel-talk-btn" type="button">发言</button>
+                      <button id="travel-decide-btn" type="button" class="travel-decide-btn">决定</button>
+                    </div>
                   </div>
                 </div>
 
@@ -216,6 +236,23 @@
           </div>
         </div>
       </section>
+
+      <div id="travel-decision-modal" class="travel-decision-modal hidden" aria-hidden="true">
+        <div class="travel-decision-dialog" role="dialog" aria-modal="true" aria-labelledby="travel-decision-title">
+          <div class="travel-decision-head">
+            <div>
+              <div class="travel-label">最终决定</div>
+              <h2 id="travel-decision-title">发布你的决定</h2>
+            </div>
+            <button id="travel-decision-close" type="button" aria-label="关闭">×</button>
+          </div>
+          <textarea id="travel-decision-input" maxlength="2000" placeholder="写下你的正式决定。例如：暂不奉诏，由蒙恬扣押使者，我亲赴咸阳核验诏书。"></textarea>
+          <div class="travel-decision-actions">
+            <button id="travel-decision-cancel" type="button" class="game-secondary-btn">再想想</button>
+            <button id="travel-decision-publish" type="button">发布决定</button>
+          </div>
+        </div>
+      </div>
 
       <!-- 聊天互动区（较浅色羊皮纸或者右侧偏纸质） -->
       <section id="chat-section" class="flex-[2] flex flex-col bg-[#e7dbce] shadow-[-10px_0_30px_rgba(0,0,0,0.15)] relative">
@@ -316,6 +353,29 @@
       </div>
     </div>
   </div>
-  <script type="module" src="/static/js/app.js?v=ruju-decision-20260524"></script>
+
+  <div id="auth-modal" class="auth-modal hidden" aria-hidden="true">
+    <div class="auth-card">
+      <button id="auth-close-btn" type="button" class="auth-close-btn" aria-label="关闭登录">×</button>
+      <div class="auth-title">登录时空印证</div>
+      <p class="auth-copy">输入邮箱获取 6 位验证码。登录后可保存身份，后续会员和入局剧本权限也会挂在这个账号上。</p>
+      <input id="auth-email" type="email" maxlength="120" autocomplete="email" placeholder="邮箱">
+      <div class="auth-code-row">
+        <input id="auth-code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6 位验证码">
+        <button id="auth-code-btn" type="button">获取验证码</button>
+      </div>
+      <label class="auth-remember-row">
+        <input id="auth-remember" type="checkbox" checked>
+        <span>在这台设备上保持登录</span>
+      </label>
+      <div class="auth-actions auth-actions-stack">
+        <div id="auth-status"></div>
+        <div class="auth-button-row auth-button-row-single">
+          <button id="auth-login-btn" type="button">登录 / 注册</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/static/js/app.js?v=email-auth-20260525"></script>
 </body>
 </html>
