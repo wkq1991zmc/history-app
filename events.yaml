@@ -853,6 +853,10 @@
   story: 秦朝骨架总结页：从一统六国、始皇称帝、郡县天下，到沙丘之变、大泽乡起义、巨鹿之战和子婴降刘，帮助用户建立秦朝兴亡的整体框架。
   summary_title: 秦朝这一层楼，怎么搭起，又怎么塌下
   summary_intro: 秦朝的关键，不只是“暴政”二字，而是一个新生帝国用极高强度完成统一、标准化和中央集权，却在继承失控与基层压力中迅速崩塌。
+  archive_pillars_title: 秦朝为何能迅速兴起？
+  archive_pillars_emphasis: 兴起
+  archive_cracks_title: 帝国裂痕从哪里开始？
+  archive_cracks_emphasis: 裂痕
   skeleton_nodes:
   - event: 秦朝·一统六国
     stage: 帝国建立
@@ -1439,6 +1443,10 @@
   summary_title: 汉朝这一层楼，怎么修补秦制，又怎样强盛、重建并走向三国
   summary_intro: 汉朝的关键，不只是“强汉”二字，而是一个王朝如何在秦制废墟上降低治理强度、恢复民生，再通过集权、思想整合和边疆扩张塑造大一统帝国，随后又在外戚、宦官、豪强、民变和地方军事化中断裂、重建并最终落幕。
   skeleton_line_title: 帝国主线：两汉兴衰与落幕二十章
+  archive_pillars_title: 汉朝如何修补秦制并走向强盛？
+  archive_pillars_emphasis: 强盛
+  archive_cracks_title: 两汉裂痕从哪里开始？
+  archive_cracks_emphasis: 裂痕
   hero_tags:
   - 汉承秦制
   - 文景蓄力
@@ -1881,6 +1889,10 @@
   summary_title: 三国这一层楼，怎样从汉室裂缝长成三分天下，又怎样归于司马氏
   summary_intro: 三国不是突然出现的英雄舞台，而是东汉末年中央失控、地方武装化、强臣挟天子、南北地缘分割和政权合法性竞争共同塑造的结果。它的主线，是从群雄混战收束为曹、刘、孙三大集团，再由曹魏内部的司马氏完成统一。
   skeleton_line_title: 三国主线：割据、三分与归晋十二章
+  archive_pillars_title: 三国格局为何会形成？
+  archive_pillars_emphasis: 形成
+  archive_cracks_title: 三分格局如何走向归晋？
+  archive_cracks_emphasis: 归晋
   hero_tags:
   - 汉末裂缝
   - 三分天下

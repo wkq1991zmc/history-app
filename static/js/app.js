@@ -967,6 +967,20 @@ function renderDynastySkeleton(data) {
 
     const takeawayHtml = takeaways.map(item => `<li><span></span>${escapeHtml(item)}</li>`).join('');
     const tagHtml = heroTags.map(tag => `<span>${escapeHtml(tag)}</span>`).join('');
+    const archiveTitleHtml = (title, emphasis) => {
+        const rawTitle = String(title || '');
+        const rawEmphasis = String(emphasis || '');
+        if (!rawTitle) return '';
+        if (!rawEmphasis || !rawTitle.includes(rawEmphasis)) {
+            return escapeHtml(rawTitle);
+        }
+        const [before, after] = rawTitle.split(rawEmphasis, 2);
+        return `${escapeHtml(before)}<span>${escapeHtml(rawEmphasis)}</span>${escapeHtml(after)}`;
+    };
+    const archivePillarsTitle = data.archive_pillars_title || `${heroTitle || '本朝'}的骨架如何形成？`;
+    const archivePillarsEmphasis = data.archive_pillars_emphasis || '';
+    const archiveCracksTitle = data.archive_cracks_title || `${heroTitle || '本朝'}的裂痕从哪里开始？`;
+    const archiveCracksEmphasis = data.archive_cracks_emphasis || '';
 
     return `
         <section class="dynasty-skeleton">
@@ -987,12 +1001,12 @@ function renderDynastySkeleton(data) {
             <div class="skeleton-archive-grid">
                 <div class="skeleton-archive-card skeleton-archive-card-rise">
                     <div class="skeleton-archive-label">第一份案卷</div>
-                    <div class="skeleton-archive-title">秦朝为何能迅速<span>兴起</span>？</div>
+                    <div class="skeleton-archive-title">${archiveTitleHtml(archivePillarsTitle, archivePillarsEmphasis)}</div>
                     <div class="skeleton-card-list">${pillarHtml}</div>
                 </div>
                 <div class="skeleton-archive-card skeleton-archive-card-fall">
                     <div class="skeleton-archive-label">第二份案卷</div>
-                    <div class="skeleton-archive-title">帝国<span>裂痕</span>从哪里开始？</div>
+                    <div class="skeleton-archive-title">${archiveTitleHtml(archiveCracksTitle, archiveCracksEmphasis)}</div>
                     <div class="skeleton-card-list">${crackHtml}</div>
                 </div>
             </div>
