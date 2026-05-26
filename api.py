@@ -2987,6 +2987,11 @@ async def get_events_list():
     print("前端请求全量事件列表")
     events_list = []
     dynasty_nav_order = {}
+    dynasty_order = [
+        "秦朝", "汉朝", "三国", "晋朝", "南北朝", "隋朝",
+        "唐朝", "五代", "宋朝", "元朝", "明朝", "清朝",
+    ]
+    dynasty_rank = {name: index for index, name in enumerate(dynasty_order)}
     for summary in EVENTS_DB.values():
         if not isinstance(summary, dict) or summary.get("summary_type") != "dynasty_skeleton":
             continue
@@ -3065,6 +3070,8 @@ async def get_events_list():
         
     # 对 events_list 进行原地排序
     events_list.sort(key=lambda x: (
+        dynasty_rank.get(x.get("dynasty"), 999),
+        x.get("dynasty", ""),
         x.get("navOrder", 0),
         x.get("storyOrder") if x.get("storyOrder") is not None else get_sort_weight(x['year'])
     ))
