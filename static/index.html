@@ -9,7 +9,7 @@
   <script defer src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=skeleton-copy-20260526">
+  <link rel="stylesheet" href="/static/css/styles.css?v=cinematic-navfinal-20260527">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,6 +43,29 @@
 
   <!-- 主容器：深色外框背景（模拟边缘暗影） -->
   <div id="app-shell" class="app-shell hidden flex h-screen overflow-hidden bg-[#1a1412]">
+    <header id="app-topbar" class="app-topbar">
+      <div class="topbar-brand">
+        <div class="topbar-seal">印</div>
+        <div>
+          <div class="topbar-title">时空印证系统</div>
+          <div class="topbar-subtitle">穿越时空 · 印证文明</div>
+        </div>
+      </div>
+      <nav class="topbar-nav" aria-label="主导航">
+        <button type="button" data-top-action="default" class="topbar-nav-item active">首页</button>
+        <button type="button" data-top-action="archive" class="topbar-nav-item">历史长卷</button>
+        <button type="button" data-top-action="guess-game" class="topbar-nav-item">互动游戏</button>
+        <button type="button" data-top-action="time-travel" class="topbar-nav-item">入局</button>
+      </nav>
+      <div class="topbar-search" aria-label="搜索入口">
+        <span></span>
+        <input type="text" value="" placeholder="搜索历史事件、人物、地点" aria-label="搜索历史事件、人物、地点">
+      </div>
+      <button type="button" class="topbar-profile" id="topbar-auth-btn">
+        <span>探</span>
+        <b>探索者</b>
+      </button>
+    </header>
     
     <!-- 左侧侧边栏：极黑风格底色，暗红选区 -->
     <aside id="main-sidebar" class="w-64 flex-shrink-0 bg-[#16110f] border-r-[1px] border-[#3e2c26] flex flex-col relative z-20 text-[#e8d5c4] shadow-2xl transition-transform duration-300">
@@ -120,6 +143,10 @@
             <div class="text-[#64523e] text-xs tracking-[5px] mb-6 font-sans font-bold uppercase">INTERACTIVE GAME</div>
             <h1 class="text-3xl xl:text-[42px] font-bold text-[#5c1313] mb-3 leading-tight" style="font-family: 'Ma Shan Zheng', serif;">猜历史人物</h1>
             <p class="text-[#64523e] text-sm mb-8 italic">双方各藏一个中国历史人物，用简短判断和历史线索互相试探。</p>
+            <div class="game-dev-note">
+              <b>试玩版</b>
+              <span>这个玩法还在开发中，目前先开放基础试玩。规则、题库和胜负判定都会继续调整。</span>
+            </div>
 
             <section id="guess-setup" class="game-panel">
               <div class="game-panel-title">设定你的人物</div>
@@ -376,6 +403,6 @@
       </div>
     </div>
   </div>
-  <script type="module" src="/static/js/app.js?v=skeleton-copy-20260526"></script>
+  <script type="module" src="/static/js/app.js?v=cinematic-navfinal-20260527"></script>
 </body>
 </html>

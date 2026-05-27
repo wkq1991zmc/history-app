@@ -70,7 +70,9 @@ const elements = {
     homeAuthEmail: document.getElementById('home-auth-email'),
     homeAuthLogoutBtn: document.getElementById('home-auth-logout-btn'),
     appShell: document.getElementById('app-shell'),
+    topbarAuthBtn: document.getElementById('topbar-auth-btn'),
     navContainer: document.getElementById('nav-container'),
+    storySection: document.getElementById('story-section'),
     storySplash: document.getElementById('story-splash'),
     storyContent: document.getElementById('story-content'),
     guessGameContent: document.getElementById('guess-game-content'),
@@ -572,6 +574,7 @@ function hideHome() {
 
 function showHome() {
     state.currentMode = "home";
+    window.history.pushState(null, "", window.location.pathname + window.location.search);
     elements.homeScreen?.classList.remove('hidden');
     elements.appShell?.classList.add('hidden');
     elements.storySplash.classList.remove('hidden');
@@ -597,6 +600,10 @@ function enterFromHome() {
     if (event) {
         loadEvent(event.id);
     }
+}
+
+function showFeatureNotice(message = "这个玩法正在开发中，暂未开放。") {
+    alert(message);
 }
 
 async function loadTravelScenes() {
@@ -631,7 +638,8 @@ async function init() {
         if(hash === "guess-game") {
             showGuessGame();
         } else if(hash === "time-travel") {
-            showTimeTravel();
+            showHome();
+            setTimeout(() => showFeatureNotice("入局玩法正在开发中，暂未开放试玩。"), 80);
         } else if(hash) {
             loadEvent(hash);
         } else {
@@ -669,6 +677,30 @@ async function init() {
         loadEvent(link.dataset.eventId);
     });
 
+    document.querySelectorAll('[data-top-action]').forEach(button => {
+        button.addEventListener('click', () => {
+            const action = button.dataset.topAction;
+            if (action === "default") {
+                document.querySelectorAll('[data-top-action]').forEach(item => item.classList.toggle('active', item === button));
+                showHome();
+            } else if (action === "archive") {
+                document.querySelectorAll('[data-top-action]').forEach(item => item.classList.toggle('active', item === button));
+                const event = getDefaultEvent();
+                if (event) loadEvent(event.id);
+            } else if (action === "guess-game") {
+                document.querySelectorAll('[data-top-action]').forEach(item => item.classList.toggle('active', item === button));
+                showGuessGame();
+            } else if (action === "time-travel") {
+                showFeatureNotice("入局玩法正在开发中，暂未开放试玩。");
+            } else {
+                document.querySelectorAll('[data-top-action]').forEach(item => item.classList.toggle('active', item === button));
+                const event = getDefaultEvent();
+                if (event) loadEvent(event.id);
+            }
+        });
+    });
+    elements.topbarAuthBtn?.addEventListener('click', openAuthModal);
+
     elements.charBtnsContainer.addEventListener('click', (e) => {
         const button = e.target.closest('[data-char]');
         if (!button) return;
@@ -696,7 +728,7 @@ async function init() {
         if(confirm(`确定要销毁【${state.currentEventId}】的所有档案记录并重新访谈吗？`)) {
             state.chatHistory[state.currentEventId] = [];
             saveChatToServer();
-            renderChat();
+            renderChat({ stickToBottom: true });
         }
     });
 
@@ -789,6 +821,7 @@ function renderNav(events) {
         `;
         groupByDynasty[dynasty].forEach(ev => {
             const sideClass = ev.isSideQuest ? ' nav-item-side' : '';
+            const itemIcon = ev.isSummary ? '纲' : (ev.isSideQuest ? '支' : '卷');
             html += `
                 <li>
                     <a href="#${encodeURIComponent(ev.id)}"
@@ -796,29 +829,14 @@ function renderNav(events) {
                        id="${safeId(ev.id)}"
                        class="nav-item${sideClass} block px-4 py-2 text-sm text-[#d4c3af] hover:bg-[#c62828]/10 hover:text-[#f0c9a8] rounded border-l-2 border-transparent transition-all truncate"
                        title="${escapeAttr(ev.title)}">
-                       └─ ${escapeHtml(ev.title)}
+                       <span class="nav-item-icon">${itemIcon}</span>
+                       <span class="nav-item-text">${escapeHtml(ev.title)}</span>
                     </a>
                 </li>
             `;
         });
         html += `</ul></div>`;
     }
-    html += `
-        <div class="mt-6 mb-6">
-            <h3 class="text-[#e8d5c4] font-bold text-sm mb-2 px-2 flex items-center gap-1">
-                <span class="w-1.5 h-4 bg-[#c62828] inline-block rounded-sm"></span>
-                互动游戏
-            </h3>
-            <ul class="space-y-1">
-                <li>
-                    <a href="#guess-game" data-game="guess-person"
-                       class="nav-item block px-4 py-2 text-sm text-[#d4c3af] hover:bg-[#c62828]/10 hover:text-[#f0c9a8] rounded border-l-2 border-transparent transition-all truncate">
-                       └─ 猜历史人物
-                    </a>
-                </li>
-            </ul>
-        </div>
-    `;
     elements.navContainer.innerHTML = html;
 }
 
@@ -868,7 +886,7 @@ async function loadEvent(eventId) {
         }
         
         const canChat = renderChatControls();
-        renderChat();
+        renderChat({ stickToBottom: true });
         
         elements.chatInput.disabled = !canChat;
         elements.chatSubmit.disabled = !canChat;
@@ -1612,8 +1630,20 @@ window.setAtTarget = function(char) {
 }
 
 // ================= 聊天逻辑渲染 =================
-function renderChat() {
+function isNearChatBottom(threshold = 96) {
+    const el = elements.chatHistoryWrapper;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+}
+
+function scrollChatToBottom() {
+    if (!elements.chatHistoryWrapper) return;
+    elements.chatHistoryWrapper.scrollTop = elements.chatHistoryWrapper.scrollHeight;
+}
+
+function renderChat(options = {}) {
     const history = state.chatHistory[state.currentEventId] || [];
+    const shouldStickToBottom = options.stickToBottom ?? isNearChatBottom();
     
     if(history.length === 0) {
         elements.chatEmptyState.classList.remove('hidden');
@@ -1647,8 +1677,9 @@ function renderChat() {
     });
     
     elements.chatHistoryWrapper.innerHTML = `<div id="chat-empty-state" class="hidden"></div>` + html;
-    // 滚动到底部
-    elements.chatHistoryWrapper.scrollTop = elements.chatHistoryWrapper.scrollHeight;
+    if (shouldStickToBottom) {
+        scrollChatToBottom();
+    }
 }
 
 function formatChatContent(content) {
@@ -1657,11 +1688,14 @@ function formatChatContent(content) {
         .replace(/### (.*?)\n/g, '<h3 class="text-xl font-bold text-[#5c1313] mb-2" style="font-family: \'Ma Shan Zheng\', serif;">$1</h3>');
 }
 
-function updateAssistantBubble(messageIndex, content) {
+function updateAssistantBubble(messageIndex, content, options = {}) {
+    const shouldStickToBottom = options.stickToBottom ?? isNearChatBottom();
     const bubble = elements.chatHistoryWrapper.querySelector(`[data-message-index="${messageIndex}"] .chat-bubble-ai`);
     if (!bubble) return;
     bubble.innerHTML = formatChatContent(content);
-    elements.chatHistoryWrapper.scrollTop = elements.chatHistoryWrapper.scrollHeight;
+    if (shouldStickToBottom) {
+        scrollChatToBottom();
+    }
 }
 
 async function saveChatToServer() {
@@ -1795,7 +1829,7 @@ async function handleUserSubmit() {
         content: finalContent,
         target: target
     });
-    renderChat();
+    renderChat({ stickToBottom: true });
     elements.chatInput.value = '';
     
     saveChatToServer();
@@ -1834,8 +1868,8 @@ async function handleUserSubmit() {
             };
             state.chatHistory[state.currentEventId].push(assistantMessage);
             const assistantMessageIndex = state.chatHistory[state.currentEventId].length - 1;
-            renderChat();
-            updateAssistantBubble(assistantMessageIndex, "正在连线时空信号...");
+            renderChat({ stickToBottom: true });
+            updateAssistantBubble(assistantMessageIndex, "正在连线时空信号...", { stickToBottom: true });
 
             let hasFirstDelta = false;
             let pendingStreamContent = "";
