@@ -9,7 +9,7 @@
   <script defer src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=cinematic-navfinal-20260527">
+  <link rel="stylesheet" href="/static/css/styles.css?v=ruju-visual-demo3-20260528">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -184,16 +184,26 @@
           </div>
 
           <div id="time-travel-content" class="hidden relative">
-            <div class="text-[#64523e] text-xs tracking-[5px] mb-6 font-sans font-bold uppercase">RUJU DEMO</div>
-            <h1 class="text-3xl xl:text-[42px] font-bold text-[#5c1313] mb-3 leading-tight" style="font-family: 'Ma Shan Zheng', serif;">入局</h1>
-            <p class="text-[#64523e] text-sm mb-8 italic">进入真实历史决策现场，坐上决策位，听取众人意见后亲自改写本局走向。</p>
-
-            <section id="travel-start-panel" class="travel-panel travel-start-panel">
+            <div class="ruju-screen-head">
               <div>
-                <div class="game-panel-title">随机入局</div>
-                <p class="game-copy">系统会抽取一场有正史依据的历史现场，让你成为最终决策者。没有选项，只有你的追问、命令和本局推演。</p>
+                <h1>入局</h1>
+                <p>进入真实历史决策现场，坐上决策位，听取众人意见后亲自落子。</p>
+              </div>
+              <div class="ruju-access-mark">
+                <span>内测案卷</span>
+                <b>Private Demo</b>
+              </div>
+            </div>
+
+            <section id="travel-start-panel" class="travel-panel travel-start-panel ruju-entry-panel">
+              <div class="ruju-entry-main">
+                <div class="ruju-entry-title">
+                  <span>案卷抽取</span>
+                  <h2>让你站到历史转折点上</h2>
+                </div>
+                <p>每一局都会给出一个有正史依据的现场。你不是旁观者，而是必须在信息不完整、众说纷纭和利害压力中作出判断的人。</p>
                 <label class="travel-test-selector">
-                  <span>测试事件</span>
+                  <span>案卷</span>
                   <select id="travel-scene-select">
                     <option value="">随机抽取</option>
                     <option value="qin_shaqiu_edict">秦朝 · 沙丘诏书</option>
@@ -202,7 +212,26 @@
                   </select>
                 </label>
               </div>
-              <button id="travel-start-btn" type="button">随机入局</button>
+              <aside class="ruju-dossier-preview" aria-label="入局案卷预览">
+                <div class="ruju-dossier-line">
+                  <span>你的席位</span>
+                  <b>最终决策者</b>
+                </div>
+                <div class="ruju-dossier-line">
+                  <span>推演方式</span>
+                  <b>追问 · 质疑 · 命令</b>
+                </div>
+                <div class="ruju-dossier-line">
+                  <span>历史约束</span>
+                  <b>正史背景下推进</b>
+                </div>
+                <button id="travel-start-btn" type="button">随机入局</button>
+              </aside>
+              <div class="ruju-flow-rail" aria-label="入局流程">
+                <span>抽取案卷</span>
+                <span>听取众议</span>
+                <span>落子定局</span>
+              </div>
             </section>
 
             <div id="travel-loading" class="travel-loading hidden">
@@ -218,6 +247,34 @@
                 <li data-step="3">正在生成开场...</li>
               </ol>
             </div>
+
+            <section id="travel-visual-panel" class="ruju-visual-panel hidden" aria-label="赤壁视觉局">
+              <div class="ruju-visual-stage" id="travel-visual-stage">
+                <div class="ruju-visual-topline">
+                  <div>
+                    <span id="visual-era">东汉末年</span>
+                    <b id="visual-title">赤壁战前的江东朝议</b>
+                  </div>
+                  <div id="visual-round">第 1 轮</div>
+                </div>
+                <div class="ruju-visual-dialogue" id="visual-dialogue-box">
+                  <div id="visual-avatar" class="ruju-visual-avatar"></div>
+                  <div class="ruju-visual-lines">
+                    <div class="ruju-visual-speaker">
+                      <b id="visual-speaker-name">周瑜</b>
+                      <span id="visual-speaker-role">江东都督</span>
+                    </div>
+                    <p id="visual-dialogue-text">曹军虽众，多是北土之兵，未必便能横行江上。</p>
+                    <div class="ruju-visual-hint">点击画面或按 Enter 推进</div>
+                  </div>
+                </div>
+                <form id="visual-input-form" class="ruju-visual-input">
+                  <input id="visual-player-input" maxlength="600" placeholder="以孙权身份插话、追问或下令..." autocomplete="off">
+                  <button id="visual-send-btn" type="submit">插话</button>
+                  <button id="visual-decide-btn" type="button">拍板</button>
+                </form>
+              </div>
+            </section>
 
             <section id="travel-play-panel" class="travel-play-panel ruju-play-panel hidden">
               <div class="ruju-board">
@@ -403,6 +460,6 @@
       </div>
     </div>
   </div>
-  <script type="module" src="/static/js/app.js?v=cinematic-navfinal-20260527"></script>
+  <script type="module" src="/static/js/app.js?v=ruju-visual-demo3-20260528"></script>
 </body>
 </html>

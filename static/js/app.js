@@ -4,10 +4,19 @@ const AUTH_TOKEN_KEY = "historyAppAuthToken";
 const AUTH_SESSION_TOKEN_KEY = "historyAppSessionAuthToken";
 const GUEST_CHAT_LIMIT = 1;
 const GUEST_CHAT_COUNT_KEY = "historyAppGuestChatCount";
+const PRIVATE_TIME_TRAVEL_HASH = "time-travel-dev";
+const VISUAL_NOVEL_SCENE_ID = "three_kingdoms_chibi_council";
+const VISUAL_AVATAR_CLASS = {
+    "孙权": "avatar-sunquan",
+    "周瑜": "avatar-zhouyu",
+    "鲁肃": "avatar-lusu",
+    "张昭": "avatar-zhangzhao",
+    "你": "avatar-player"
+};
 const STORY_KEYWORDS = [
     "法家治国理想", "个人宗族私欲", "中央集权", "大一统", "皇权合法性", "政治合法性",
     "帝国继承权", "权力交接", "权力过渡", "权力结构", "政治结构", "制度设计",
-    "制度化削藩", "制度性拆解", "制度修补", "国家机器", "国家能力", "国家信用",
+    "制度化削藩", "制度性拆解", "制度修补", "治理体系", "国家能力", "国家信用",
     "郡国并行", "郡县制", "分封秩序", "诸侯王国", "地方封国", "地方军事化",
     "休养生息", "轻徭薄赋", "黄老政治", "文景积累", "国力恢复", "国力积累",
     "财政压力", "战争财政", "盐铁官营", "均输平准", "民力压力", "政策刹车",
@@ -56,7 +65,9 @@ const state = {
     timeTravel: {
         sessionId: null,
         payload: null,
-        isBusy: false
+        isBusy: false,
+        visualQueue: [],
+        visualIndex: -1
     },
     isLoading: false
 };
@@ -166,7 +177,20 @@ Object.assign(elements, {
     travelLoadingPercent: document.getElementById('travel-loading-percent'),
     travelLoadingBar: document.getElementById('travel-loading-bar'),
     travelLoadingSteps: document.getElementById('travel-loading-steps'),
-    travelRoundPill: document.getElementById('travel-round-pill')
+    travelRoundPill: document.getElementById('travel-round-pill'),
+    travelVisualPanel: document.getElementById('travel-visual-panel'),
+    travelVisualStage: document.getElementById('travel-visual-stage'),
+    visualEra: document.getElementById('visual-era'),
+    visualTitle: document.getElementById('visual-title'),
+    visualRound: document.getElementById('visual-round'),
+    visualAvatar: document.getElementById('visual-avatar'),
+    visualSpeakerName: document.getElementById('visual-speaker-name'),
+    visualSpeakerRole: document.getElementById('visual-speaker-role'),
+    visualDialogueText: document.getElementById('visual-dialogue-text'),
+    visualInputForm: document.getElementById('visual-input-form'),
+    visualPlayerInput: document.getElementById('visual-player-input'),
+    visualSendBtn: document.getElementById('visual-send-btn'),
+    visualDecideBtn: document.getElementById('visual-decide-btn')
 });
 
 // ================= API 请求 =================
@@ -619,8 +643,11 @@ async function loadTravelScenes() {
         options.push(`<option value="${escapeHtml(scene.scene_id)}">${escapeHtml(label)}</option>`);
     });
     elements.travelSceneSelect.innerHTML = options.join('');
-    if ([...elements.travelSceneSelect.options].some(option => option.value === currentValue)) {
+    if (currentValue && [...elements.travelSceneSelect.options].some(option => option.value === currentValue)) {
         elements.travelSceneSelect.value = currentValue;
+    } else if (decodeURIComponent(window.location.hash.substring(1)) === PRIVATE_TIME_TRAVEL_HASH
+        && [...elements.travelSceneSelect.options].some(option => option.value === VISUAL_NOVEL_SCENE_ID)) {
+        elements.travelSceneSelect.value = VISUAL_NOVEL_SCENE_ID;
     }
 }
 
@@ -637,6 +664,8 @@ async function init() {
         const hash = decodeURIComponent(window.location.hash.substring(1));
         if(hash === "guess-game") {
             showGuessGame();
+        } else if(hash === PRIVATE_TIME_TRAVEL_HASH) {
+            showTimeTravel({ privateEntry: true });
         } else if(hash === "time-travel") {
             showHome();
             setTimeout(() => showFeatureNotice("入局玩法正在开发中，暂未开放试玩。"), 80);
@@ -748,6 +777,26 @@ async function init() {
     elements.travelDecisionPublish?.addEventListener('click', publishTravelDecision);
     elements.travelDecisionModal?.addEventListener('click', (e) => {
         if (e.target === elements.travelDecisionModal) closeTravelDecisionModal();
+    });
+    elements.travelVisualStage?.addEventListener('click', (e) => {
+        if (e.target.closest('input, button, textarea, select')) return;
+        advanceVisualDialogue();
+    });
+    elements.visualInputForm?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        submitVisualNovelInput(false);
+    });
+    elements.visualDecideBtn?.addEventListener('click', () => {
+        submitVisualNovelInput(true);
+    });
+    document.addEventListener('keydown', (e) => {
+        if (state.currentMode !== "time-travel") return;
+        if (elements.travelVisualPanel?.classList.contains('hidden')) return;
+        if (e.key !== 'Enter') return;
+        const target = e.target;
+        if (target === elements.visualPlayerInput) return;
+        e.preventDefault();
+        advanceVisualDialogue();
     });
     elements.travelTalkInput?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -1092,10 +1141,14 @@ function showGuessGame() {
     elements.chatSection.classList.add('hidden');
 }
 
-function showTimeTravel() {
+function showTimeTravel(options = {}) {
     hideHome();
     state.currentMode = "time-travel";
-    window.location.hash = "time-travel";
+    window.location.hash = options.privateEntry ? PRIVATE_TIME_TRAVEL_HASH : "time-travel";
+    elements.timeTravelContent?.classList.toggle('ruju-playing', Boolean(state.timeTravel.payload));
+    document.querySelectorAll('[data-top-action]').forEach(item => {
+        item.classList.toggle('active', item.dataset.topAction === "time-travel");
+    });
     document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.remove('bg-[#c62828]/10', 'text-[#c62828]', 'border-[#c62828]', 'font-bold');
         el.classList.add('border-transparent');
@@ -1115,10 +1168,11 @@ function showTimeTravel() {
 
 function setTravelBusy(isBusy) {
     state.timeTravel.isBusy = isBusy;
-    [elements.travelStartBtn, elements.travelRestartBtn, elements.travelTalkBtn, elements.travelDecideBtn, elements.travelDecisionPublish]
+    [elements.travelStartBtn, elements.travelRestartBtn, elements.travelTalkBtn, elements.travelDecideBtn, elements.travelDecisionPublish, elements.visualSendBtn, elements.visualDecideBtn]
         .forEach(button => {
             if (button) button.disabled = isBusy;
         });
+    if (elements.visualPlayerInput) elements.visualPlayerInput.disabled = isBusy;
     elements.travelChoiceList?.querySelectorAll('button').forEach(button => {
         button.disabled = isBusy;
     });
@@ -1183,10 +1237,101 @@ function stopTravelLoading() {
     }, 350);
 }
 
+function isVisualNovelPayload(payload) {
+    return payload?.scene_id === VISUAL_NOVEL_SCENE_ID;
+}
+
+function visualRoleForSpeaker(name = "") {
+    const people = state.timeTravel.payload?.encountered || [];
+    const person = people.find(item => item.name === name);
+    return person?.role || (name === "你" ? "孙权" : "");
+}
+
+function visualAvatarClass(name = "") {
+    return VISUAL_AVATAR_CLASS[name] || "avatar-player";
+}
+
+function setVisualDialogueItem(item) {
+    if (!item || !elements.visualDialogueText) return;
+    const speaker = item.speaker || (item.kind === "user" ? "你" : "局中人");
+    elements.visualSpeakerName.textContent = speaker;
+    elements.visualSpeakerRole.textContent = item.role || visualRoleForSpeaker(speaker);
+    elements.visualDialogueText.textContent = item.text || "";
+    elements.visualAvatar.className = `ruju-visual-avatar ${visualAvatarClass(speaker)}`;
+}
+
+function setVisualQueue(items = []) {
+    state.timeTravel.visualQueue = items
+        .filter(item => item && item.text)
+        .map(item => ({
+            speaker: item.speaker || (item.kind === "user" ? "你" : "局中人"),
+            role: item.role || visualRoleForSpeaker(item.speaker || ""),
+            text: item.text || "",
+            kind: item.kind || "ai"
+        }));
+    state.timeTravel.visualIndex = state.timeTravel.visualQueue.length ? 0 : -1;
+    setVisualDialogueItem(state.timeTravel.visualQueue[0]);
+}
+
+function appendVisualItems(items = []) {
+    const normalized = items
+        .filter(item => item && item.text)
+        .map(item => ({
+            speaker: item.speaker || (item.kind === "user" ? "你" : "局中人"),
+            role: item.role || visualRoleForSpeaker(item.speaker || ""),
+            text: item.text || "",
+            kind: item.kind || "ai"
+        }));
+    if (!normalized.length) return;
+    const wasEmpty = !state.timeTravel.visualQueue.length;
+    state.timeTravel.visualQueue.push(...normalized);
+    if (wasEmpty || state.timeTravel.visualIndex < 0) {
+        state.timeTravel.visualIndex = 0;
+    } else {
+        state.timeTravel.visualIndex = Math.max(state.timeTravel.visualIndex, state.timeTravel.visualQueue.length - normalized.length);
+    }
+    setVisualDialogueItem(state.timeTravel.visualQueue[state.timeTravel.visualIndex]);
+}
+
+function advanceVisualDialogue() {
+    if (state.timeTravel.isBusy) return;
+    const queue = state.timeTravel.visualQueue || [];
+    if (!queue.length) return;
+    if (state.timeTravel.visualIndex < queue.length - 1) {
+        state.timeTravel.visualIndex += 1;
+        setVisualDialogueItem(queue[state.timeTravel.visualIndex]);
+    }
+}
+
+function renderVisualNovel(payload) {
+    elements.travelVisualPanel?.classList.remove('hidden');
+    elements.travelPlayPanel?.classList.add('hidden');
+    if (elements.visualEra) elements.visualEra.textContent = [payload.era, payload.year, payload.location].filter(Boolean).join(' · ');
+    if (elements.visualTitle) elements.visualTitle.textContent = payload.title || '赤壁战前的江东朝议';
+    if (elements.visualRound) {
+        const round = Number(payload.round || 0) + 1;
+        elements.visualRound.textContent = payload.ended ? '已定局' : `第 ${round} 轮`;
+    }
+    const people = payload.encountered || [];
+    elements.travelTalkPerson.innerHTML = people.length
+        ? people.map(person => `<option value="${escapeAttr(person.name || '')}">${escapeHtml(person.name || '局中人')}</option>`).join('')
+        : '<option value="周瑜">周瑜</option>';
+    setVisualQueue(payload.dialogue || []);
+    if (payload.ended) {
+        appendVisualItems([{ speaker: '旁白', role: '本局结果', text: payload.ending || '这一局已经收束。', kind: 'system' }]);
+    }
+}
+
 function renderTravel(payload) {
     if (!payload) return;
     state.timeTravel.payload = payload;
+    elements.timeTravelContent?.classList.add('ruju-playing');
     elements.travelStartPanel?.classList.add('hidden');
+    if (isVisualNovelPayload(payload)) {
+        renderVisualNovel(payload);
+        return;
+    }
+    elements.travelVisualPanel?.classList.add('hidden');
     elements.travelPlayPanel?.classList.remove('hidden');
     const isIntrigue = payload.mode === 'intrigue';
     elements.travelTitle.textContent = payload.title || (isIntrigue ? '入局' : '秦末求生');
@@ -1246,7 +1391,11 @@ function renderTravel(payload) {
 
 async function startTimeTravel() {
     if (state.timeTravel.isBusy) return;
-    showTimeTravel();
+    const isPrivateEntry = decodeURIComponent(window.location.hash.substring(1)) === PRIVATE_TIME_TRAVEL_HASH;
+    const hadPayload = Boolean(state.timeTravel.payload);
+    showTimeTravel({ privateEntry: isPrivateEntry });
+    elements.timeTravelContent?.classList.add('ruju-playing');
+    elements.travelStartPanel?.classList.add('hidden');
     setTravelBusy(true);
     elements.travelStartBtn.textContent = '正在入局...';
     startTravelLoadingLoop('start');
@@ -1260,6 +1409,8 @@ async function startTimeTravel() {
     setTravelBusy(false);
     stopTravelLoading();
     if (!res || !res.success) {
+        elements.timeTravelContent?.classList.toggle('ruju-playing', hadPayload);
+        if (!hadPayload) elements.travelStartPanel?.classList.remove('hidden');
         alert(res?.error || '这次入局失败了，请稍后重试。');
         return;
     }
@@ -1315,6 +1466,75 @@ async function talkTimeTravel() {
     if (!message || state.timeTravel.isBusy || !state.timeTravel.sessionId) return;
     elements.travelTalkInput.value = '';
     await submitTravelTalk(message, false);
+}
+
+async function submitVisualNovelInput(forceDecision = false) {
+    const message = elements.visualPlayerInput?.value.trim() || "";
+    if (!message || state.timeTravel.isBusy || !state.timeTravel.sessionId) return;
+    elements.visualPlayerInput.value = "";
+    appendVisualItems([{
+        speaker: "你",
+        role: state.timeTravel.payload?.user_role?.identity || "孙权",
+        text: message,
+        kind: "user"
+    }]);
+    setTravelBusy(true);
+    const streamedMessages = [];
+    let streamText = "";
+    let streamIndex = -1;
+    let res = null;
+    const currentSpeaker = state.timeTravel.visualQueue[state.timeTravel.visualIndex]?.speaker || elements.travelTalkPerson.value || "周瑜";
+    try {
+        await apiStreamPost('/time_travel/talk_stream', {
+            session_id: state.timeTravel.sessionId,
+            person: currentSpeaker === "你" ? (elements.travelTalkPerson.value || "周瑜") : currentSpeaker,
+            message,
+            force_decision: forceDecision
+        }, (delta, payload) => {
+            if (payload?.type !== 'delta') return;
+            streamText += delta;
+            if (streamedMessages[streamIndex]) streamedMessages[streamIndex].text = streamText;
+            const current = state.timeTravel.visualQueue[state.timeTravel.visualQueue.length - 1];
+            if (current && current.kind !== "user") {
+                current.text = streamText;
+                setVisualDialogueItem(current);
+            }
+        }, (payload) => {
+            if (payload.type === 'message_start') {
+                streamText = '';
+                const item = {
+                    speaker: payload.speaker || '局中人',
+                    role: payload.role || visualRoleForSpeaker(payload.speaker || ''),
+                    text: '',
+                    kind: payload.kind || 'ai'
+                };
+                streamedMessages.push(item);
+                streamIndex = streamedMessages.length - 1;
+                state.timeTravel.visualQueue.push(item);
+                state.timeTravel.visualIndex = state.timeTravel.visualQueue.length - 1;
+                setVisualDialogueItem(item);
+            } else if (payload.type === 'message_end') {
+                streamText = '';
+            } else if (payload.type === 'done') {
+                res = payload;
+            }
+        });
+    } catch (err) {
+        appendVisualItems([{ speaker: '旁白', role: '系统', text: err?.message || '对方没有回应，时空连线似乎断了一下。', kind: 'system' }]);
+        setTravelBusy(false);
+        return;
+    }
+    setTravelBusy(false);
+    if (res?.round !== undefined && elements.visualRound) {
+        elements.visualRound.textContent = res.ended ? '已定局' : `第 ${Number(res.round || 0) + 1} 轮`;
+    }
+    if (res?.ended) {
+        state.timeTravel.payload.ended = true;
+        elements.visualPlayerInput.disabled = true;
+        elements.visualSendBtn.disabled = true;
+        elements.visualDecideBtn.disabled = true;
+    }
+    trackAnalytics('time_travel', { detail: forceDecision ? 'visual_decision' : 'visual_talk', character: streamedMessages[0]?.speaker || '' });
 }
 
 function openTravelDecisionModal() {
