@@ -1531,7 +1531,8 @@ async def _generate_initial_adviser_debate(scene: Dict, payload: Dict) -> List[D
 2. 不要让玩家/君主/最终决策者发言，只写局中臣僚、将领、使者之间的发言。
 3. 生成 4 到 7 句，每句一个发言对象；可以互相反驳、追问、补充，而不是每人孤立陈述。
 4. 每句 45 到 95 个汉字，语气要像当时朝议，不要现代网文腔，不要“国家机器”等现代抽象词。
-5. 只返回 JSON。
+5. 每个 speaker 只能以自己的身份说话；若不确定自称，一律用“臣”。例如周瑜不得自称“亮”或“孔明”，鲁肃不得自称周瑜，张昭不得自称鲁肃。
+6. 只返回 JSON。
 
 可见局势：
 {json.dumps(visible_state, ensure_ascii=False)}
@@ -1547,7 +1548,7 @@ async def _generate_initial_adviser_debate(scene: Dict, payload: Dict) -> List[D
             timeout_seconds=min(TIME_TRAVEL_FAST_TIMEOUT, 35),
         )
         raw = data.get("dialogue") or data.get("messages") or []
-        generated = _sanitize_initial_adviser_debate(payload, raw)
+        generated = _repair_intrigue_speaker_voice(payload, _sanitize_initial_adviser_debate(payload, raw))
         if len(generated) >= 3:
             return generated
     except Exception:
@@ -1569,7 +1570,8 @@ def _travel_system_prompt() -> str:
 6. 如果用户越出现实条件、身份职责或时代知识，NPC 或旁白要指出来。
 7. 旁白可以说“正史中如何”，但不能用正史强行覆盖本局已经发生的分支。
 8. 不得随意编造夸张兵力、财政或地理条件；若没有明确依据，用“主力”“亲卫”“边军”“数路兵马”等模糊但可信的表述。
-9. 必须只返回 JSON，不要解释。"""
+9. 每个 NPC 只能以自己的身份说话；若不确定自称，一律用“臣”。周瑜不得自称“亮”或“孔明”，鲁肃不得自称周瑜，张昭不得自称鲁肃。
+10. 必须只返回 JSON，不要解释。"""
 
 def _clamp_int(value, low=0, high=100) -> int:
     try:
@@ -1805,6 +1807,17 @@ def _intrigue_intent(current: Dict, message: str) -> str:
 
 def _intrigue_is_player_decision(message: str) -> bool:
     text = message or ""
+    strong_decision_words = (
+        "我决定", "朕决定", "孤决定", "我意已决", "决意",
+        "就这么办", "照此", "按此", "采纳", "准奏",
+    )
+    asks_to_delegate_decision = any(word in text for word in ("替我下令", "代我下令", "替我决定", "代我决定", "你们替我", "你们代我"))
+    has_question_mark = any(mark in text for mark in ("?", "？", "如何", "可否", "是否", "吗", "么"))
+    has_strong_decision = any(word in text for word in strong_decision_words)
+    if asks_to_delegate_decision and not has_strong_decision:
+        return False
+    if has_question_mark and not has_strong_decision:
+        return False
     decision_words = (
         "我决定", "朕决定", "孤决定", "下令", "传令", "命", "采纳", "准奏",
         "就这么办", "照此", "按此", "必须", "立刻", "马上", "我要", "我不",
@@ -1892,10 +1905,12 @@ def _sanitize_intrigue_forbidden_knowledge(current: Dict, messages: List[Dict]) 
     if not configured_patterns and current.get("scene_id") != "qin_shaqiu_edict":
         return messages
     patterns = configured_patterns or [
-        r"始皇帝(已|已经|早已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
-        r"皇帝(已|已经|早已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
-        r"陛下(已|已经|早已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
-        r"始皇(已|已经|早已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
+        r"始皇帝(真|果真|若|倘若)?(已|已经|早已|真已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
+        r"皇帝(真|果真|若|倘若)?(已|已经|早已|真已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
+        r"陛下(真|果真|若|倘若)?(已|已经|早已|真已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
+        r"陛下(真|果真|若|倘若)?(已|已经|早已|真已)?(崩|崩于|死于)沙丘",
+        r"始皇(真|果真|若|倘若)?(已|已经|早已|真已)?(死|驾崩|崩逝|大行|宾天|殡天)[了]?",
+        r"始皇(真|果真|若|倘若)?(已|已经|早已|真已)?(崩|崩于|死于)沙丘",
         r"胡亥(即位|登基|继位)",
         r"赵高(得势|专权)",
         r"秦朝(很快)?(崩解|灭亡)",
@@ -1914,6 +1929,14 @@ def _sanitize_intrigue_forbidden_knowledge(current: Dict, messages: List[Dict]) 
         text = str(new_item.get("text") or "")
         for pattern in patterns:
             text = re.sub(pattern, replacement, text)
+        if current.get("scene_id") == "qin_shaqiu_edict":
+            text = re.sub(r"臣在沙丘行宫侍奉时[^。；;]*[。；;]?", "臣远在上郡，未见行在情形。", text)
+            text = re.sub(r"(自沙丘一行|臣随驾护行|随驾护行|亲随行在|亲见陛下|亲眼目睹行在)[^。；;]*[。；;]?", "臣远在上郡，未见行在情形。", text)
+            text = re.sub(r"(陛下|始皇帝|始皇)(真有不测|若有不测)", "行在消息有变", text)
+            text = text.replace("臣在行在消息未明时，行在消息未明。", "臣远在上郡，未见行在情形。")
+            text = text.replace("陛下行在消息未明密旨", "陛下病中密旨")
+            text = text.replace("临终前（或病重时）", "病中")
+            text = text.replace("临终前", "病中")
         text = text.replace("皇帝至体违和", "行在消息不明")
         text = text.replace("皇帝遗体", "行在消息")
         new_item["text"] = text
@@ -1938,6 +1961,27 @@ def _repair_intrigue_stage_language(current: Dict, messages: List[Dict]) -> List
             text = re.sub(r"既然陛下已经(决定|下诏|颁令)[，,。；;]?", "若陛下决定暂缓，", text)
             text = re.sub(r"已经(颁布|施行|推行|下诏)", "尚未正式颁布", text)
             text = text.replace("既定国策", "朝议方案")
+        new_item["text"] = text
+        repaired.append(new_item)
+    return repaired
+
+def _repair_intrigue_speaker_voice(current: Dict, messages: List[Dict]) -> List[Dict]:
+    """Prevent advisers from leaking another historical person's self-reference."""
+    repaired = []
+    for item in messages:
+        if not isinstance(item, dict):
+            continue
+        new_item = dict(item)
+        speaker_key = _normalize_person_name(str(new_item.get("speaker") or ""))
+        text = str(new_item.get("text") or "")
+        if speaker_key != _normalize_person_name("诸葛亮"):
+            text = re.sub(
+                r"(?<!诸葛)亮(?=(便|愿|以为|请|敢|当|可|观|看|料|虽|若|今日|今|为|已|不|乃|窃|之见))",
+                "臣",
+                text,
+            )
+            text = re.sub(r"(臣)?乃诸葛亮", "臣", text)
+            text = text.replace("孔明以为", "臣以为").replace("孔明愿", "臣愿")
         new_item["text"] = text
         repaired.append(new_item)
     return repaired
@@ -2217,8 +2261,9 @@ async def _classify_intrigue_turn(current: Dict, message: str) -> Dict:
 1. 不要只看关键词，要看语义和语气。
 2. 如果玩家把某事“交给某人去办”、说“就这么办/照你说的办/依此行事”，就是 command。
 3. 如果玩家问“怎么办/可不可/会不会/你认为呢”，通常是 ask，不是 command。
-4. branch_key 必须来自可选历史分支；无法判断则为空字符串。
-5. plan 用一句话概括玩家准备执行或正在讨论的方案；如果不是 command，也可以概括其关注点。
+4. 如果玩家只是说“你们替我下令/替我决定/直接替我下令”，但没有亲口说明具体采用哪一策，不算 command；应视为 ask 或 debate，并要求玩家亲自明示。
+5. branch_key 必须来自可选历史分支；无法判断则为空字符串。
+6. plan 用一句话概括玩家准备执行或正在讨论的方案；如果不是 command，也可以概括其关注点。
 
 只返回 JSON：
 {{"intent":"command|ask_all|ask|debate|unclear","branch_key":"", "plan":"", "confidence":0.0, "reason":""}}
@@ -2419,6 +2464,7 @@ async def time_travel_talk(req: TimeTravelTalkRequest, x_client_id: Optional[str
 你必须把玩家理解为正在主张这个方案。若方案里出现“立即北上回击匈奴”，不得把玩家理解成主张和亲、退让或“不作为”。
 请生成臣子/将领/使者的回应。你不能扮演玩家本人，也不能替玩家拍板。
 绝对不要代替用户角色发言；messages 里不允许出现 speaker 为「{current.get('user_role', {}).get('name') or '用户角色'}」的内容。
+如果用户要求“你们替我下令/替我决定”，但没有由玩家本人明确拍板具体方案，臣子必须请玩家亲自明示，不得自行当作已下令。
 每轮最多返回 {len(people) if wants_all_advisers and people else 2} 条发言；如果玩家已经下令，最多返回 1 条臣子反应和 1 条旁白推演。{adviser_instruction}
 回应结构：
 1. 如果意图是 ask 或 debate，让臣子围绕玩家具体问题回答或互相驳论，不得结局。
@@ -2464,6 +2510,7 @@ async def time_travel_talk(req: TimeTravelTalkRequest, x_client_id: Optional[str
         )
         messages = _sanitize_intrigue_forbidden_knowledge(current, messages)
         messages = _repair_intrigue_stage_language(current, messages)
+        messages = _repair_intrigue_speaker_voice(current, messages)
         if wants_all_advisers:
             messages = _repair_all_adviser_messages(current, messages)
         if wants_all_advisers and not player_decided:
@@ -2495,6 +2542,7 @@ async def time_travel_talk(req: TimeTravelTalkRequest, x_client_id: Optional[str
         data = _intrigue_talk_fallback(current, person_name, req.message.strip())
         messages = _sanitize_intrigue_forbidden_knowledge(current, data["messages"])
         messages = _repair_intrigue_stage_language(current, messages)
+        messages = _repair_intrigue_speaker_voice(current, messages)
         ended = bool(data.get("ended", False))
         ending = str(data.get("ending") or "")[:800]
     user_message = {
