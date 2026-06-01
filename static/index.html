@@ -9,7 +9,7 @@
   <script defer src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=ruju-continue-corner-20260601">
+  <link rel="stylesheet" href="/static/css/styles.css?v=law-classroom-page-20260601c">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -205,9 +205,22 @@
                     <b>东汉末年 · 赤壁战前的江东朝议</b>
                     <span class="ruju-chip-caret"></span>
                   </div>
-                <div class="ruju-entry-actions">
+                  <div class="ruju-entry-actions">
                     <button id="travel-start-btn" type="button">开始入局</button>
                     <span>随机入局</span>
+                  </div>
+                  <div class="ruju-classroom-cases hidden" aria-label="公开课案例">
+                    <p class="ruju-classroom-note">公开课定制演示，不属于正式项目内容</p>
+                    <button type="button" data-classroom-scene="law_han_qinqin_xiangyin">
+                      <span>案例一</span>
+                      <b>亲亲相隐</b>
+                      <em>汉代董仲舒议狱</em>
+                    </button>
+                    <button type="button" data-classroom-scene="law_tang_liuyang_chengsi">
+                      <span>案例二</span>
+                      <b>留养承祀</b>
+                      <em>孝道与国家法律的妥协</em>
+                    </button>
                   </div>
                 </div>
 
@@ -275,6 +288,7 @@
                     <button id="visual-dialogue-continue" type="button" class="ruju-visual-hint ruju-continue-btn hidden">继续</button>
                   </div>
                 </div>
+                <div id="visual-choice-list" class="ruju-visual-choice-list hidden" aria-label="课堂案例选项"></div>
                 <form id="visual-input-form" class="ruju-visual-input">
                   <input id="visual-player-input" maxlength="600" placeholder="以孙权身份发言、追问或下令..." autocomplete="off">
                   <button id="visual-send-btn" type="submit">说</button>
@@ -318,7 +332,7 @@
               </div>
 
               <div id="travel-stats" class="hidden"></div>
-              <div id="travel-choice-list" class="hidden"></div>
+              <div id="travel-choice-list" class="travel-choice-list hidden"></div>
 
               <div class="travel-actions">
                 <button id="travel-restart-btn" type="button" class="game-secondary-btn">重新入局</button>
@@ -509,6 +523,6 @@
       </div>
     </div>
   </div>
-  <script type="module" src="/static/js/app.js?v=ruju-history-nav-20260601"></script>
+  <script type="module" src="/static/js/app.js?v=law-classroom-page-20260601c"></script>
 </body>
 </html>

@@ -1034,6 +1034,11 @@ body {
 .travel-choice-list {
     display: grid;
     gap: 0.72rem;
+    margin-top: 1rem;
+}
+
+.travel-choice-list.hidden {
+    display: none;
 }
 
 .travel-choice {
@@ -1082,6 +1087,19 @@ body {
     color: #8c6c54;
     font-size: 0.82rem;
     font-style: normal;
+}
+
+.ruju-choice-only .travel-talk-row {
+    display: none;
+}
+
+.ruju-choice-only .ruju-board {
+    grid-template-columns: minmax(0, 1.05fr) minmax(20rem, 0.95fr);
+}
+
+.ruju-choice-only .travel-choice-list {
+    width: min(68rem, calc(100% - 2rem));
+    margin: 1.2rem auto 0;
 }
 
 .travel-talk-log {
@@ -1805,7 +1823,7 @@ body {
     top: clamp(6.5rem, 18vh, 12rem);
     right: clamp(0.9rem, calc(1.6vw + (100vw - 86rem) * 0.45), 22rem);
     width: min(35rem, 38vw);
-    min-height: 26rem;
+    min-height: 31rem;
     display: grid;
     align-content: center;
     justify-items: center;
@@ -1906,6 +1924,81 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 1rem;
+}
+
+.ruju-classroom-cases {
+    width: 100%;
+    display: grid;
+    gap: 0.65rem;
+    margin-top: 0.25rem;
+}
+
+.ruju-classroom-cases.hidden {
+    display: none;
+}
+
+.ruju-classroom-note {
+    margin: 0 0 0.1rem;
+    color: rgba(139, 242, 244, 0.78) !important;
+    font-size: 0.78rem !important;
+    font-weight: 900;
+    line-height: 1.5 !important;
+    text-align: center;
+    letter-spacing: 0.08em;
+}
+
+.ruju-classroom-cases button {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 0.75rem;
+    row-gap: 0.12rem;
+    align-items: center;
+    border: 1px solid rgba(229, 191, 130, 0.28);
+    border-radius: 6px;
+    background: rgba(255, 231, 176, 0.08);
+    color: #f9e0aa;
+    padding: 0.72rem 0.9rem;
+    text-align: left;
+    transition: transform 0.18s, border-color 0.18s, background 0.18s;
+}
+
+.ruju-classroom-cases button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 214, 142, 0.55);
+    background: rgba(255, 231, 176, 0.13);
+}
+
+.ruju-classroom-cases span {
+    grid-row: 1 / span 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3.1rem;
+    height: 2.2rem;
+    border: 1px solid rgba(229, 191, 130, 0.32);
+    border-radius: 999px;
+    color: #ffd991;
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+.ruju-classroom-cases b {
+    overflow: hidden;
+    color: #ffe6aa;
+    font-size: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ruju-classroom-cases em {
+    overflow: hidden;
+    color: rgba(250, 228, 190, 0.68);
+    font-size: 0.78rem;
+    font-style: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .ruju-chip-caret {
@@ -2873,12 +2966,24 @@ body {
         #010101;
 }
 
+.ruju-visual-stage.is-loading.scene-law_han_qinqin_xiangyin,
+.ruju-visual-stage.is-intro.scene-law_han_qinqin_xiangyin,
+.ruju-visual-stage.is-loading.scene-law_tang_liuyang_chengsi,
+.ruju-visual-stage.is-intro.scene-law_tang_liuyang_chengsi {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.72)),
+        url('/static/images/ruju-chibi-council-bg.png') center / cover no-repeat,
+        #050403;
+}
+
 .ruju-visual-stage.is-loading .ruju-visual-topline,
 .ruju-visual-stage.is-intro .ruju-visual-topline,
 .ruju-visual-stage.is-loading .ruju-visual-avatar,
 .ruju-visual-stage.is-intro .ruju-visual-avatar,
 .ruju-visual-stage.is-loading .ruju-visual-dialogue,
-.ruju-visual-stage.is-intro .ruju-visual-dialogue {
+.ruju-visual-stage.is-intro .ruju-visual-dialogue,
+.ruju-visual-stage.is-loading .ruju-visual-choice-list,
+.ruju-visual-stage.is-intro .ruju-visual-choice-list {
     display: none !important;
 }
 
@@ -3012,6 +3117,100 @@ body {
     overflow-y: auto;
 }
 
+.ruju-visual-stage.scene-law_han_qinqin_xiangyin {
+    background:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.04) 48%, rgba(0, 0, 0, 0.42)),
+        linear-gradient(180deg, rgba(40, 24, 11, 0.18), rgba(8, 5, 3, 0.5)),
+        url('/static/images/ruju-chibi-council-bg.png') center / cover no-repeat,
+        #080604;
+}
+
+.ruju-visual-stage.scene-law_tang_liuyang_chengsi {
+    background:
+        linear-gradient(90deg, rgba(11, 8, 5, 0.18), rgba(0, 0, 0, 0.05) 48%, rgba(0, 0, 0, 0.36)),
+        linear-gradient(180deg, rgba(22, 12, 6, 0.06), rgba(4, 3, 2, 0.32)),
+        url('/static/images/qin-skeleton-bg.png.png') center / cover no-repeat,
+        #120d08;
+}
+
+.ruju-visual-stage.is-classroom .ruju-visual-dialogue {
+    bottom: 11.4rem;
+    min-height: 10.5rem;
+    max-height: min(32vh, 20rem);
+}
+
+.ruju-visual-choice-list {
+    position: absolute;
+    z-index: 7;
+    left: 50%;
+    bottom: 1rem;
+    width: min(86rem, calc(100% - 4rem));
+    transform: translateX(-50%);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.ruju-visual-choice-list.hidden {
+    display: none !important;
+}
+
+.ruju-visual-choice {
+    min-height: 7.9rem;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    align-items: start;
+    column-gap: 0.7rem;
+    row-gap: 0.25rem;
+    border: 1px solid rgba(255, 226, 172, 0.3);
+    border-radius: 6px;
+    background:
+        linear-gradient(180deg, rgba(20, 18, 15, 0.86), rgba(7, 6, 5, 0.9)),
+        rgba(8, 7, 5, 0.78);
+    color: #ffe8b8;
+    padding: 0.85rem;
+    text-align: left;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35), inset 0 0 22px rgba(255, 214, 142, 0.035);
+    cursor: pointer;
+    transition: transform 0.18s, border-color 0.18s, background 0.18s;
+}
+
+.ruju-visual-choice:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 214, 142, 0.68);
+    background:
+        linear-gradient(180deg, rgba(63, 28, 18, 0.92), rgba(14, 9, 6, 0.95)),
+        rgba(8, 7, 5, 0.86);
+}
+
+.ruju-visual-choice span {
+    grid-row: 1 / span 2;
+    width: 2.15rem;
+    height: 2.15rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(139, 242, 244, 0.4);
+    border-radius: 999px;
+    color: #8bf2f4;
+    font-weight: 900;
+}
+
+.ruju-visual-choice b {
+    color: #fff0cb;
+    font-size: 0.94rem;
+    line-height: 1.45;
+}
+
+.ruju-visual-choice em {
+    grid-column: 2;
+    color: rgba(255, 226, 172, 0.68);
+    font-size: 0.78rem;
+    font-style: normal;
+    line-height: 1.45;
+}
+
 .ruju-visual-dialogue .ruju-visual-hint {
     position: absolute;
     right: 2rem;
@@ -3069,6 +3268,14 @@ body {
     --avatar-pos: 100% 100%;
 }
 
+.ruju-visual-avatar.avatar-scholar {
+    --avatar-pos: 100% 100%;
+}
+
+.ruju-visual-avatar.avatar-official {
+    --avatar-pos: 0 100%;
+}
+
 .ruju-visual-avatar.avatar-player::before {
     font-size: 9rem;
 }
@@ -3088,6 +3295,30 @@ body {
         padding: 1.1rem;
         bottom: 5.3rem;
         max-height: 38vh;
+    }
+
+    .ruju-visual-stage.is-classroom .ruju-visual-dialogue {
+        bottom: 15rem;
+        max-height: 30vh;
+    }
+
+    .ruju-visual-choice-list {
+        width: calc(100% - 1.4rem);
+        grid-template-columns: 1fr 1fr;
+        gap: 0.55rem;
+    }
+
+    .ruju-visual-choice {
+        min-height: 6.8rem;
+        padding: 0.68rem;
+    }
+
+    .ruju-visual-choice b {
+        font-size: 0.84rem;
+    }
+
+    .ruju-visual-choice em {
+        font-size: 0.72rem;
     }
 
     .ruju-visual-avatar {
@@ -5471,4 +5702,95 @@ h1, h2, h3, h4, h5, h6 {
         color: #ffe4b8 !important;
         box-shadow: 0 0 22px rgba(166, 38, 29, 0.24) !important;
     }
+}
+
+/* Public lesson demo is an isolated single-purpose page. Keep these overrides last. */
+@media (min-width: 901px) {
+    body.law-classroom-demo .app-shell:not(.hidden) {
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: 72px minmax(0, 1fr) !important;
+        grid-template-areas: "top" "main" !important;
+    }
+
+    body.law-classroom-demo .app-topbar {
+        width: 100vw !important;
+        grid-template-columns: auto minmax(0, 1fr) !important;
+    }
+
+    body.law-classroom-demo .topbar-nav {
+        justify-content: end !important;
+    }
+
+    body.law-classroom-demo .app-shell > main {
+        width: 100vw !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-column: 1 / -1 !important;
+        gap: 0 !important;
+        padding: 0 !important;
+    }
+
+    body.law-classroom-demo #story-section {
+        width: 100vw !important;
+        min-width: 100vw !important;
+        grid-column: 1 / -1 !important;
+    }
+
+    body.law-classroom-demo #story-container,
+    body.law-classroom-demo #time-travel-content,
+    body.law-classroom-demo #travel-visual-panel,
+    body.law-classroom-demo #travel-visual-stage {
+        width: 100vw !important;
+    }
+}
+
+body.law-classroom-demo #main-sidebar,
+body.law-classroom-demo #chat-section,
+body.law-classroom-demo .topbar-search,
+body.law-classroom-demo .topbar-profile,
+body.law-classroom-demo .topbar-nav-item:not([data-top-action="time-travel"]),
+body.law-classroom-demo .sidebar-feedback,
+body.law-classroom-demo .mobile-topbar-actions,
+body.law-classroom-demo #mobile-menu-btn,
+body.law-classroom-demo #mobile-sidebar-overlay {
+    display: none !important;
+}
+
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing),
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .travel-start-panel.ruju-entry-panel {
+    width: 100vw !important;
+}
+
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .travel-start-panel.ruju-entry-panel {
+    display: grid !important;
+    place-items: center !important;
+    min-height: calc(100vh - 72px) !important;
+    padding: clamp(1rem, 4vw, 4rem) !important;
+}
+
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-entry-main {
+    position: relative !important;
+    width: min(46rem, calc(100vw - 2rem)) !important;
+    min-height: auto !important;
+    display: block !important;
+}
+
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-entry-card {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    min-height: auto !important;
+    padding: clamp(2.4rem, 5vw, 3.4rem) !important;
+}
+
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-event-chip,
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-entry-actions,
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-flow-rail {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-classroom-cases {
+    display: grid !important;
+    pointer-events: auto !important;
 }

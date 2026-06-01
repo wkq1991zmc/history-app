@@ -5,12 +5,20 @@ const AUTH_SESSION_TOKEN_KEY = "historyAppSessionAuthToken";
 const GUEST_CHAT_LIMIT = 1;
 const GUEST_CHAT_COUNT_KEY = "historyAppGuestChatCount";
 const PRIVATE_TIME_TRAVEL_HASH = "time-travel-dev";
+const LAW_CLASSROOM_DEMO_PARAM = "lawvisual";
 const VISUAL_NOVEL_SCENE_ID = "three_kingdoms_chibi_council";
 const VISUAL_AVATAR_CLASS = {
     "孙权": "avatar-sunquan",
     "周瑜": "avatar-zhouyu",
     "鲁肃": "avatar-lusu",
     "张昭": "avatar-zhangzhao",
+    "董仲舒": "avatar-scholar",
+    "律令官": "avatar-official",
+    "儒生": "avatar-lusu",
+    "乡里代表": "avatar-player",
+    "刑部主审官": "avatar-official",
+    "礼官": "avatar-scholar",
+    "被害者家属": "avatar-player",
     "你": "avatar-sunquan"
 };
 const STORY_KEYWORDS = [
@@ -64,6 +72,7 @@ const state = {
     },
     timeTravel: {
         sessionId: null,
+        activeSceneId: VISUAL_NOVEL_SCENE_ID,
         payload: null,
         isBusy: false,
         visualQueue: [],
@@ -83,6 +92,18 @@ const state = {
 
 function wait(ms) {
     return new Promise(resolve => window.setTimeout(resolve, ms));
+}
+
+function isLawClassroomDemo() {
+    return new URLSearchParams(window.location.search).get("x") === LAW_CLASSROOM_DEMO_PARAM;
+}
+
+function updateClassroomDemoVisibility() {
+    const visible = isLawClassroomDemo();
+    document.body?.classList.toggle('law-classroom-demo', visible);
+    elements.appShell?.classList.toggle('law-classroom-page', visible);
+    elements.classroomCases?.classList.toggle('hidden', !visible);
+    elements.timeTravelContent?.classList.toggle('law-classroom-demo', visible);
 }
 
 // DOM 元素引用
@@ -166,6 +187,7 @@ Object.assign(elements, {
     travelStartPanel: document.getElementById('travel-start-panel'),
     travelPlayPanel: document.getElementById('travel-play-panel'),
     travelStartBtn: document.getElementById('travel-start-btn'),
+    classroomCases: document.querySelector('.ruju-classroom-cases'),
     travelSceneSelect: document.getElementById('travel-scene-select'),
     travelRestartBtn: document.getElementById('travel-restart-btn'),
     travelTitle: document.getElementById('travel-title'),
@@ -193,6 +215,7 @@ Object.assign(elements, {
     travelRoundPill: document.getElementById('travel-round-pill'),
     travelVisualPanel: document.getElementById('travel-visual-panel'),
     travelVisualStage: document.getElementById('travel-visual-stage'),
+    visualChoiceList: document.getElementById('visual-choice-list'),
     visualEra: document.getElementById('visual-era'),
     visualTitle: document.getElementById('visual-title'),
     visualRound: document.getElementById('visual-round'),
@@ -633,6 +656,7 @@ async function submitFeedback() {
 function hideHome() {
     elements.homeScreen?.classList.add('hidden');
     elements.appShell?.classList.remove('hidden');
+    updateClassroomDemoVisibility();
 }
 
 function setRujuMode(enabled) {
@@ -640,6 +664,10 @@ function setRujuMode(enabled) {
 }
 
 function showHome() {
+    if (isLawClassroomDemo()) {
+        showTimeTravel({ privateEntry: true });
+        return;
+    }
     state.currentMode = "home";
     setRujuMode(false);
     window.history.pushState(null, "", window.location.pathname + window.location.search);
@@ -698,6 +726,7 @@ async function loadTravelScenes() {
 async function init() {
     trackAnalytics('visit');
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
+    updateClassroomDemoVisibility();
     loadTravelScenes();
     // 1. 获取导航目录
     const res = await apiGet('/events_list');
@@ -764,7 +793,11 @@ async function init() {
                 document.querySelectorAll('[data-top-action]').forEach(item => item.classList.toggle('active', item === button));
                 showGuessGame();
             } else if (action === "time-travel") {
-                showFeatureNotice("入局玩法正在开发中，暂未开放试玩。");
+                if (isLawClassroomDemo()) {
+                    showTimeTravel({ privateEntry: true });
+                } else {
+                    showFeatureNotice("入局玩法正在开发中，暂未开放试玩。");
+                }
             } else {
                 document.querySelectorAll('[data-top-action]').forEach(item => item.classList.toggle('active', item === button));
                 const event = getDefaultEvent();
@@ -812,8 +845,15 @@ async function init() {
     elements.guessGuessBtn.addEventListener('click', guessAiPerson);
     elements.guessUserAnswer.addEventListener('click', handleUserYesNoAnswer);
     elements.travelStartBtn?.addEventListener('click', startTimeTravel);
-    elements.travelRestartBtn?.addEventListener('click', startTimeTravel);
+    elements.travelRestartBtn?.addEventListener('click', () => startTimeTravel({ sceneId: state.timeTravel.activeSceneId || VISUAL_NOVEL_SCENE_ID }));
     elements.travelChoiceList?.addEventListener('click', handleTravelChoice);
+    elements.visualChoiceList?.addEventListener('click', handleTravelChoice);
+    elements.timeTravelContent?.addEventListener('click', (e) => {
+        const button = e.target.closest('[data-classroom-scene]');
+        if (!button) return;
+        if (!isLawClassroomDemo()) return;
+        startTimeTravel({ sceneId: button.dataset.classroomScene });
+    });
     elements.travelTalkBtn?.addEventListener('click', talkTimeTravel);
     elements.travelDecideBtn?.addEventListener('click', openTravelDecisionModal);
     elements.travelDecisionClose?.addEventListener('click', closeTravelDecisionModal);
@@ -1207,6 +1247,7 @@ function showGuessGame() {
 
 function showTimeTravel(options = {}) {
     hideHome();
+    updateClassroomDemoVisibility();
     setRujuMode(true);
     state.currentMode = "time-travel";
     window.location.hash = options.privateEntry ? PRIVATE_TIME_TRAVEL_HASH : "time-travel";
@@ -1239,6 +1280,9 @@ function setTravelBusy(isBusy) {
         });
     if (elements.visualPlayerInput) elements.visualPlayerInput.disabled = isBusy;
     elements.travelChoiceList?.querySelectorAll('button').forEach(button => {
+        button.disabled = isBusy;
+    });
+    elements.visualChoiceList?.querySelectorAll('button').forEach(button => {
         button.disabled = isBusy;
     });
     updateVisualInputAvailability();
@@ -1320,7 +1364,7 @@ function setVisualLoadingProgress(percent = 0, label = "", visible = false) {
 }
 
 function isVisualNovelPayload(payload) {
-    return Boolean(payload?.dialogue || payload?.mode === "intrigue");
+    return Boolean(payload?.dialogue || payload?.mode === "intrigue" || payload?.classroom_mode);
 }
 
 function normalizeVisualSpeaker(name = "", kind = "ai") {
@@ -1338,6 +1382,9 @@ function visualAvatarClass(name = "") {
     if (/孙权|主公|你/.test(name)) return "avatar-sunquan";
     if (/周瑜|公瑾|将/.test(name)) return "avatar-zhouyu";
     if (/鲁肃|子敬|谋/.test(name)) return "avatar-lusu";
+    if (/董仲舒|礼官|儒生|经学|先生/.test(name)) return "avatar-scholar";
+    if (/律令官|刑部|主审|廷尉|官/.test(name)) return "avatar-official";
+    if (/乡里|被害者|家属|代表/.test(name)) return "avatar-player";
     if (/张昭|老臣|相国|文臣|臣/.test(name)) return "avatar-zhangzhao";
     return "avatar-player";
 }
@@ -1349,6 +1396,7 @@ function setVisualStagePhase(phase) {
     const isDialogue = phase === "dialogue";
     elements.visualCinematicOverlay?.classList.toggle('hidden', isDialogue);
     elements.visualInputForm?.classList.add('hidden');
+    elements.visualChoiceList?.classList.add('hidden');
     elements.visualOverlayHint?.classList.add('hidden');
     elements.visualDialogueContinue?.classList.add('hidden');
     if (phase !== "loading") setVisualLoadingProgress(0, "", false);
@@ -1367,8 +1415,27 @@ function updateVisualInputAvailability() {
         && !state.timeTravel.visualPendingUserRequest
         && !state.timeTravel.visualTyping
         && !state.timeTravel.isBusy
+        && !state.timeTravel.payload?.classroom_mode
         && !state.timeTravel.payload?.ended;
     elements.visualInputForm.classList.toggle('hidden', !canInput);
+}
+
+function updateVisualChoiceAvailability() {
+    if (!elements.visualChoiceList) return;
+    const payload = state.timeTravel.payload || state.timeTravel.visualPendingPayload;
+    const queue = state.timeTravel.visualQueue || [];
+    const choices = Array.isArray(payload?.choices) ? payload.choices.filter(choice => choice?.text) : [];
+    const isAtLatestShown = state.timeTravel.visualIndex >= state.timeTravel.visualMaxSeenIndex;
+    const hasNoMoreLines = !queue.length || state.timeTravel.visualIndex >= queue.length - 1;
+    const canChoose = Boolean(payload?.classroom_mode)
+        && state.timeTravel.visualPhase === "dialogue"
+        && isAtLatestShown
+        && hasNoMoreLines
+        && choices.length > 0
+        && !state.timeTravel.visualTyping
+        && !state.timeTravel.isBusy
+        && !payload?.ended;
+    elements.visualChoiceList.classList.toggle('hidden', !canChoose);
 }
 
 function updateVisualContinueAvailability() {
@@ -1406,6 +1473,7 @@ function updateVisualContinueAvailability() {
     if (elements.visualPrevBtn) elements.visualPrevBtn.disabled = state.timeTravel.visualTyping;
     if (elements.visualNextBtn) elements.visualNextBtn.disabled = state.timeTravel.visualTyping || !hasHistoryForwardLine;
     if (elements.visualDialogueContinue) elements.visualDialogueContinue.disabled = state.timeTravel.visualTyping;
+    updateVisualChoiceAvailability();
 }
 
 function setVisualOverlay(title, text = "", hintVisible = false, options = {}) {
@@ -1462,7 +1530,8 @@ function typeIntoElement(element, text, options = {}) {
     step();
 }
 
-function prepareVisualLoading() {
+function prepareVisualLoading(sceneId = VISUAL_NOVEL_SCENE_ID) {
+    const isClassroomScene = String(sceneId || '').startsWith('law_');
     elements.timeTravelContent?.classList.add('ruju-playing');
     elements.travelStartPanel?.classList.add('hidden');
     elements.travelPlayPanel?.classList.add('hidden');
@@ -1475,14 +1544,45 @@ function prepareVisualLoading() {
     state.timeTravel.visualBrowsingHistory = false;
     state.timeTravel.visualMaxSeenIndex = -1;
     state.timeTravel.visualIntroStep = "";
+    if (elements.visualTitle) elements.visualTitle.textContent = isClassroomScene ? '公开课案例' : '赤壁战前的江东朝议';
+    if (elements.visualEra) elements.visualEra.textContent = isClassroomScene ? '' : '东汉末年';
+    if (elements.visualSpeakerName) elements.visualSpeakerName.textContent = '';
+    if (elements.visualSpeakerRole) elements.visualSpeakerRole.textContent = '';
+    if (elements.visualDialogueText) elements.visualDialogueText.textContent = '';
+    if (elements.visualAvatar) elements.visualAvatar.className = 'ruju-visual-avatar';
     setVisualStagePhase("loading");
-    setVisualOverlay("事件加载中", "正在召集局中人...", false, { progressVisible: true, progress: 0 });
+    setVisualOverlay(
+        isClassroomScene ? "案例加载中" : "事件加载中",
+        isClassroomScene ? "正在整理案情、人物立场与课堂选项..." : "正在召集局中人...",
+        false,
+        { progressVisible: true, progress: 0 }
+    );
+}
+
+function prepareChoiceTravelLoading() {
+    elements.timeTravelContent?.classList.add('ruju-playing');
+    elements.travelStartPanel?.classList.add('hidden');
+    elements.travelVisualPanel?.classList.add('hidden');
+    elements.travelPlayPanel?.classList.remove('hidden');
+    elements.travelPlayPanel?.classList.add('ruju-choice-only');
+    if (elements.travelTitle) elements.travelTitle.textContent = '案例加载中';
+    if (elements.travelRoundPill) elements.travelRoundPill.textContent = '公开课案例';
+    if (elements.travelTalkLog) elements.travelTalkLog.innerHTML = '';
+    if (elements.travelScene) elements.travelScene.textContent = '正在整理案情、角色立场与课堂选项...';
+    if (elements.travelCharacterText) elements.travelCharacterText.textContent = '课堂决策位';
+    if (elements.travelPeople) elements.travelPeople.innerHTML = '';
+    elements.travelChoiceList?.classList.add('hidden');
 }
 
 function showVisualLoaded(payload) {
     state.timeTravel.visualPendingPayload = payload;
     setVisualStagePhase("loading");
-    setVisualOverlay("事件加载完成", "第一轮朝议已经生成。", true, { progressVisible: true, progress: 100 });
+    setVisualOverlay(
+        payload?.classroom_mode ? "案例加载完成" : "事件加载完成",
+        payload?.classroom_mode ? "请继续查看前情提要。" : "第一轮朝议已经生成。",
+        true,
+        { progressVisible: true, progress: 100 }
+    );
     updateVisualContinueAvailability();
 }
 
@@ -1494,6 +1594,9 @@ function visualMissionText(payload) {
     const role = payload?.user_role || {};
     const identity = [role.name, role.identity].filter(Boolean).join(" · ") || "局中决策者";
     const goal = role.goal || "听取众人意见，亲自追问并作出决定。";
+    if (payload?.classroom_mode) {
+        return `你的身份：${identity}\n\n你的任务：${goal}\n\n请先听完各方陈说，再从屏幕下方选项中作出裁断。本局不开放自由输入，选择后会给出推演结果、教材联系和课堂追问。`;
+    }
     return `你的身份：${identity}\n\n你的任务：${goal}\n\n你可以继续追问、质疑、命令；一旦拍板，本局历史会按你的决定推演。`;
 }
 
@@ -1596,6 +1699,31 @@ function appendVisualItems(items = [], options = {}) {
     updateVisualContinueAvailability();
 }
 
+function renderVisualChoiceButtons(payload = {}) {
+    if (!elements.visualChoiceList) return;
+    const choices = Array.isArray(payload.choices) ? payload.choices.filter(choice => choice?.text) : [];
+    elements.visualChoiceList.innerHTML = choices.map((choice, index) => {
+        const id = choice.id || String.fromCharCode(65 + index);
+        return `
+            <button type="button" class="ruju-visual-choice" data-choice-id="${escapeAttr(id)}">
+                <span>${escapeHtml(id)}</span>
+                <b>${escapeHtml(choice.text || '')}</b>
+                ${choice.hint ? `<em>${escapeHtml(choice.hint)}</em>` : ''}
+            </button>
+        `;
+    }).join('');
+    elements.visualChoiceList.classList.add('hidden');
+}
+
+function visualDialogueItemsForPayload(payload = {}) {
+    const dialogue = Array.isArray(payload.dialogue) ? payload.dialogue : [];
+    if (payload.classroom_mode && payload.ended) {
+        const lastUserIndex = dialogue.map(item => item?.kind).lastIndexOf('user');
+        return lastUserIndex >= 0 ? dialogue.slice(lastUserIndex) : dialogue;
+    }
+    return dialogue;
+}
+
 function showVisualHistoryIndex(index) {
     if (state.timeTravel.visualTyping || state.timeTravel.visualPhase !== "dialogue") return;
     const queue = state.timeTravel.visualQueue || [];
@@ -1621,11 +1749,14 @@ function startVisualDialogue() {
     const payload = state.timeTravel.visualPendingPayload || state.timeTravel.payload;
     if (!payload) return;
     state.timeTravel.visualPendingPayload = null;
+    state.timeTravel.payload = payload;
+    renderVisualChoiceButtons(payload);
     setVisualStagePhase("dialogue");
-    setVisualQueue(payload.dialogue || []);
+    setVisualQueue(visualDialogueItemsForPayload(payload));
     if (payload.ended) {
-        appendVisualItems([{ speaker: '旁白', role: '本局结果', text: payload.ending || '这一局已经收束。', kind: 'system' }]);
+        appendVisualItems([{ speaker: '旁白', role: '本局结果', text: payload.ending || '这一局已经收束。', kind: 'system' }], { instant: true });
     }
+    updateVisualChoiceAvailability();
 }
 
 function advanceVisualDialogue() {
@@ -1676,6 +1807,10 @@ function advanceVisualDialogue() {
 function renderVisualNovel(payload, options = {}) {
     elements.travelVisualPanel?.classList.remove('hidden');
     elements.travelPlayPanel?.classList.add('hidden');
+    if (elements.travelVisualStage) {
+        elements.travelVisualStage.className = `ruju-visual-stage scene-${payload.scene_id || 'default'}${payload.classroom_mode ? ' is-classroom' : ''}`;
+    }
+    renderVisualChoiceButtons(payload);
     if (elements.visualEra) elements.visualEra.textContent = [payload.era, payload.year, payload.location].filter(Boolean).join(' · ');
     if (elements.visualTitle) elements.visualTitle.textContent = payload.title || '赤壁战前的江东朝议';
     if (elements.visualRound) {
@@ -1686,11 +1821,12 @@ function renderVisualNovel(payload, options = {}) {
     elements.travelTalkPerson.innerHTML = people.length
         ? people.map(person => `<option value="${escapeAttr(person.name || '')}">${escapeHtml(person.name || '局中人')}</option>`).join('')
         : '<option value="局中人">局中人</option>';
+    elements.visualMapBtn?.classList.toggle('hidden', Boolean(payload.classroom_mode));
     if (options.awaitIntro) {
         showVisualLoaded(payload);
     } else {
         setVisualStagePhase("dialogue");
-        setVisualQueue(payload.dialogue || []);
+        setVisualQueue(visualDialogueItemsForPayload(payload));
     }
 }
 
@@ -1700,12 +1836,14 @@ function renderTravel(payload) {
     elements.timeTravelContent?.classList.add('ruju-playing');
     elements.travelStartPanel?.classList.add('hidden');
     if (isVisualNovelPayload(payload)) {
-        renderVisualNovel(payload, { awaitIntro: true });
+        const shouldReplayIntro = !(payload.classroom_mode && (payload.ended || Number(payload.round || 0) > 0));
+        renderVisualNovel(payload, { awaitIntro: shouldReplayIntro });
         return;
     }
     elements.travelVisualPanel?.classList.add('hidden');
     elements.travelPlayPanel?.classList.remove('hidden');
-    const isIntrigue = payload.mode === 'intrigue';
+    elements.travelPlayPanel?.classList.toggle('ruju-choice-only', Boolean(payload.classroom_mode));
+    const isIntrigue = payload.mode === 'intrigue' || payload.classroom_mode;
     elements.travelTitle.textContent = payload.title || (isIntrigue ? '入局' : '秦末求生');
     if (elements.travelRoundPill) {
         const round = Number(payload.round || 0) + 1;
@@ -1748,7 +1886,19 @@ function renderTravel(payload) {
         ? people.map(person => `<option value="${escapeAttr(person.name || '')}">${escapeHtml(person.name || '陌生人')}</option>`).join('')
         : '<option value="路人">路人</option>';
 
-    if (elements.travelChoiceList) elements.travelChoiceList.innerHTML = '';
+    if (elements.travelChoiceList) {
+        const choices = Array.isArray(payload.choices) ? payload.choices.filter(choice => choice?.text) : [];
+        elements.travelChoiceList.innerHTML = choices.map((choice, index) => `
+            <button type="button" class="travel-choice" data-choice-id="${escapeAttr(choice.id || String.fromCharCode(65 + index))}">
+                <span class="travel-choice-id">${escapeHtml(choice.id || String.fromCharCode(65 + index))}</span>
+                <span class="travel-choice-main">
+                    <b>${escapeHtml(choice.text || '')}</b>
+                    ${choice.hint ? `<em>${escapeHtml(choice.hint)}</em>` : ''}
+                </span>
+            </button>
+        `).join('');
+        elements.travelChoiceList.classList.toggle('hidden', !choices.length || Boolean(payload.ended));
+    }
     elements.travelTalkLog.innerHTML = '';
     (payload.dialogue || []).forEach(item => {
         appendTravelTalk(item.kind || 'ai', item.text || '', item.speaker || '', item.role || '');
@@ -1761,26 +1911,32 @@ function renderTravel(payload) {
     if (elements.travelDecideBtn) elements.travelDecideBtn.disabled = Boolean(payload.ended);
 }
 
-async function startTimeTravel() {
+async function startTimeTravel(options = {}) {
     if (state.timeTravel.isBusy) return;
     const isPrivateEntry = decodeURIComponent(window.location.hash.substring(1)) === PRIVATE_TIME_TRAVEL_HASH;
     const hadPayload = Boolean(state.timeTravel.payload);
+    const sceneId = options.sceneId || VISUAL_NOVEL_SCENE_ID;
+    const isVisualScene = sceneId === VISUAL_NOVEL_SCENE_ID || sceneId.startsWith('law_');
+    state.timeTravel.activeSceneId = sceneId;
     showTimeTravel({ privateEntry: isPrivateEntry });
-    prepareVisualLoading();
+    if (isVisualScene) {
+        prepareVisualLoading(sceneId);
+    } else {
+        prepareChoiceTravelLoading();
+    }
     setTravelBusy(true);
     const loadingStartedAt = Date.now();
     elements.travelStartBtn.textContent = '正在入局...';
-    startTravelLoadingLoop('start');
+    if (isVisualScene) startTravelLoadingLoop('start');
     elements.travelTalkLog.innerHTML = '';
-    const sceneId = VISUAL_NOVEL_SCENE_ID;
     const res = await apiPost('/time_travel/start', {
         seed: `${USER_ID}-${Date.now()}`,
         scene_id: sceneId
     });
-    await wait(Math.max(0, 3600 - (Date.now() - loadingStartedAt)));
+    await wait(Math.max(0, (sceneId === VISUAL_NOVEL_SCENE_ID ? 3600 : 700) - (Date.now() - loadingStartedAt)));
     elements.travelStartBtn.textContent = '随机入局';
     setTravelBusy(false);
-    stopTravelLoading();
+    if (isVisualScene) stopTravelLoading();
     if (!res || !res.success) {
         elements.timeTravelContent?.classList.toggle('ruju-playing', hadPayload);
         if (!hadPayload) elements.travelStartPanel?.classList.remove('hidden');

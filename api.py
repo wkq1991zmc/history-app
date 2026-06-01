@@ -1426,14 +1426,23 @@ def _build_intrigue_payload(scene: Dict, seed_text: str = "") -> Dict:
     counterpart = counterpart_candidates[(seed // 7) % len(counterpart_candidates)] if counterpart_candidates else {}
     public_state = scene.get("public_state") or scene.get("brief", "")
     briefing = scene.get("brief") or public_state
-    scene_text = (
-        f"{briefing}\n\n"
-        f"你的任务：你就是「{user_role.get('name')}」，需要听取众人意见，亲自追问并做出决定。"
-        "你可以继续询问，也可以直接下令；一旦下令，本局历史会按你的决定推演。"
-    ).strip()
+    classroom_mode = bool(scene.get("classroom_mode"))
+    if classroom_mode:
+        scene_text = (
+            f"{briefing}\n\n"
+            f"你的任务：你就是「{user_role.get('name')}」，请根据案情和各方意见，在下方选项中作出裁断。"
+            "本局不需要自由输入，选择后会直接给出推演结果、史学提示和课堂追问。"
+        ).strip()
+    else:
+        scene_text = (
+            f"{briefing}\n\n"
+            f"你的任务：你就是「{user_role.get('name')}」，需要听取众人意见，亲自追问并做出决定。"
+            "你可以继续询问，也可以直接下令；一旦下令，本局历史会按你的决定推演。"
+        ).strip()
     dialogue = _build_initial_adviser_debate(scene, user_role)
     return {
-        "mode": "intrigue",
+        "mode": "classroom_choice" if classroom_mode else "intrigue",
+        "classroom_mode": classroom_mode,
         "scene_id": scene.get("scene_id", ""),
         "title": scene.get("title", "入局"),
         "era": scene.get("era", ""),
@@ -1469,7 +1478,7 @@ def _build_intrigue_payload(scene: Dict, seed_text: str = "") -> Dict:
             {"name": role.get("name", "局中人"), "role": role.get("identity", "参与者"), "attitude": role.get("goal", "观望")}
             for role in people[:4]
         ],
-        "choices": [],
+        "choices": list(scene.get("choices") or [])[:4] if classroom_mode else [],
         "ended": False,
         "ending": ""
     }
@@ -1585,6 +1594,10 @@ def _normalize_travel_payload(data: Dict, fallback: Optional[Dict] = None) -> Di
     if not isinstance(data, dict):
         data = {}
     payload = dict(base)
+    if "classroom_mode" in data:
+        payload["classroom_mode"] = bool(data.get("classroom_mode"))
+    elif "classroom_mode" in base:
+        payload["classroom_mode"] = bool(base.get("classroom_mode"))
     for key in (
         "mode", "scene_id", "title", "era", "year", "location", "scene", "ending",
         "brief", "public_state", "hidden_truth", "stakes", "npc_context",
@@ -1650,6 +1663,83 @@ def _normalize_travel_payload(data: Dict, fallback: Optional[Dict] = None) -> Di
             })
     if len(choices) >= 2:
         payload["choices"] = choices[:4]
+    return payload
+
+def _classroom_choice_payload(current: Dict, selected: Dict) -> Dict:
+    choice_id = str(selected.get("id") or "").strip() or "?"
+    choice_text = str(selected.get("text") or "").strip()
+    result = str(selected.get("result") or f"你选择了「{choice_text}」。").strip()
+    analysis = str(selected.get("analysis") or "").strip()
+    orthodox_note = str(selected.get("orthodox_note") or current.get("orthodox_history") or "").strip()
+    classroom_question = str(selected.get("classroom_question") or "这个选择怎样体现礼与法的关系？").strip()
+    role = current.get("user_role") or {}
+    dialogue = list(current.get("dialogue") or [])
+    dialogue.append({
+        "speaker": role.get("name") or "你",
+        "role": role.get("identity") or "课堂决策者",
+        "text": f"我选择 {choice_id}：{choice_text}",
+        "kind": "user",
+    })
+    reactions = selected.get("reactions")
+    if isinstance(reactions, list):
+        for item in reactions[:3]:
+            if not isinstance(item, dict):
+                continue
+            dialogue.append({
+                "speaker": str(item.get("speaker") or "局中人")[:24],
+                "role": str(item.get("role") or "")[:36],
+                "text": str(item.get("text") or "")[:600],
+                "kind": "ai",
+            })
+    dialogue.append({
+        "speaker": "旁白",
+        "role": "推演结果",
+        "text": result,
+        "kind": "system",
+    })
+    if analysis:
+        dialogue.append({
+            "speaker": "旁白",
+            "role": "礼法分析",
+            "text": analysis,
+            "kind": "system",
+        })
+    if orthodox_note:
+        dialogue.append({
+            "speaker": "旁白",
+            "role": "教材联系",
+            "text": orthodox_note,
+            "kind": "system",
+        })
+    if classroom_question:
+        dialogue.append({
+            "speaker": "旁白",
+            "role": "课堂追问",
+            "text": classroom_question,
+            "kind": "system",
+        })
+    scene_parts = [
+        f"你的选择：{choice_id}. {choice_text}",
+        f"推演结果：{result}",
+    ]
+    if analysis:
+        scene_parts.append(f"史学分析：{analysis}")
+    if orthodox_note:
+        scene_parts.append(f"教材联系：{orthodox_note}")
+    if classroom_question:
+        scene_parts.append(f"课堂追问：{classroom_question}")
+    payload = dict(current)
+    payload.update({
+        "result": result,
+        "scene": "\n\n".join(scene_parts),
+        "dialogue": dialogue[-24:],
+        "choices": [],
+        "round": int(current.get("round") or 0) + 1,
+        "ended": True,
+        "ending": "本案例已完成，请围绕史学分析和课堂追问继续讨论。",
+        "classroom_mode": True,
+        "mode": "classroom_choice",
+    })
     return payload
 
 def _intrigue_choice_fallback(current: Dict, selected: Dict) -> Dict:
@@ -2307,7 +2397,10 @@ async def time_travel_start(req: TimeTravelStartRequest, x_client_id: Optional[s
     seed = req.seed or f"{player_id}-{time.time()}"
     scene = next((item for item in INTRIGUE_SCENES if item.get("scene_id") == req.scene_id), None) or _pick_intrigue_scene(seed)
     payload = _build_intrigue_payload(scene, seed)
-    payload["dialogue"] = await _generate_initial_adviser_debate(scene, payload)
+    if payload.get("classroom_mode"):
+        payload["dialogue"] = _build_initial_adviser_debate(scene, payload.get("user_role", {}))
+    else:
+        payload["dialogue"] = await _generate_initial_adviser_debate(scene, payload)
     session_id = str(uuid.uuid4())
     time_travel_sessions[session_id] = {
         "payload": payload,
@@ -2341,6 +2434,12 @@ async def time_travel_choose(req: TimeTravelChoiceRequest, x_client_id: Optional
     selected = next((item for item in current.get("choices", []) if str(item.get("id")) == str(req.choice_id)), None)
     if not selected:
         raise HTTPException(status_code=400, detail="这个选择已经失效，请重新选择。")
+    if current.get("classroom_mode"):
+        payload = _classroom_choice_payload(current, selected)
+        session["payload"] = payload
+        session["history"].append({"type": "choice", "choice": selected, "result": payload.get("result", ""), "scene": payload.get("scene", "")})
+        _safe_record_analytics("time_travel", player_id, payload.get("title", "入局"), "", "choose")
+        return {"success": True, "session_id": req.session_id, **payload}
     prompt = f"""{_travel_system_prompt()}
 
 这是当前游戏状态：
