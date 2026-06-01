@@ -1474,6 +1474,86 @@ def _build_intrigue_payload(scene: Dict, seed_text: str = "") -> Dict:
         "ending": ""
     }
 
+def _sanitize_initial_adviser_debate(current: Dict, raw_messages: List[Dict]) -> List[Dict]:
+    people = current.get("encountered") or []
+    roles_by_name = {str(item.get("name") or ""): str(item.get("role") or "") for item in people if isinstance(item, dict)}
+    allowed_names = {_normalize_person_name(name) for name in roles_by_name if name}
+    user_name = _normalize_person_name(current.get("user_role", {}).get("name") or "")
+    cleaned: List[Dict] = []
+    for item in raw_messages:
+        if not isinstance(item, dict):
+            continue
+        speaker = str(item.get("speaker") or "").strip()[:24]
+        text = str(item.get("text") or "").strip()[:360]
+        if not speaker or not text:
+            continue
+        speaker_key = _normalize_person_name(speaker)
+        if user_name and speaker_key == user_name:
+            continue
+        if allowed_names and speaker_key not in allowed_names:
+            matched = next((name for name in roles_by_name if _normalize_person_name(name) in speaker_key or speaker_key in _normalize_person_name(name)), "")
+            if not matched:
+                continue
+            speaker = matched
+        cleaned.append({
+            "speaker": speaker,
+            "role": str(item.get("role") or roles_by_name.get(speaker) or "参与者")[:36],
+            "text": text,
+            "kind": "ai",
+        })
+        if len(cleaned) >= 7:
+            break
+    return cleaned
+
+async def _generate_initial_adviser_debate(scene: Dict, payload: Dict) -> List[Dict]:
+    fallback = list(payload.get("dialogue") or [])
+    people = payload.get("encountered") or []
+    if len(people) < 2:
+        return fallback
+    visible_state = {
+        "title": payload.get("title", ""),
+        "era": payload.get("era", ""),
+        "year": payload.get("year", ""),
+        "location": payload.get("location", ""),
+        "brief": payload.get("brief", ""),
+        "public_state": payload.get("public_state", ""),
+        "stakes": payload.get("stakes", ""),
+        "proposal_stage": payload.get("proposal_stage", ""),
+        "user_role": payload.get("user_role", {}),
+        "advisers": people,
+        "historical_anchor": payload.get("historical_anchor", []),
+        "forbidden_knowledge": payload.get("forbidden_knowledge", []),
+    }
+    prompt = f"""你是“入局”历史决策玩法的开场朝议生成器。
+
+请根据可见局势生成第一轮群臣发言。要求：
+1. 只使用正史语境和下方可见信息，不泄露后世结局、隐藏真相或禁用知识。
+2. 不要让玩家/君主/最终决策者发言，只写局中臣僚、将领、使者之间的发言。
+3. 生成 4 到 7 句，每句一个发言对象；可以互相反驳、追问、补充，而不是每人孤立陈述。
+4. 每句 45 到 95 个汉字，语气要像当时朝议，不要现代网文腔，不要“国家机器”等现代抽象词。
+5. 只返回 JSON。
+
+可见局势：
+{json.dumps(visible_state, ensure_ascii=False)}
+
+返回格式：
+{{"dialogue":[{{"speaker":"姓名","role":"身份","text":"发言","kind":"ai"}}]}}
+"""
+    try:
+        data = await _call_travel_model(
+            [{"role": "user", "content": prompt}],
+            max_tokens=1400,
+            model=TIME_TRAVEL_FAST_MODEL,
+            timeout_seconds=min(TIME_TRAVEL_FAST_TIMEOUT, 35),
+        )
+        raw = data.get("dialogue") or data.get("messages") or []
+        generated = _sanitize_initial_adviser_debate(payload, raw)
+        if len(generated) >= 3:
+            return generated
+    except Exception:
+        pass
+    return fallback
+
 def _travel_default_payload() -> Dict:
     return _build_intrigue_payload(INTRIGUE_SCENES[1], "default")
 
@@ -2182,6 +2262,7 @@ async def time_travel_start(req: TimeTravelStartRequest, x_client_id: Optional[s
     seed = req.seed or f"{player_id}-{time.time()}"
     scene = next((item for item in INTRIGUE_SCENES if item.get("scene_id") == req.scene_id), None) or _pick_intrigue_scene(seed)
     payload = _build_intrigue_payload(scene, seed)
+    payload["dialogue"] = await _generate_initial_adviser_debate(scene, payload)
     session_id = str(uuid.uuid4())
     time_travel_sessions[session_id] = {
         "payload": payload,

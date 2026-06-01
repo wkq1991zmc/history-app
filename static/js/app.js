@@ -11,7 +11,7 @@ const VISUAL_AVATAR_CLASS = {
     "周瑜": "avatar-zhouyu",
     "鲁肃": "avatar-lusu",
     "张昭": "avatar-zhangzhao",
-    "你": "avatar-player"
+    "你": "avatar-sunquan"
 };
 const STORY_KEYWORDS = [
     "法家治国理想", "个人宗族私欲", "中央集权", "大一统", "皇权合法性", "政治合法性",
@@ -67,10 +67,23 @@ const state = {
         payload: null,
         isBusy: false,
         visualQueue: [],
-        visualIndex: -1
+        visualIndex: -1,
+        visualPhase: "idle",
+        visualTyping: false,
+        visualTypingTimer: null,
+        visualPendingPayload: null,
+        visualPendingUserRequest: null,
+        visualWaitingForNext: false,
+        visualBrowsingHistory: false,
+        visualMaxSeenIndex: -1,
+        visualIntroStep: ""
     },
     isLoading: false
 };
+
+function wait(ms) {
+    return new Promise(resolve => window.setTimeout(resolve, ms));
+}
 
 // DOM 元素引用
 const elements = {
@@ -183,14 +196,27 @@ Object.assign(elements, {
     visualEra: document.getElementById('visual-era'),
     visualTitle: document.getElementById('visual-title'),
     visualRound: document.getElementById('visual-round'),
+    visualMapBtn: document.getElementById('visual-map-btn'),
     visualAvatar: document.getElementById('visual-avatar'),
     visualSpeakerName: document.getElementById('visual-speaker-name'),
     visualSpeakerRole: document.getElementById('visual-speaker-role'),
     visualDialogueText: document.getElementById('visual-dialogue-text'),
-    visualInputForm: document.getElementById('visual-input-form'),
+    visualCinematicOverlay: document.getElementById('visual-cinematic-overlay'),
+        visualOverlayTitle: document.getElementById('visual-overlay-title'),
+        visualOverlayText: document.getElementById('visual-overlay-text'),
+        visualOverlayHint: document.getElementById('visual-overlay-hint'),
+        visualOverlayProgress: document.getElementById('visual-overlay-progress'),
+        visualOverlayProgressBar: document.getElementById('visual-overlay-progress-bar'),
+        visualOverlayProgressPercent: document.getElementById('visual-overlay-progress-percent'),
+        visualPrevBtn: document.getElementById('visual-prev-btn'),
+        visualNextBtn: document.getElementById('visual-next-btn'),
+        visualDialogueContinue: document.getElementById('visual-dialogue-continue'),
+        visualInputForm: document.getElementById('visual-input-form'),
     visualPlayerInput: document.getElementById('visual-player-input'),
     visualSendBtn: document.getElementById('visual-send-btn'),
-    visualDecideBtn: document.getElementById('visual-decide-btn')
+    visualDecideBtn: document.getElementById('visual-decide-btn'),
+    chibiMapModal: document.getElementById('chibi-map-modal'),
+    chibiMapClose: document.getElementById('chibi-map-close')
 });
 
 // ================= API 请求 =================
@@ -295,6 +321,19 @@ function openAuthModal() {
 function closeAuthModal() {
     elements.authModal?.classList.add('hidden');
     elements.authModal?.setAttribute('aria-hidden', 'true');
+}
+
+function openChibiMapModal() {
+    if (!elements.chibiMapModal) return;
+    elements.chibiMapModal.classList.remove('hidden');
+    elements.chibiMapModal.setAttribute('aria-hidden', 'false');
+    elements.chibiMapClose?.focus();
+}
+
+function closeChibiMapModal() {
+    elements.chibiMapModal?.classList.add('hidden');
+    elements.chibiMapModal?.setAttribute('aria-hidden', 'true');
+    elements.visualMapBtn?.focus();
 }
 
 function initRememberLoginOption() {
@@ -596,8 +635,13 @@ function hideHome() {
     elements.appShell?.classList.remove('hidden');
 }
 
+function setRujuMode(enabled) {
+    elements.appShell?.classList.toggle('ruju-mode', Boolean(enabled));
+}
+
 function showHome() {
     state.currentMode = "home";
+    setRujuMode(false);
     window.history.pushState(null, "", window.location.pathname + window.location.search);
     elements.homeScreen?.classList.remove('hidden');
     elements.appShell?.classList.add('hidden');
@@ -778,9 +822,22 @@ async function init() {
     elements.travelDecisionModal?.addEventListener('click', (e) => {
         if (e.target === elements.travelDecisionModal) closeTravelDecisionModal();
     });
+    elements.visualMapBtn?.addEventListener('click', openChibiMapModal);
+    elements.chibiMapClose?.addEventListener('click', closeChibiMapModal);
+    elements.chibiMapModal?.addEventListener('click', (e) => {
+        if (e.target === elements.chibiMapModal) closeChibiMapModal();
+    });
     elements.travelVisualStage?.addEventListener('click', (e) => {
-        if (e.target.closest('input, button, textarea, select')) return;
+        if (!e.target.closest?.('.ruju-continue-btn')) return;
         advanceVisualDialogue();
+    });
+    elements.visualPrevBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        retreatVisualDialogue();
+    });
+    elements.visualNextBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        browseVisualDialogueForward();
     });
     elements.visualInputForm?.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -790,11 +847,16 @@ async function init() {
         submitVisualNovelInput(true);
     });
     document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !elements.chibiMapModal?.classList.contains('hidden')) {
+            e.preventDefault();
+            closeChibiMapModal();
+            return;
+        }
         if (state.currentMode !== "time-travel") return;
         if (elements.travelVisualPanel?.classList.contains('hidden')) return;
-        if (e.key !== 'Enter') return;
+        if (!["Enter", " "].includes(e.key) && e.code !== "Space") return;
         const target = e.target;
-        if (target === elements.visualPlayerInput) return;
+        if (target?.closest?.('input, button, textarea, select')) return;
         e.preventDefault();
         advanceVisualDialogue();
     });
@@ -906,6 +968,7 @@ async function loadEvent(eventId) {
     if(state.isLoading) return;
     state.isLoading = true;
     hideHome();
+    setRujuMode(false);
     
     window.location.hash = eventId;
     state.currentMode = "story";
@@ -1126,6 +1189,7 @@ function renderChatControls() {
 
 function showGuessGame() {
     hideHome();
+    setRujuMode(false);
     state.currentMode = "guess";
     window.location.hash = "guess-game";
     document.querySelectorAll('.nav-item').forEach(el => {
@@ -1143,6 +1207,7 @@ function showGuessGame() {
 
 function showTimeTravel(options = {}) {
     hideHome();
+    setRujuMode(true);
     state.currentMode = "time-travel";
     window.location.hash = options.privateEntry ? PRIVATE_TIME_TRAVEL_HASH : "time-travel";
     elements.timeTravelContent?.classList.toggle('ruju-playing', Boolean(state.timeTravel.payload));
@@ -1176,24 +1241,31 @@ function setTravelBusy(isBusy) {
     elements.travelChoiceList?.querySelectorAll('button').forEach(button => {
         button.disabled = isBusy;
     });
+    updateVisualInputAvailability();
+    updateVisualContinueAvailability();
 }
 
 function setTravelLoadingStep(stepIndex, percent, titlesOverride) {
-    if (!elements.travelLoading) return;
     const titles = titlesOverride || [
-        '正在抽取局面...',
-        '正在分配角色...',
+        '正在抽取历史现场...',
+        '正在分配你的席位...',
         '正在召集局中人...',
-        '正在生成开场...'
+        '正在生成第一轮朝议...'
     ];
+    const safePercent = Math.max(0, Math.min(100, percent));
+    if (!elements.travelLoading) {
+        setVisualLoadingProgress(safePercent, titles[Math.min(stepIndex, titles.length - 1)], true);
+        return;
+    }
     elements.travelLoading.classList.remove('hidden');
     elements.travelLoadingTitle.textContent = titles[Math.min(stepIndex, titles.length - 1)];
-    elements.travelLoadingPercent.textContent = `${percent}%`;
-    elements.travelLoadingBar.style.width = `${percent}%`;
+    elements.travelLoadingPercent.textContent = `${safePercent}%`;
+    elements.travelLoadingBar.style.width = `${safePercent}%`;
     elements.travelLoadingSteps?.querySelectorAll('li').forEach((item, index) => {
         item.classList.toggle('active', index === stepIndex);
         item.classList.toggle('done', index < stepIndex);
     });
+    setVisualLoadingProgress(safePercent, titles[Math.min(stepIndex, titles.length - 1)], true);
 }
 
 function startTravelLoadingLoop(mode = 'start') {
@@ -1237,73 +1309,371 @@ function stopTravelLoading() {
     }, 350);
 }
 
+function setVisualLoadingProgress(percent = 0, label = "", visible = false) {
+    const safePercent = Math.max(0, Math.min(100, percent));
+    elements.visualOverlayProgress?.classList.toggle('hidden', !visible);
+    if (elements.visualOverlayProgressBar) elements.visualOverlayProgressBar.style.width = `${safePercent}%`;
+    if (elements.visualOverlayProgressPercent) elements.visualOverlayProgressPercent.textContent = `${Math.round(safePercent)}%`;
+    if (label && elements.visualOverlayText && state.timeTravel.visualPhase === "loading") {
+        elements.visualOverlayText.textContent = label;
+    }
+}
+
 function isVisualNovelPayload(payload) {
-    return payload?.scene_id === VISUAL_NOVEL_SCENE_ID;
+    return Boolean(payload?.dialogue || payload?.mode === "intrigue");
+}
+
+function normalizeVisualSpeaker(name = "", kind = "ai") {
+    return name || (kind === "user" ? "你" : "局中人");
 }
 
 function visualRoleForSpeaker(name = "") {
     const people = state.timeTravel.payload?.encountered || [];
     const person = people.find(item => item.name === name);
-    return person?.role || (name === "你" ? "孙权" : "");
+    return person?.role || (name === "你" ? (state.timeTravel.payload?.user_role?.identity || "决策者") : "");
 }
 
 function visualAvatarClass(name = "") {
-    return VISUAL_AVATAR_CLASS[name] || "avatar-player";
+    if (VISUAL_AVATAR_CLASS[name]) return VISUAL_AVATAR_CLASS[name];
+    if (/孙权|主公|你/.test(name)) return "avatar-sunquan";
+    if (/周瑜|公瑾|将/.test(name)) return "avatar-zhouyu";
+    if (/鲁肃|子敬|谋/.test(name)) return "avatar-lusu";
+    if (/张昭|老臣|相国|文臣|臣/.test(name)) return "avatar-zhangzhao";
+    return "avatar-player";
 }
 
-function setVisualDialogueItem(item) {
+function setVisualStagePhase(phase) {
+    state.timeTravel.visualPhase = phase;
+    elements.travelVisualStage?.classList.remove('is-loading', 'is-intro', 'is-dialogue', 'can-continue');
+    elements.travelVisualStage?.classList.add(`is-${phase}`);
+    const isDialogue = phase === "dialogue";
+    elements.visualCinematicOverlay?.classList.toggle('hidden', isDialogue);
+    elements.visualInputForm?.classList.add('hidden');
+    elements.visualOverlayHint?.classList.add('hidden');
+    elements.visualDialogueContinue?.classList.add('hidden');
+    if (phase !== "loading") setVisualLoadingProgress(0, "", false);
+    updateVisualInputAvailability();
+    updateVisualContinueAvailability();
+}
+
+function updateVisualInputAvailability() {
+    if (!elements.visualInputForm) return;
+    const queue = state.timeTravel.visualQueue || [];
+    const isAtLatestShown = state.timeTravel.visualIndex >= state.timeTravel.visualMaxSeenIndex;
+    const hasNoMoreLines = !queue.length || state.timeTravel.visualIndex >= queue.length - 1;
+    const canInput = state.timeTravel.visualPhase === "dialogue"
+        && isAtLatestShown
+        && hasNoMoreLines
+        && !state.timeTravel.visualPendingUserRequest
+        && !state.timeTravel.visualTyping
+        && !state.timeTravel.isBusy
+        && !state.timeTravel.payload?.ended;
+    elements.visualInputForm.classList.toggle('hidden', !canInput);
+}
+
+function updateVisualContinueAvailability() {
+    const phase = state.timeTravel.visualPhase;
+    const queue = state.timeTravel.visualQueue || [];
+    const isAtLatestShown = state.timeTravel.visualIndex >= state.timeTravel.visualMaxSeenIndex;
+    const hasNextLine = phase === "dialogue" && queue.length && isAtLatestShown && state.timeTravel.visualIndex < queue.length - 1;
+    const hasPreviousLine = phase === "dialogue" && queue.length && state.timeTravel.visualIndex > 0;
+    const hasHistoryForwardLine = phase === "dialogue"
+        && queue.length
+        && state.timeTravel.visualIndex < state.timeTravel.visualMaxSeenIndex;
+    const currentItem = queue[state.timeTravel.visualIndex];
+    const nextItem = hasNextLine ? queue[state.timeTravel.visualIndex + 1] : null;
+    const hasReadyNextLine = Boolean(nextItem?.text) && nextItem?.complete !== false;
+    const currentLineComplete = Boolean(currentItem) && currentItem.complete !== false;
+    const hasPendingUserRequest = phase === "dialogue"
+        && Boolean(state.timeTravel.visualPendingUserRequest)
+        && isAtLatestShown
+        && currentItem?.kind === "user"
+        && state.timeTravel.visualIndex >= queue.length - 1;
+    const canContinue = !state.timeTravel.visualTyping && (
+        (!state.timeTravel.isBusy && (
+            (phase === "loading" && Boolean(state.timeTravel.visualPendingPayload))
+            || phase === "intro"
+            || hasPendingUserRequest
+        ))
+        || hasReadyNextLine
+        || (phase === "dialogue" && state.timeTravel.isBusy && currentLineComplete && !state.timeTravel.visualWaitingForNext)
+    );
+    elements.travelVisualStage?.classList.toggle('can-continue', Boolean(canContinue));
+    elements.visualOverlayHint?.classList.toggle('hidden', !(canContinue && phase !== "dialogue"));
+    elements.visualDialogueContinue?.classList.toggle('hidden', !(canContinue && phase === "dialogue"));
+    elements.visualPrevBtn?.classList.toggle('hidden', !hasPreviousLine || state.timeTravel.visualTyping);
+    elements.visualNextBtn?.classList.toggle('hidden', !hasHistoryForwardLine || state.timeTravel.visualTyping);
+    if (elements.visualPrevBtn) elements.visualPrevBtn.disabled = state.timeTravel.visualTyping;
+    if (elements.visualNextBtn) elements.visualNextBtn.disabled = state.timeTravel.visualTyping || !hasHistoryForwardLine;
+    if (elements.visualDialogueContinue) elements.visualDialogueContinue.disabled = state.timeTravel.visualTyping;
+}
+
+function setVisualOverlay(title, text = "", hintVisible = false, options = {}) {
+    if (elements.visualOverlayTitle) elements.visualOverlayTitle.textContent = title;
+    if (elements.visualOverlayText) elements.visualOverlayText.textContent = text;
+    elements.visualOverlayHint?.classList.toggle('hidden', !hintVisible);
+    setVisualLoadingProgress(options.progress ?? 0, "", Boolean(options.progressVisible));
+    updateVisualContinueAvailability();
+}
+
+function clearVisualTyping() {
+    if (state.timeTravel.visualTypingTimer) {
+        window.clearTimeout(state.timeTravel.visualTypingTimer);
+        state.timeTravel.visualTypingTimer = null;
+    }
+    state.timeTravel.visualTyping = false;
+}
+
+function typeIntoElement(element, text, options = {}) {
+    clearVisualTyping();
+    const content = String(text || "");
+    const speed = options.speed ?? 24;
+    const onDone = options.onDone;
+    if (!element) {
+        onDone?.();
+        return;
+    }
+    element.textContent = "";
+    state.timeTravel.visualTyping = true;
+    elements.travelVisualStage?.classList.remove('can-continue');
+    elements.visualOverlayHint?.classList.add('hidden');
+    elements.visualDialogueContinue?.classList.add('hidden');
+    let index = 0;
+    const step = () => {
+        index += 1;
+        element.textContent = content.slice(0, index);
+        if (index < content.length) {
+            state.timeTravel.visualTypingTimer = window.setTimeout(step, speed);
+            return;
+        }
+        state.timeTravel.visualTypingTimer = null;
+        state.timeTravel.visualTyping = false;
+        onDone?.();
+        updateVisualInputAvailability();
+        updateVisualContinueAvailability();
+    };
+    if (!content) {
+        state.timeTravel.visualTyping = false;
+        onDone?.();
+        updateVisualInputAvailability();
+        updateVisualContinueAvailability();
+        return;
+    }
+    step();
+}
+
+function prepareVisualLoading() {
+    elements.timeTravelContent?.classList.add('ruju-playing');
+    elements.travelStartPanel?.classList.add('hidden');
+    elements.travelPlayPanel?.classList.add('hidden');
+    elements.travelVisualPanel?.classList.remove('hidden');
+    state.timeTravel.visualQueue = [];
+    state.timeTravel.visualIndex = -1;
+    state.timeTravel.visualPendingPayload = null;
+    state.timeTravel.visualPendingUserRequest = null;
+    state.timeTravel.visualWaitingForNext = false;
+    state.timeTravel.visualBrowsingHistory = false;
+    state.timeTravel.visualMaxSeenIndex = -1;
+    state.timeTravel.visualIntroStep = "";
+    setVisualStagePhase("loading");
+    setVisualOverlay("事件加载中", "正在召集局中人...", false, { progressVisible: true, progress: 0 });
+}
+
+function showVisualLoaded(payload) {
+    state.timeTravel.visualPendingPayload = payload;
+    setVisualStagePhase("loading");
+    setVisualOverlay("事件加载完成", "第一轮朝议已经生成。", true, { progressVisible: true, progress: 100 });
+    updateVisualContinueAvailability();
+}
+
+function visualBriefingText(payload) {
+    return payload?.brief || payload?.public_state || payload?.scene || "前情提要正在展开。";
+}
+
+function visualMissionText(payload) {
+    const role = payload?.user_role || {};
+    const identity = [role.name, role.identity].filter(Boolean).join(" · ") || "局中决策者";
+    const goal = role.goal || "听取众人意见，亲自追问并作出决定。";
+    return `你的身份：${identity}\n\n你的任务：${goal}\n\n你可以继续追问、质疑、命令；一旦拍板，本局历史会按你的决定推演。`;
+}
+
+function startVisualIntro() {
+    const payload = state.timeTravel.visualPendingPayload || state.timeTravel.payload;
+    if (!payload) return;
+    setVisualStagePhase("intro");
+    state.timeTravel.visualIntroStep = "brief";
+    setVisualOverlay("前情提要", "", false);
+    typeIntoElement(elements.visualOverlayText, visualBriefingText(payload), {
+        speed: 22,
+        onDone: updateVisualContinueAvailability
+    });
+}
+
+function startVisualMission() {
+    const payload = state.timeTravel.visualPendingPayload || state.timeTravel.payload;
+    if (!payload) return;
+    state.timeTravel.visualIntroStep = "mission";
+    setVisualOverlay("你的任务", "", false);
+    typeIntoElement(elements.visualOverlayText, visualMissionText(payload), {
+        speed: 22,
+        onDone: updateVisualContinueAvailability
+    });
+}
+
+function normalizeVisualItem(item = {}) {
+    const speaker = normalizeVisualSpeaker(item.speaker || "", item.kind || "ai");
+    return {
+        speaker,
+        role: item.role || visualRoleForSpeaker(speaker),
+        text: item.text || "",
+        kind: item.kind || "ai"
+    };
+}
+
+function setVisualDialogueItem(item, options = {}) {
     if (!item || !elements.visualDialogueText) return;
-    const speaker = item.speaker || (item.kind === "user" ? "你" : "局中人");
+    const speaker = normalizeVisualSpeaker(item.speaker, item.kind);
     elements.visualSpeakerName.textContent = speaker;
     elements.visualSpeakerRole.textContent = item.role || visualRoleForSpeaker(speaker);
-    elements.visualDialogueText.textContent = item.text || "";
     elements.visualAvatar.className = `ruju-visual-avatar ${visualAvatarClass(speaker)}`;
+    if (options.instant) {
+        clearVisualTyping();
+        elements.visualDialogueText.textContent = item.text || "";
+        updateVisualInputAvailability();
+        updateVisualContinueAvailability();
+        return;
+    }
+    elements.visualInputForm?.classList.add('hidden');
+    typeIntoElement(elements.visualDialogueText, item.text || "", { speed: 20 });
+}
+
+function setVisualThinking(speaker = "局中人", role = "") {
+    clearVisualTyping();
+    const displaySpeaker = normalizeVisualSpeaker(speaker, "ai");
+    elements.visualSpeakerName.textContent = displaySpeaker;
+    elements.visualSpeakerRole.textContent = role || visualRoleForSpeaker(displaySpeaker);
+    elements.visualAvatar.className = `ruju-visual-avatar ${visualAvatarClass(displaySpeaker)}`;
+    elements.visualDialogueText.innerHTML = '<span class="ruju-thinking-dots"><i></i><i></i><i></i></span>';
+    state.timeTravel.visualTyping = true;
+    elements.travelVisualStage?.classList.remove('can-continue');
+    elements.visualInputForm?.classList.add('hidden');
+    elements.visualDialogueContinue?.classList.add('hidden');
+}
+
+function setVisualStreamText(item, text = "") {
+    if (!item || !elements.visualDialogueText) return;
+    const speaker = normalizeVisualSpeaker(item.speaker, item.kind);
+    elements.visualSpeakerName.textContent = speaker;
+    elements.visualSpeakerRole.textContent = item.role || visualRoleForSpeaker(speaker);
+    elements.visualAvatar.className = `ruju-visual-avatar ${visualAvatarClass(speaker)}`;
+    elements.visualDialogueText.textContent = text;
 }
 
 function setVisualQueue(items = []) {
     state.timeTravel.visualQueue = items
         .filter(item => item && item.text)
-        .map(item => ({
-            speaker: item.speaker || (item.kind === "user" ? "你" : "局中人"),
-            role: item.role || visualRoleForSpeaker(item.speaker || ""),
-            text: item.text || "",
-            kind: item.kind || "ai"
-        }));
+        .map(normalizeVisualItem);
     state.timeTravel.visualIndex = state.timeTravel.visualQueue.length ? 0 : -1;
+    state.timeTravel.visualMaxSeenIndex = state.timeTravel.visualIndex;
+    state.timeTravel.visualBrowsingHistory = false;
     setVisualDialogueItem(state.timeTravel.visualQueue[0]);
 }
 
-function appendVisualItems(items = []) {
+function appendVisualItems(items = [], options = {}) {
     const normalized = items
         .filter(item => item && item.text)
-        .map(item => ({
-            speaker: item.speaker || (item.kind === "user" ? "你" : "局中人"),
-            role: item.role || visualRoleForSpeaker(item.speaker || ""),
-            text: item.text || "",
-            kind: item.kind || "ai"
-        }));
+        .map(normalizeVisualItem);
     if (!normalized.length) return;
     const wasEmpty = !state.timeTravel.visualQueue.length;
     state.timeTravel.visualQueue.push(...normalized);
-    if (wasEmpty || state.timeTravel.visualIndex < 0) {
-        state.timeTravel.visualIndex = 0;
-    } else {
-        state.timeTravel.visualIndex = Math.max(state.timeTravel.visualIndex, state.timeTravel.visualQueue.length - normalized.length);
+    if (wasEmpty || state.timeTravel.visualIndex < 0 || options.jumpToNew) {
+        state.timeTravel.visualIndex = state.timeTravel.visualQueue.length - normalized.length;
+        state.timeTravel.visualMaxSeenIndex = Math.max(state.timeTravel.visualMaxSeenIndex, state.timeTravel.visualIndex);
+        state.timeTravel.visualBrowsingHistory = false;
+        setVisualDialogueItem(state.timeTravel.visualQueue[state.timeTravel.visualIndex], { instant: options.instant });
     }
-    setVisualDialogueItem(state.timeTravel.visualQueue[state.timeTravel.visualIndex]);
+    updateVisualInputAvailability();
+    updateVisualContinueAvailability();
+}
+
+function showVisualHistoryIndex(index) {
+    if (state.timeTravel.visualTyping || state.timeTravel.visualPhase !== "dialogue") return;
+    const queue = state.timeTravel.visualQueue || [];
+    const maxSeen = Math.max(-1, state.timeTravel.visualMaxSeenIndex);
+    if (!queue.length || index < 0 || index >= queue.length || index > maxSeen) return;
+    state.timeTravel.visualWaitingForNext = false;
+    state.timeTravel.visualBrowsingHistory = index < maxSeen;
+    state.timeTravel.visualIndex = index;
+    setVisualDialogueItem(queue[index], { instant: true });
+    updateVisualInputAvailability();
+    updateVisualContinueAvailability();
+}
+
+function retreatVisualDialogue() {
+    showVisualHistoryIndex(state.timeTravel.visualIndex - 1);
+}
+
+function browseVisualDialogueForward() {
+    showVisualHistoryIndex(state.timeTravel.visualIndex + 1);
+}
+
+function startVisualDialogue() {
+    const payload = state.timeTravel.visualPendingPayload || state.timeTravel.payload;
+    if (!payload) return;
+    state.timeTravel.visualPendingPayload = null;
+    setVisualStagePhase("dialogue");
+    setVisualQueue(payload.dialogue || []);
+    if (payload.ended) {
+        appendVisualItems([{ speaker: '旁白', role: '本局结果', text: payload.ending || '这一局已经收束。', kind: 'system' }]);
+    }
 }
 
 function advanceVisualDialogue() {
-    if (state.timeTravel.isBusy) return;
+    if (state.timeTravel.visualTyping) return;
+    const phase = state.timeTravel.visualPhase;
+    if (state.timeTravel.isBusy && phase !== "dialogue") return;
+    if (phase === "loading" && state.timeTravel.visualPendingPayload) {
+        startVisualIntro();
+        return;
+    }
+    if (phase === "intro") {
+        if (state.timeTravel.visualIntroStep === "brief") {
+            startVisualMission();
+        } else {
+            startVisualDialogue();
+        }
+        return;
+    }
+    if (phase !== "dialogue") return;
     const queue = state.timeTravel.visualQueue || [];
     if (!queue.length) return;
+    if (state.timeTravel.visualIndex < state.timeTravel.visualMaxSeenIndex) return;
+    const currentItem = queue[state.timeTravel.visualIndex];
+    const nextItem = state.timeTravel.visualIndex < queue.length - 1 ? queue[state.timeTravel.visualIndex + 1] : null;
+    const hasReadyNextLine = Boolean(nextItem?.text) && nextItem?.complete !== false;
+    if (state.timeTravel.visualPendingUserRequest && currentItem?.kind === "user" && state.timeTravel.visualIndex >= queue.length - 1) {
+        processVisualNovelPendingInput();
+        return;
+    }
+    if (state.timeTravel.isBusy && !hasReadyNextLine) {
+        if (currentItem?.complete !== false) {
+            state.timeTravel.visualWaitingForNext = true;
+            setVisualThinking("局中人", "正在商议");
+        }
+        return;
+    }
     if (state.timeTravel.visualIndex < queue.length - 1) {
         state.timeTravel.visualIndex += 1;
+        state.timeTravel.visualMaxSeenIndex = Math.max(state.timeTravel.visualMaxSeenIndex, state.timeTravel.visualIndex);
+        state.timeTravel.visualWaitingForNext = false;
+        state.timeTravel.visualBrowsingHistory = false;
         setVisualDialogueItem(queue[state.timeTravel.visualIndex]);
     }
+    updateVisualInputAvailability();
+    updateVisualContinueAvailability();
 }
 
-function renderVisualNovel(payload) {
+function renderVisualNovel(payload, options = {}) {
     elements.travelVisualPanel?.classList.remove('hidden');
     elements.travelPlayPanel?.classList.add('hidden');
     if (elements.visualEra) elements.visualEra.textContent = [payload.era, payload.year, payload.location].filter(Boolean).join(' · ');
@@ -1315,10 +1685,12 @@ function renderVisualNovel(payload) {
     const people = payload.encountered || [];
     elements.travelTalkPerson.innerHTML = people.length
         ? people.map(person => `<option value="${escapeAttr(person.name || '')}">${escapeHtml(person.name || '局中人')}</option>`).join('')
-        : '<option value="周瑜">周瑜</option>';
-    setVisualQueue(payload.dialogue || []);
-    if (payload.ended) {
-        appendVisualItems([{ speaker: '旁白', role: '本局结果', text: payload.ending || '这一局已经收束。', kind: 'system' }]);
+        : '<option value="局中人">局中人</option>';
+    if (options.awaitIntro) {
+        showVisualLoaded(payload);
+    } else {
+        setVisualStagePhase("dialogue");
+        setVisualQueue(payload.dialogue || []);
     }
 }
 
@@ -1328,7 +1700,7 @@ function renderTravel(payload) {
     elements.timeTravelContent?.classList.add('ruju-playing');
     elements.travelStartPanel?.classList.add('hidden');
     if (isVisualNovelPayload(payload)) {
-        renderVisualNovel(payload);
+        renderVisualNovel(payload, { awaitIntro: true });
         return;
     }
     elements.travelVisualPanel?.classList.add('hidden');
@@ -1394,23 +1766,25 @@ async function startTimeTravel() {
     const isPrivateEntry = decodeURIComponent(window.location.hash.substring(1)) === PRIVATE_TIME_TRAVEL_HASH;
     const hadPayload = Boolean(state.timeTravel.payload);
     showTimeTravel({ privateEntry: isPrivateEntry });
-    elements.timeTravelContent?.classList.add('ruju-playing');
-    elements.travelStartPanel?.classList.add('hidden');
+    prepareVisualLoading();
     setTravelBusy(true);
+    const loadingStartedAt = Date.now();
     elements.travelStartBtn.textContent = '正在入局...';
     startTravelLoadingLoop('start');
     elements.travelTalkLog.innerHTML = '';
-    const sceneId = elements.travelSceneSelect?.value || '';
+    const sceneId = VISUAL_NOVEL_SCENE_ID;
     const res = await apiPost('/time_travel/start', {
         seed: `${USER_ID}-${Date.now()}`,
         scene_id: sceneId
     });
+    await wait(Math.max(0, 3600 - (Date.now() - loadingStartedAt)));
     elements.travelStartBtn.textContent = '随机入局';
     setTravelBusy(false);
     stopTravelLoading();
     if (!res || !res.success) {
         elements.timeTravelContent?.classList.toggle('ruju-playing', hadPayload);
         if (!hadPayload) elements.travelStartPanel?.classList.remove('hidden');
+        if (!hadPayload) elements.travelVisualPanel?.classList.add('hidden');
         alert(res?.error || '这次入局失败了，请稍后重试。');
         return;
     }
@@ -1469,52 +1843,94 @@ async function talkTimeTravel() {
 }
 
 async function submitVisualNovelInput(forceDecision = false) {
-    const message = elements.visualPlayerInput?.value.trim() || "";
+    const rawMessage = elements.visualPlayerInput?.value.trim() || "";
+    const message = rawMessage || (forceDecision ? "我意已决，按当前判断拍板执行。" : "");
     if (!message || state.timeTravel.isBusy || !state.timeTravel.sessionId) return;
+    const activeSpeaker = state.timeTravel.visualQueue[state.timeTravel.visualIndex]?.speaker || "";
+    const targetSpeaker = activeSpeaker === "你" || !activeSpeaker
+        ? (elements.travelTalkPerson.value || "周瑜")
+        : activeSpeaker;
+    state.timeTravel.visualPendingUserRequest = {
+        message,
+        forceDecision,
+        person: targetSpeaker
+    };
+    elements.visualInputForm?.classList.add('hidden');
     elements.visualPlayerInput.value = "";
     appendVisualItems([{
         speaker: "你",
         role: state.timeTravel.payload?.user_role?.identity || "孙权",
         text: message,
         kind: "user"
-    }]);
+    }], { jumpToNew: true });
+}
+
+async function processVisualNovelPendingInput() {
+    const pending = state.timeTravel.visualPendingUserRequest;
+    if (!pending || state.timeTravel.isBusy || !state.timeTravel.sessionId) return;
+    state.timeTravel.visualPendingUserRequest = null;
     setTravelBusy(true);
     const streamedMessages = [];
     let streamText = "";
     let streamIndex = -1;
+    let currentStreamItem = null;
+    let displayedStreamItem = null;
     let res = null;
-    const currentSpeaker = state.timeTravel.visualQueue[state.timeTravel.visualIndex]?.speaker || elements.travelTalkPerson.value || "周瑜";
+    const currentSpeaker = pending.person || elements.travelTalkPerson.value || "周瑜";
+    setVisualThinking(currentSpeaker, visualRoleForSpeaker(currentSpeaker));
     try {
         await apiStreamPost('/time_travel/talk_stream', {
             session_id: state.timeTravel.sessionId,
             person: currentSpeaker === "你" ? (elements.travelTalkPerson.value || "周瑜") : currentSpeaker,
-            message,
-            force_decision: forceDecision
+            message: pending.message,
+            force_decision: pending.forceDecision
         }, (delta, payload) => {
             if (payload?.type !== 'delta') return;
             streamText += delta;
-            if (streamedMessages[streamIndex]) streamedMessages[streamIndex].text = streamText;
-            const current = state.timeTravel.visualQueue[state.timeTravel.visualQueue.length - 1];
-            if (current && current.kind !== "user") {
-                current.text = streamText;
-                setVisualDialogueItem(current);
+            if (streamedMessages[streamIndex]) {
+                streamedMessages[streamIndex].text = streamText;
+            }
+            if (currentStreamItem) {
+                currentStreamItem.text = streamText;
+                if (currentStreamItem === displayedStreamItem) {
+                    setVisualStreamText(currentStreamItem, streamText);
+                }
             }
         }, (payload) => {
             if (payload.type === 'message_start') {
                 streamText = '';
+                state.timeTravel.visualTyping = true;
+                elements.travelVisualStage?.classList.remove('can-continue');
+                elements.visualInputForm?.classList.add('hidden');
+                elements.visualDialogueContinue?.classList.add('hidden');
                 const item = {
                     speaker: payload.speaker || '局中人',
                     role: payload.role || visualRoleForSpeaker(payload.speaker || ''),
                     text: '',
-                    kind: payload.kind || 'ai'
+                    kind: payload.kind || 'ai',
+                    complete: false
                 };
                 streamedMessages.push(item);
                 streamIndex = streamedMessages.length - 1;
+                currentStreamItem = item;
                 state.timeTravel.visualQueue.push(item);
-                state.timeTravel.visualIndex = state.timeTravel.visualQueue.length - 1;
-                setVisualDialogueItem(item);
+                if (!displayedStreamItem || state.timeTravel.visualWaitingForNext) {
+                    displayedStreamItem = item;
+                    state.timeTravel.visualWaitingForNext = false;
+                    state.timeTravel.visualIndex = state.timeTravel.visualQueue.length - 1;
+                    state.timeTravel.visualMaxSeenIndex = Math.max(state.timeTravel.visualMaxSeenIndex, state.timeTravel.visualIndex);
+                    state.timeTravel.visualBrowsingHistory = false;
+                    setVisualThinking(item.speaker, item.role);
+                }
             } else if (payload.type === 'message_end') {
                 streamText = '';
+                if (currentStreamItem) currentStreamItem.complete = true;
+                if (currentStreamItem === displayedStreamItem) {
+                    state.timeTravel.visualTyping = false;
+                    updateVisualInputAvailability();
+                    updateVisualContinueAvailability();
+                }
+                currentStreamItem = null;
             } else if (payload.type === 'done') {
                 res = payload;
             }
@@ -1522,9 +1938,28 @@ async function submitVisualNovelInput(forceDecision = false) {
     } catch (err) {
         appendVisualItems([{ speaker: '旁白', role: '系统', text: err?.message || '对方没有回应，时空连线似乎断了一下。', kind: 'system' }]);
         setTravelBusy(false);
+        state.timeTravel.visualTyping = false;
         return;
     }
     setTravelBusy(false);
+    state.timeTravel.visualTyping = false;
+    if (state.timeTravel.visualWaitingForNext) {
+        const queue = state.timeTravel.visualQueue || [];
+        const nextItem = queue[state.timeTravel.visualIndex + 1];
+        state.timeTravel.visualWaitingForNext = false;
+        if (nextItem?.text) {
+            state.timeTravel.visualIndex += 1;
+            state.timeTravel.visualMaxSeenIndex = Math.max(state.timeTravel.visualMaxSeenIndex, state.timeTravel.visualIndex);
+            state.timeTravel.visualBrowsingHistory = false;
+            setVisualDialogueItem(nextItem, { instant: true });
+        } else if (displayedStreamItem) {
+            state.timeTravel.visualMaxSeenIndex = Math.max(state.timeTravel.visualMaxSeenIndex, state.timeTravel.visualIndex);
+            state.timeTravel.visualBrowsingHistory = false;
+            setVisualDialogueItem(displayedStreamItem, { instant: true });
+        }
+    }
+    updateVisualInputAvailability();
+    updateVisualContinueAvailability();
     if (res?.round !== undefined && elements.visualRound) {
         elements.visualRound.textContent = res.ended ? '已定局' : `第 ${Number(res.round || 0) + 1} 轮`;
     }
@@ -1534,7 +1969,7 @@ async function submitVisualNovelInput(forceDecision = false) {
         elements.visualSendBtn.disabled = true;
         elements.visualDecideBtn.disabled = true;
     }
-    trackAnalytics('time_travel', { detail: forceDecision ? 'visual_decision' : 'visual_talk', character: streamedMessages[0]?.speaker || '' });
+    trackAnalytics('time_travel', { detail: pending.forceDecision ? 'visual_decision' : 'visual_talk', character: streamedMessages[0]?.speaker || '' });
 }
 
 function openTravelDecisionModal() {

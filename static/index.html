@@ -9,7 +9,7 @@
   <script defer src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=ruju-visual-demo3-20260528">
+  <link rel="stylesheet" href="/static/css/styles.css?v=ruju-continue-corner-20260601">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -185,92 +185,99 @@
 
           <div id="time-travel-content" class="hidden relative">
             <div class="ruju-screen-head">
-              <div>
+              <div class="ruju-hero-copy">
                 <h1>入局</h1>
+                <span class="ruju-vertical-seal">历史决策</span>
+                <h2>进入历史现场，做出你的选择</h2>
                 <p>进入真实历史决策现场，坐上决策位，听取众人意见后亲自落子。</p>
-              </div>
-              <div class="ruju-access-mark">
-                <span>内测案卷</span>
-                <b>Private Demo</b>
+                <div class="ruju-demo-mark"><span></span><b>PRIVATE DEMO</b><span></span></div>
               </div>
             </div>
 
             <section id="travel-start-panel" class="travel-panel travel-start-panel ruju-entry-panel">
               <div class="ruju-entry-main">
-                <div class="ruju-entry-title">
-                  <span>案卷抽取</span>
-                  <h2>让你站到历史转折点上</h2>
+                <div class="ruju-entry-card">
+                  <div class="ruju-card-emblem">印</div>
+                  <h2>进入历史现场</h2>
+                  <p>选择一场事件，开启你的历史决策体验。</p>
+                  <div class="ruju-event-chip">
+                    <span class="ruju-chip-icon">卷</span>
+                    <b>东汉末年 · 赤壁战前的江东朝议</b>
+                    <span class="ruju-chip-caret"></span>
+                  </div>
+                <div class="ruju-entry-actions">
+                    <button id="travel-start-btn" type="button">开始入局</button>
+                    <span>随机入局</span>
+                  </div>
                 </div>
-                <p>每一局都会给出一个有正史依据的现场。你不是旁观者，而是必须在信息不完整、众说纷纭和利害压力中作出判断的人。</p>
-                <label class="travel-test-selector">
-                  <span>案卷</span>
-                  <select id="travel-scene-select">
-                    <option value="">随机抽取</option>
-                    <option value="qin_shaqiu_edict">秦朝 · 沙丘诏书</option>
-                    <option value="han_baideng_court">西汉 · 白登之后的朝议</option>
-                    <option value="han_tui_en_ling">西汉 · 推恩令前夜</option>
-                  </select>
-                </label>
-              </div>
-              <aside class="ruju-dossier-preview" aria-label="入局案卷预览">
-                <div class="ruju-dossier-line">
-                  <span>你的席位</span>
-                  <b>最终决策者</b>
+
+                <div class="ruju-flow-rail" aria-label="入局流程">
+                  <div class="ruju-flow-card">
+                    <span class="ruju-flow-image ruju-flow-image-gate"></span>
+                    <div>
+                      <b><em>01</em>进入现场</b>
+                      <p>置身历史关键时刻，了解背景与各方立场。</p>
+                    </div>
+                  </div>
+                  <div class="ruju-flow-card">
+                    <span class="ruju-flow-image ruju-flow-image-scroll"></span>
+                    <div>
+                      <b><em>02</em>收集观点</b>
+                      <p>聆听众人意见与情报，分析形势，权衡利弊。</p>
+                    </div>
+                  </div>
+                  <div class="ruju-flow-card">
+                    <span class="ruju-flow-image ruju-flow-image-seal"></span>
+                    <div>
+                      <b><em>03</em>做出抉择</b>
+                      <p>做出你的决策，影响事件走向与结局。</p>
+                    </div>
+                  </div>
                 </div>
-                <div class="ruju-dossier-line">
-                  <span>推演方式</span>
-                  <b>追问 · 质疑 · 命令</b>
-                </div>
-                <div class="ruju-dossier-line">
-                  <span>历史约束</span>
-                  <b>正史背景下推进</b>
-                </div>
-                <button id="travel-start-btn" type="button">随机入局</button>
-              </aside>
-              <div class="ruju-flow-rail" aria-label="入局流程">
-                <span>抽取案卷</span>
-                <span>听取众议</span>
-                <span>落子定局</span>
               </div>
             </section>
 
-            <div id="travel-loading" class="travel-loading hidden">
-              <div class="travel-loading-head">
-                <span id="travel-loading-title">正在抽取历史现场...</span>
-                <b id="travel-loading-percent">0%</b>
-              </div>
-              <div class="travel-loading-bar"><span id="travel-loading-bar"></span></div>
-              <ol id="travel-loading-steps">
-                <li data-step="0">正在抽取局面...</li>
-                <li data-step="1">正在分配角色...</li>
-                <li data-step="2">正在召集局中人...</li>
-                <li data-step="3">正在生成开场...</li>
-              </ol>
-            </div>
-
             <section id="travel-visual-panel" class="ruju-visual-panel hidden" aria-label="赤壁视觉局">
               <div class="ruju-visual-stage" id="travel-visual-stage">
+                <div id="visual-cinematic-overlay" class="ruju-cinematic-overlay hidden">
+                  <div class="ruju-cinematic-box">
+                    <div id="visual-overlay-title" class="ruju-cinematic-title">事件加载中</div>
+                    <p id="visual-overlay-text">正在抽取历史现场...</p>
+                    <div id="visual-overlay-progress" class="ruju-cinematic-progress hidden" aria-label="事件加载进度">
+                      <span><i id="visual-overlay-progress-bar"></i></span>
+                      <b id="visual-overlay-progress-percent">0%</b>
+                    </div>
+                    <button id="visual-overlay-hint" type="button" class="ruju-cinematic-hint ruju-continue-btn hidden">继续</button>
+                  </div>
+                </div>
                 <div class="ruju-visual-topline">
                   <div>
                     <span id="visual-era">东汉末年</span>
                     <b id="visual-title">赤壁战前的江东朝议</b>
+                    <button id="visual-map-btn" type="button">地图</button>
                   </div>
-                  <div id="visual-round">第 1 轮</div>
+                  <div class="ruju-visual-tools">
+                    <div id="visual-round">第 1 轮</div>
+                  </div>
                 </div>
+                <div id="visual-avatar" class="ruju-visual-avatar"></div>
                 <div class="ruju-visual-dialogue" id="visual-dialogue-box">
-                  <div id="visual-avatar" class="ruju-visual-avatar"></div>
+                  <div class="ruju-dialogue-history-nav" aria-label="对话记录翻阅">
+                    <button id="visual-prev-btn" type="button" class="ruju-history-btn hidden" aria-label="后退">‹</button>
+                    <button id="visual-next-btn" type="button" class="ruju-history-btn hidden" aria-label="前进">›</button>
+                  </div>
                   <div class="ruju-visual-lines">
                     <div class="ruju-visual-speaker">
                       <b id="visual-speaker-name">周瑜</b>
                       <span id="visual-speaker-role">江东都督</span>
                     </div>
                     <p id="visual-dialogue-text">曹军虽众，多是北土之兵，未必便能横行江上。</p>
-                    <div class="ruju-visual-hint">点击画面或按 Enter 推进</div>
+                    <button id="visual-dialogue-continue" type="button" class="ruju-visual-hint ruju-continue-btn hidden">继续</button>
                   </div>
                 </div>
                 <form id="visual-input-form" class="ruju-visual-input">
-                  <input id="visual-player-input" maxlength="600" placeholder="以孙权身份插话、追问或下令..." autocomplete="off">
-                  <button id="visual-send-btn" type="submit">插话</button>
+                  <input id="visual-player-input" maxlength="600" placeholder="以孙权身份发言、追问或下令..." autocomplete="off">
+                  <button id="visual-send-btn" type="submit">说</button>
                   <button id="visual-decide-btn" type="button">拍板</button>
                 </form>
               </div>
@@ -438,6 +445,48 @@
     </div>
   </div>
 
+  <div id="chibi-map-modal" class="chibi-map-modal hidden" aria-hidden="true">
+    <div class="chibi-map-card">
+      <button id="chibi-map-close" type="button" class="chibi-map-close" aria-label="关闭地图">×</button>
+      <div class="chibi-map-head">
+        <div>
+          <span>建安十三年 · 赤壁战前</span>
+          <h2>长江中游局势图</h2>
+        </div>
+        <p>示意战略关系，不作现代精确坐标。赤壁地望有争议，图中以“赤壁—乌林—夏口—柴桑—江陵”的史事关系呈现。</p>
+      </div>
+
+      <div class="chibi-map-body">
+        <div class="chibi-map-canvas" aria-label="赤壁战前局势示意图">
+          <img src="/static/images/chibi-strategy-map.png" alt="赤壁战前长江中游战略地图底图">
+
+          <span class="map-pin force-cao" style="--x: 26%; --y: 25%;">曹操北军</span>
+          <span class="map-pin place" style="--x: 24%; --y: 39%;">江陵</span>
+          <span class="map-pin force-liu" style="--x: 36%; --y: 54%;">夏口 / 刘备、刘琦</span>
+          <span class="map-pin place key" style="--x: 47%; --y: 59%;">赤壁</span>
+          <span class="map-pin force-cao key" style="--x: 51%; --y: 52%;">乌林</span>
+          <span class="map-pin force-sun" style="--x: 66%; --y: 58%;">柴桑 / 孙权</span>
+          <span class="map-pin region" style="--x: 18%; --y: 72%;">益州刘璋</span>
+          <span class="map-pin region" style="--x: 41%; --y: 23%;">汉中张鲁</span>
+          <span class="map-pin region" style="--x: 78%; --y: 45%;">江东诸郡</span>
+          <span class="map-route route-cao" style="--x: 38%; --y: 39%; --rot: 48deg;">曹军南下</span>
+          <span class="map-route route-alliance" style="--x: 55%; --y: 67%; --rot: -11deg;">孙刘水军线</span>
+        </div>
+
+        <aside class="chibi-map-notes">
+          <h3>势力关系</h3>
+          <ul>
+            <li><b>曹操</b><span>占据荆州后沿长江压向江东，江陵是重要后方。</span></li>
+            <li><b>孙权</b><span>据江东，决策与集结重心在柴桑一线。</span></li>
+            <li><b>刘备、刘琦</b><span>依夏口、江夏残部，与孙权合力拒曹。</span></li>
+            <li><b>西部与北部</b><span>益州刘璋、汉中张鲁等仍为独立势力，未直接加入赤壁主战场。</span></li>
+          </ul>
+          <div class="chibi-map-caveat">地图用于理解战前格局：重点是水道、据点与行军关系，不等同现代行政区划。</div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
   <div id="auth-modal" class="auth-modal hidden" aria-hidden="true">
     <div class="auth-card">
       <button id="auth-close-btn" type="button" class="auth-close-btn" aria-label="关闭登录">×</button>
@@ -460,6 +509,6 @@
       </div>
     </div>
   </div>
-  <script type="module" src="/static/js/app.js?v=ruju-visual-demo3-20260528"></script>
+  <script type="module" src="/static/js/app.js?v=ruju-history-nav-20260601"></script>
 </body>
 </html>
