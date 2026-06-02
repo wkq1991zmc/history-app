@@ -22,6 +22,105 @@ const VISUAL_AVATAR_CLASS = {
     "被害者家属": "avatar-zhangzhao",
     "你": "avatar-sunquan"
 };
+const CLASSROOM_GLOSSARY = {
+    "廷尉府": {
+        subtitle: "汉代中央司法机构",
+        body: "廷尉是秦汉时期掌管刑狱的中央官署之一，位列九卿，负责审理重大案件、复核疑难刑狱，并维护中央司法秩序。秦称廷尉，汉承秦制，后世司法机构虽名称多有变化，但廷尉常被视为古代中央司法官署的重要源流。"
+    },
+    "廷尉属官": {
+        subtitle: "廷尉府中的司法官员",
+        body: "属官是官署中协助长官处理事务的官员。廷尉属官参与刑狱文书、案情核验、法条适用等具体事务，是中央司法体系中负责执行和解释法律程序的重要基层官员。"
+    },
+    "律令": {
+        subtitle: "古代成文法令",
+        body: "律主要指较稳定的刑法条文，令多指皇帝或国家发布的行政命令、制度规定。秦汉以后，律令逐渐成为国家治理的重要工具，体现出中央政权以成文规则管理官民、维系统一秩序的努力。"
+    },
+    "人伦": {
+        subtitle: "人与人之间的伦理关系",
+        body: "人伦指人与人之间按身份和亲疏形成的伦理关系，如父子、君臣、夫妇、长幼、朋友等。儒家思想尤其重视人伦秩序，认为社会治理不能脱离这些关系中的责任、名分与情义。"
+    },
+    "名分": {
+        subtitle: "身份关系与伦理位置",
+        body: "名分指人在家庭、政治和社会秩序中的身份位置及其相应责任，如君臣、父子、长幼等。儒家强调“正名”，认为名分清楚，行为准则和社会秩序才有稳定依据。"
+    },
+    "本心": {
+        subtitle: "行为背后的真实动机",
+        body: "本心指行为人内在的真实动机和主观意图。在儒家化的司法观念中，判断一个行为的轻重，有时不仅看外在结果，也会追问行为背后的用心、情理与伦理关系。"
+    },
+    "律令官": {
+        subtitle: "代表成文法与刑罚秩序的角色",
+        body: "律令官可理解为熟悉律令、负责解释和适用成文法的司法官员。古代国家依靠这类官员维护法令统一、刑罚威严和审判秩序，使案件处理不至于完全依附个人情感或地方习俗。"
+    },
+    "儒生": {
+        subtitle: "以经义和伦理解释政治法律的人",
+        body: "儒生是研习儒家经典、以经义解释政治伦理和社会秩序的士人。汉代以后，儒学地位上升，儒生逐渐参与国家治理、法律解释和礼教传播，对中国古代政治法律文化产生深远影响。"
+    },
+    "董仲舒": {
+        subtitle: "西汉儒学代表人物",
+        body: "董仲舒是西汉重要儒者，生活于汉武帝时期，主张以儒家思想整合政治秩序。他强调天人关系、君臣伦理和教化作用，其思想常被视为汉代儒学官方化的重要标志之一。"
+    },
+    "春秋决狱": {
+        subtitle: "以儒家经义解释疑难案件",
+        body: "春秋决狱通常指汉代以后在疑难案件中援引《春秋》等儒家经典的义理来判断是非轻重。它重视行为人的名分、动机和伦理关系，是法律儒家化早期发展的典型现象。"
+    },
+    "引经决狱": {
+        subtitle: "援引经典精神裁断案件",
+        body: "引经决狱是指司法裁断时援引儒家经典义理解释案件，尤其用于成文法难以直接覆盖的疑难情形。它反映出汉代以后经学、礼教与法律实践逐渐结合的趋势。"
+    },
+    "原心定罪": {
+        subtitle: "考察行为人的动机与本心",
+        body: "原心定罪强调在判断罪责时考察行为人的主观动机和内在用心。它常与儒家经义影响下的司法观念相联系，认为同样的外在行为，若动机不同，法律评价也可能有所差异。"
+    },
+    "父子相隐": {
+        subtitle: "亲属之间相互隐匿的伦理观念",
+        body: "父子相隐源于儒家重视亲亲之情的伦理传统，认为父子等至亲之间存在不同于普通社会关系的情义责任。它在古代法律中逐渐被制度化，但通常会受到罪名轻重和国家安全等边界限制。"
+    },
+    "亲亲相隐": {
+        subtitle: "亲属伦理进入法律判断",
+        body: "亲亲相隐指亲属之间因亲情伦理而相互隐匿、庇护时，法律评价会有所区别。它源于儒家亲亲观念，后来进入法律制度，体现出古代法律对家庭伦理关系的吸收与限制。"
+    },
+    "礼法相融": {
+        subtitle: "伦理教化与法律治理的结合",
+        body: "礼法相融指礼教伦理与法律制度相互吸收、彼此配合的治理形态。中国古代法律并非只依靠刑罚，也常把孝道、名分、宗族秩序等礼的内容纳入法的规范之中。"
+    },
+    "礼法结合": {
+        subtitle: "古代法律儒家化的重要特征",
+        body: "礼法结合指法律制度吸收儒家礼教原则，使刑罚规范与伦理秩序相互配合。自汉代以后，礼教对法律的影响逐步加深，到唐律体系中形成较成熟的制度表达。"
+    },
+    "刑部": {
+        subtitle: "古代中央司法行政机构",
+        body: "刑部是隋唐以后中央政府中主管刑狱、司法行政和部分案件复核的重要机构，位列六部之一。它与大理寺、御史台等机构共同构成古代中央司法运行体系的一部分。"
+    },
+    "唐律疏议": {
+        subtitle: "唐代重要法典及其解释",
+        body: "《唐律疏议》又称《永徽律疏》，是在唐高宗永徽年间形成的律文及官方解释汇编。它保存了较完整的唐代法律体系，是研究中国古代法律制度和礼法结合的重要文献。"
+    },
+    "一准乎礼": {
+        subtitle: "唐律礼法结合的概括",
+        body: "“一准乎礼”常用来概括唐律以儒家礼教为重要准则的特征。唐律在亲属、尊卑、身份、婚姻、继承等方面大量吸收礼的原则，使法律条文具有鲜明的伦理秩序色彩。"
+    },
+    "留养承祀": {
+        subtitle: "死刑案件中的孝道与制度妥协",
+        body: "留养承祀是指在特定条件下，对某些应受重刑者暂缓执行，使其得以奉养老亲、延续宗祀。该制度与孝道、宗族延续和刑罚慎用有关，并不等同于赦免罪责。"
+    },
+    "存留养亲": {
+        subtitle: "为奉养老亲而暂缓刑罚",
+        body: "存留养亲是古代法律中为照顾年老无依父母而设置的刑罚变通制度。其适用通常要求罪犯承担独子、父母老疾、无人奉养等条件，并会排除部分严重罪名。"
+    },
+    "孝道": {
+        subtitle: "儒家家庭伦理的核心",
+        body: "孝道是儒家伦理的重要核心，强调子女对父母的奉养、敬爱和服从。自汉代以后，孝道不仅是道德规范，也进入选官、礼制和法律制度，对古代社会秩序影响深远。"
+    },
+    "宗祀": {
+        subtitle: "家族祭祀与血脉延续",
+        body: "宗祀指宗族祭祀和祖先供奉，关系到家族血脉、伦理记忆和社会身份的延续。在传统社会中，宗祀不仅是宗教礼仪，也与家族秩序、继承制度和孝道观念密切相关。"
+    },
+    "死刑复核": {
+        subtitle: "对死刑案件再次审查",
+        body: "死刑复核是对死刑案件进行再次审查的制度安排，目的在于避免错杀、慎用极刑。中国古代较早形成对重大刑案层层审核的传统，隋唐以后相关程序逐渐制度化。"
+    }
+};
+const CLASSROOM_GLOSSARY_TERMS = Object.keys(CLASSROOM_GLOSSARY).sort((a, b) => b.length - a.length);
 const STORY_KEYWORDS = [
     "法家治国理想", "个人宗族私欲", "中央集权", "大一统", "皇权合法性", "政治合法性",
     "帝国继承权", "权力交接", "权力过渡", "权力结构", "政治结构", "制度设计",
@@ -855,6 +954,13 @@ async function init() {
     elements.travelChoiceList?.addEventListener('click', handleTravelChoice);
     elements.visualChoiceList?.addEventListener('click', handleTravelChoice);
     elements.timeTravelContent?.addEventListener('click', (e) => {
+        const glossaryButton = e.target.closest('[data-glossary-term]');
+        if (glossaryButton) {
+            e.preventDefault();
+            e.stopPropagation();
+            openClassroomGlossary(glossaryButton.dataset.glossaryTerm || "");
+            return;
+        }
         const verdictButton = e.target.closest('[data-verdict-action]');
         if (verdictButton) {
             handleVerdictAction(verdictButton.dataset.verdictAction || "");
@@ -906,6 +1012,12 @@ async function init() {
         submitVisualNovelInput(true);
     });
     document.addEventListener('keydown', (e) => {
+        const glossaryModal = document.getElementById('classroom-glossary-modal');
+        if (e.key === 'Escape' && glossaryModal && !glossaryModal.classList.contains('hidden')) {
+            e.preventDefault();
+            closeClassroomGlossary();
+            return;
+        }
         if (e.key === 'Escape' && !elements.chibiMapModal?.classList.contains('hidden')) {
             e.preventDefault();
             closeChibiMapModal();
@@ -1411,12 +1523,15 @@ function visualAvatarClass(name = "") {
 
 function setVisualAvatarClass(avatarClass = "") {
     const safeClass = avatarClass || "avatar-player";
+    const hasDialogueAvatar = safeClass !== "avatar-none";
     if (elements.visualAvatar) {
         elements.visualAvatar.className = `ruju-visual-avatar ${safeClass}`;
     }
     if (elements.visualDialogueAvatar) {
         elements.visualDialogueAvatar.className = `ruju-dialogue-avatar ${safeClass}`;
     }
+    elements.visualDialogueBox?.classList.toggle('no-dialogue-avatar', !hasDialogueAvatar);
+    elements.visualDialogueBox?.classList.toggle('has-dialogue-avatar', hasDialogueAvatar);
 }
 
 function setVisualStagePhase(phase) {
@@ -1526,6 +1641,95 @@ function setVisualOverlay(title, text = "", hintVisible = false, options = {}) {
     updateVisualContinueAvailability();
 }
 
+function isClassroomGlossaryEnabled() {
+    return Boolean(isLawClassroomDemo());
+}
+
+function glossaryButtonHtml(term) {
+    return `<button type="button" class="ruju-glossary-term" data-glossary-term="${escapeAttr(term)}">${escapeHtml(term)}</button>`;
+}
+
+function renderClassroomGlossaryHtml(text = "", options = {}) {
+    const source = String(text || "");
+    if (!isClassroomGlossaryEnabled() || !source || !CLASSROOM_GLOSSARY_TERMS.length) {
+        const safe = escapeHtml(source);
+        return options.lineBreaks ? safe.replace(/\n/g, '<br>') : safe;
+    }
+    const pattern = new RegExp(CLASSROOM_GLOSSARY_TERMS.map(escapeRegExp).join('|'), 'g');
+    let cursor = 0;
+    let html = "";
+    source.replace(pattern, (term, index) => {
+        if (index > cursor) html += escapeHtml(source.slice(cursor, index));
+        html += glossaryButtonHtml(term);
+        cursor = index + term.length;
+        return term;
+    });
+    if (cursor < source.length) html += escapeHtml(source.slice(cursor));
+    return options.lineBreaks ? html.replace(/\n/g, '<br>') : html;
+}
+
+function setGlossaryRichText(element, text = "", options = {}) {
+    if (!element) return;
+    if (isClassroomGlossaryEnabled()) {
+        element.innerHTML = renderClassroomGlossaryHtml(text, options);
+    } else {
+        element.textContent = String(text || "");
+    }
+}
+
+function setGlossaryLabel(element, text = "") {
+    if (!element) return;
+    const value = String(text || "");
+    if (isClassroomGlossaryEnabled() && CLASSROOM_GLOSSARY[value]) {
+        element.innerHTML = glossaryButtonHtml(value);
+    } else {
+        element.textContent = value;
+    }
+}
+
+function ensureClassroomGlossaryModal() {
+    let modal = document.getElementById('classroom-glossary-modal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'classroom-glossary-modal';
+    modal.className = 'classroom-glossary-modal hidden';
+    modal.setAttribute('aria-hidden', 'true');
+    modal.innerHTML = `
+        <div class="classroom-glossary-card" role="dialog" aria-modal="true" aria-labelledby="classroom-glossary-title">
+            <button type="button" class="classroom-glossary-close" aria-label="关闭词条">×</button>
+            <div class="classroom-glossary-kicker">历史词条</div>
+            <h3 id="classroom-glossary-title"></h3>
+            <p class="classroom-glossary-subtitle"></p>
+            <p class="classroom-glossary-body"></p>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal || event.target.closest('.classroom-glossary-close')) {
+            closeClassroomGlossary();
+        }
+    });
+    return modal;
+}
+
+function openClassroomGlossary(term = "") {
+    const entry = CLASSROOM_GLOSSARY[term];
+    if (!entry) return;
+    const modal = ensureClassroomGlossaryModal();
+    modal.querySelector('#classroom-glossary-title').textContent = term;
+    modal.querySelector('.classroom-glossary-subtitle').textContent = entry.subtitle || "";
+    modal.querySelector('.classroom-glossary-body').textContent = entry.body || "";
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeClassroomGlossary() {
+    const modal = document.getElementById('classroom-glossary-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+}
+
 function clearVisualTyping() {
     if (state.timeTravel.visualTypingTimer) {
         window.clearTimeout(state.timeTravel.visualTypingTimer);
@@ -1558,6 +1762,7 @@ function typeIntoElement(element, text, options = {}) {
         }
         state.timeTravel.visualTypingTimer = null;
         state.timeTravel.visualTyping = false;
+        setGlossaryRichText(element, content);
         onDone?.();
         updateVisualInputAvailability();
         updateVisualContinueAvailability();
@@ -1770,13 +1975,13 @@ function renderClassroomVerdict(text = "") {
             </header>
             <section class="ruju-verdict-main">
                 <b>推演结果</b>
-                <p>${escapeHtml(verdict.main || text).replace(/\n/g, '<br>')}</p>
+                <p>${renderClassroomGlossaryHtml(verdict.main || text, { lineBreaks: true })}</p>
             </section>
             <div class="ruju-verdict-side">
                 ${sideCards.map(card => `
                     <section>
                         <b>${escapeHtml(card.title)}</b>
-                        <p>${escapeHtml(card.text).replace(/\n/g, '<br>')}</p>
+                        <p>${renderClassroomGlossaryHtml(card.text, { lineBreaks: true })}</p>
                     </section>
                 `).join('')}
             </div>
@@ -1797,8 +2002,8 @@ function setVisualDialogueItem(item, options = {}) {
     const speaker = normalizeVisualSpeaker(item.speaker, item.kind);
     const isClassroomResult = isVisualClassroomResultItem(item);
     elements.visualDialogueBox?.classList.remove('hidden');
-    elements.visualSpeakerName.textContent = speaker;
-    elements.visualSpeakerRole.textContent = item.role || visualRoleForSpeaker(speaker);
+    setGlossaryLabel(elements.visualSpeakerName, speaker);
+    setGlossaryLabel(elements.visualSpeakerRole, item.role || visualRoleForSpeaker(speaker));
     setVisualAvatarClass(isClassroomResult ? 'avatar-none' : visualAvatarClass(speaker));
     elements.visualDialogueBox?.classList.toggle('is-result', isClassroomResult);
     if (isClassroomResult) {
@@ -1811,7 +2016,7 @@ function setVisualDialogueItem(item, options = {}) {
     }
     if (options.instant) {
         clearVisualTyping();
-        elements.visualDialogueText.textContent = item.text || "";
+        setGlossaryRichText(elements.visualDialogueText, item.text || "");
         updateVisualInputAvailability();
         updateVisualContinueAvailability();
         return;
@@ -1823,8 +2028,8 @@ function setVisualDialogueItem(item, options = {}) {
 function setVisualThinking(speaker = "局中人", role = "") {
     clearVisualTyping();
     const displaySpeaker = normalizeVisualSpeaker(speaker, "ai");
-    elements.visualSpeakerName.textContent = displaySpeaker;
-    elements.visualSpeakerRole.textContent = role || visualRoleForSpeaker(displaySpeaker);
+    setGlossaryLabel(elements.visualSpeakerName, displaySpeaker);
+    setGlossaryLabel(elements.visualSpeakerRole, role || visualRoleForSpeaker(displaySpeaker));
     setVisualAvatarClass(visualAvatarClass(displaySpeaker));
     elements.visualDialogueBox?.classList.remove('is-result');
     elements.visualDialogueText.innerHTML = '<span class="ruju-thinking-dots"><i></i><i></i><i></i></span>';
@@ -1838,14 +2043,14 @@ function setVisualStreamText(item, text = "") {
     if (!item || !elements.visualDialogueText) return;
     const speaker = normalizeVisualSpeaker(item.speaker, item.kind);
     const isClassroomResult = isVisualClassroomResultItem(item);
-    elements.visualSpeakerName.textContent = speaker;
-    elements.visualSpeakerRole.textContent = item.role || visualRoleForSpeaker(speaker);
+    setGlossaryLabel(elements.visualSpeakerName, speaker);
+    setGlossaryLabel(elements.visualSpeakerRole, item.role || visualRoleForSpeaker(speaker));
     setVisualAvatarClass(isClassroomResult ? 'avatar-none' : visualAvatarClass(speaker));
     elements.visualDialogueBox?.classList.toggle('is-result', isClassroomResult);
     if (isClassroomResult) {
         elements.visualDialogueText.innerHTML = renderClassroomVerdict(text);
     } else {
-        elements.visualDialogueText.textContent = text;
+        setGlossaryRichText(elements.visualDialogueText, text);
     }
 }
 

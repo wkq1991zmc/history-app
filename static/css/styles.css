@@ -3181,6 +3181,15 @@ body {
     padding: clamp(1.6rem, 2vw, 2.1rem) clamp(2rem, 2.8vw, 3rem);
 }
 
+.ruju-visual-stage.is-classroom .ruju-visual-dialogue.no-dialogue-avatar {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.ruju-visual-stage.is-classroom .ruju-visual-dialogue.no-dialogue-avatar .ruju-visual-lines {
+    grid-column: 1 / -1;
+    width: 100%;
+}
+
 .ruju-visual-stage.is-classroom > .ruju-visual-avatar {
     display: none !important;
 }
@@ -3280,6 +3289,34 @@ body {
     font-size: clamp(1.5rem, 1.82vw, 2rem);
     line-height: 1.92;
     font-weight: 850;
+}
+
+.ruju-glossary-term {
+    display: inline;
+    border: 0;
+    border-bottom: 2px solid rgba(139, 242, 244, 0.62);
+    border-radius: 0;
+    background: linear-gradient(180deg, transparent 58%, rgba(139, 242, 244, 0.16) 58%);
+    color: #ffe3a8;
+    padding: 0 0.08em 0.03em;
+    font: inherit;
+    font-weight: 900;
+    line-height: inherit;
+    text-align: inherit;
+    cursor: pointer;
+    text-shadow: inherit;
+}
+
+.ruju-glossary-term:hover,
+.ruju-glossary-term:focus-visible {
+    color: #8bf2f4;
+    border-bottom-color: rgba(255, 226, 172, 0.82);
+    outline: none;
+}
+
+.ruju-visual-speaker .ruju-glossary-term {
+    border-bottom-width: 1px;
+    background: transparent;
 }
 
 .ruju-visual-stage.is-classroom .ruju-visual-dialogue .ruju-visual-hint {
@@ -3474,6 +3511,89 @@ body {
     min-width: 7rem;
     min-height: 3.2rem;
     font-size: 1.08rem;
+}
+
+.classroom-glossary-modal {
+    position: fixed;
+    z-index: 80;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+    background: rgba(0, 0, 0, 0.58);
+}
+
+.classroom-glossary-modal.hidden {
+    display: none !important;
+}
+
+.classroom-glossary-card {
+    position: relative;
+    width: min(42rem, calc(100vw - 3rem));
+    border: 1px solid rgba(255, 226, 172, 0.52);
+    border-radius: 7px;
+    background:
+        linear-gradient(180deg, rgba(24, 18, 12, 0.97), rgba(7, 6, 5, 0.98)),
+        rgba(8, 7, 5, 0.95);
+    color: #fff0cf;
+    padding: clamp(1.45rem, 2.4vw, 2.2rem);
+    box-shadow:
+        0 28px 88px rgba(0, 0, 0, 0.62),
+        inset 0 0 34px rgba(255, 214, 142, 0.05);
+}
+
+.classroom-glossary-kicker {
+    color: #8bf2f4;
+    font-size: 0.92rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    margin-bottom: 0.5rem;
+}
+
+.classroom-glossary-card h3 {
+    margin: 0;
+    color: #ffd68e;
+    font-family: 'Ma Shan Zheng', 'Noto Serif SC', serif;
+    font-size: clamp(2.2rem, 4.2vw, 3.4rem);
+    line-height: 1.12;
+}
+
+.classroom-glossary-subtitle {
+    margin: 0.55rem 0 1rem;
+    color: rgba(139, 242, 244, 0.86);
+    font-size: clamp(1.05rem, 1.35vw, 1.22rem);
+    font-weight: 900;
+}
+
+.classroom-glossary-body {
+    margin: 0;
+    color: rgba(255, 242, 217, 0.94);
+    font-size: clamp(1.2rem, 1.55vw, 1.45rem);
+    font-weight: 700;
+    line-height: 1.9;
+}
+
+.classroom-glossary-close {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.9rem;
+    width: 2.35rem;
+    height: 2.35rem;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 226, 172, 0.3);
+    border-radius: 5px;
+    background: rgba(6, 5, 4, 0.72);
+    color: #ffe2ac;
+    font-size: 1.45rem;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.classroom-glossary-close:hover {
+    border-color: rgba(255, 226, 172, 0.72);
+    background: rgba(90, 26, 20, 0.82);
 }
 
 .ruju-visual-choice-list {
