@@ -1393,7 +1393,10 @@ def _build_initial_adviser_debate(scene: Dict, user_role: Dict) -> List[Dict]:
         ]
     role_map = {role.get("name", ""): role for role in scene.get("roles", []) if isinstance(role, dict)}
     openings = []
-    for opening in scene.get("openings", [])[:4]:
+    opening_source = scene.get("openings", [])
+    if not scene.get("classroom_mode"):
+        opening_source = opening_source[:4]
+    for opening in opening_source:
         if not isinstance(opening, dict):
             continue
         speaker = opening.get("speaker", "局中人")
@@ -1425,13 +1428,17 @@ def _build_intrigue_payload(scene: Dict, seed_text: str = "") -> Dict:
     ]
     counterpart = counterpart_candidates[(seed // 7) % len(counterpart_candidates)] if counterpart_candidates else {}
     public_state = scene.get("public_state") or scene.get("brief", "")
-    briefing = scene.get("brief") or public_state
+    brief_pages = scene.get("brief_pages") if isinstance(scene.get("brief_pages"), list) else []
+    briefing = "\n\n".join(
+        str(page.get("text") or "").strip()
+        for page in brief_pages
+        if isinstance(page, dict) and str(page.get("text") or "").strip()
+    ) or scene.get("brief") or public_state
     classroom_mode = bool(scene.get("classroom_mode"))
     if classroom_mode:
+        classroom_mission = str(scene.get("mission_text") or "").strip()
         scene_text = (
-            f"{briefing}\n\n"
-            f"你的任务：你就是「{user_role.get('name')}」，请根据案情和各方意见，在下方选项中作出裁断。"
-            "本局不需要自由输入，选择后会直接给出推演结果、史学提示和课堂追问。"
+            f"{briefing}\n\n{classroom_mission or f'你的任务：你就是「{user_role.get('name')}」，请根据案情和各方意见，在屏幕下方选项中作出裁断。本局不需要自由输入。'}"
         ).strip()
     else:
         scene_text = (
@@ -1449,9 +1456,11 @@ def _build_intrigue_payload(scene: Dict, seed_text: str = "") -> Dict:
         "year": scene.get("year", ""),
         "location": scene.get("location", ""),
         "brief": scene.get("brief", ""),
+        "brief_pages": brief_pages,
         "public_state": public_state,
         "hidden_truth": scene.get("hidden_truth", ""),
         "stakes": scene.get("stakes", ""),
+        "mission_text": scene.get("mission_text", ""),
         "proposal_stage": scene.get("proposal_stage", ""),
         "npc_context": scene.get("npc_context", ""),
         "forbidden_knowledge": scene.get("forbidden_knowledge", []),
@@ -1670,16 +1679,9 @@ def _classroom_choice_payload(current: Dict, selected: Dict) -> Dict:
     choice_text = str(selected.get("text") or "").strip()
     result = str(selected.get("result") or f"你选择了「{choice_text}」。").strip()
     analysis = str(selected.get("analysis") or "").strip()
-    orthodox_note = str(selected.get("orthodox_note") or current.get("orthodox_history") or "").strip()
-    classroom_question = str(selected.get("classroom_question") or "这个选择怎样体现礼与法的关系？").strip()
-    role = current.get("user_role") or {}
-    dialogue = list(current.get("dialogue") or [])
-    dialogue.append({
-        "speaker": role.get("name") or "你",
-        "role": role.get("identity") or "课堂决策者",
-        "text": f"我选择 {choice_id}：{choice_text}",
-        "kind": "user",
-    })
+    orthodox_note = str(selected.get("orthodox_note") if "orthodox_note" in selected else (current.get("orthodox_history") or "")).strip()
+    classroom_question = str(selected.get("classroom_question") if "classroom_question" in selected else "这个选择怎样体现礼与法的关系？").strip()
+    dialogue = []
     reactions = selected.get("reactions")
     if isinstance(reactions, list):
         for item in reactions[:3]:
@@ -1733,7 +1735,7 @@ def _classroom_choice_payload(current: Dict, selected: Dict) -> Dict:
         "result": result,
         "scene": "\n\n".join(scene_parts),
         "dialogue": dialogue[-24:],
-        "choices": [],
+        "choices": list(current.get("choices") or []),
         "round": int(current.get("round") or 0) + 1,
         "ended": True,
         "ending": "本案例已完成，请围绕史学分析和课堂追问继续讨论。",

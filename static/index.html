@@ -9,7 +9,7 @@
   <script defer src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=law-classroom-page-20260601c">
+  <link rel="stylesheet" href="/static/css/styles.css?v=law-classroom-page-20260603b">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -188,8 +188,8 @@
               <div class="ruju-hero-copy">
                 <h1>入局</h1>
                 <span class="ruju-vertical-seal">历史决策</span>
-                <h2>进入历史现场，做出你的选择</h2>
-                <p>进入真实历史决策现场，坐上决策位，听取众人意见后亲自落子。</p>
+                <h2>礼法断案，做出你的裁断</h2>
+                <p>进入古代司法现场，听取律令、亲情与教化的不同声音。</p>
                 <div class="ruju-demo-mark"><span></span><b>PRIVATE DEMO</b><span></span></div>
               </div>
             </div>
@@ -198,8 +198,8 @@
               <div class="ruju-entry-main">
                 <div class="ruju-entry-card">
                   <div class="ruju-card-emblem">印</div>
-                  <h2>进入历史现场</h2>
-                  <p>选择一场事件，开启你的历史决策体验。</p>
+                  <h2>选择断案卷宗</h2>
+                  <p>课堂体验模式 · 请根据老师指引进入</p>
                   <div class="ruju-event-chip">
                     <span class="ruju-chip-icon">卷</span>
                     <b>东汉末年 · 赤壁战前的江东朝议</b>
@@ -210,16 +210,16 @@
                     <span>随机入局</span>
                   </div>
                   <div class="ruju-classroom-cases hidden" aria-label="公开课案例">
-                    <p class="ruju-classroom-note">公开课定制演示，不属于正式项目内容</p>
+                    <p class="ruju-classroom-note">课堂体验模式 · 请根据老师指引进入</p>
                     <button type="button" data-classroom-scene="law_han_qinqin_xiangyin">
-                      <span>案例一</span>
+                      <span>案例一｜</span>
                       <b>亲亲相隐</b>
-                      <em>汉代董仲舒议狱</em>
+                      <em>汉代：法与亲情之间</em>
                     </button>
                     <button type="button" data-classroom-scene="law_tang_liuyang_chengsi">
-                      <span>案例二</span>
+                      <span>案例二｜</span>
                       <b>留养承祀</b>
-                      <em>孝道与国家法律的妥协</em>
+                      <em>唐代：孝道与国法的妥协</em>
                     </button>
                   </div>
                 </div>
@@ -256,6 +256,7 @@
                   <div class="ruju-cinematic-box">
                     <div id="visual-overlay-title" class="ruju-cinematic-title">事件加载中</div>
                     <p id="visual-overlay-text">正在抽取历史现场...</p>
+                    <div id="visual-overlay-source" class="ruju-cinematic-source hidden"></div>
                     <div id="visual-overlay-progress" class="ruju-cinematic-progress hidden" aria-label="事件加载进度">
                       <span><i id="visual-overlay-progress-bar"></i></span>
                       <b id="visual-overlay-progress-percent">0%</b>
@@ -275,6 +276,7 @@
                 </div>
                 <div id="visual-avatar" class="ruju-visual-avatar"></div>
                 <div class="ruju-visual-dialogue" id="visual-dialogue-box">
+                  <div id="visual-dialogue-avatar" class="ruju-dialogue-avatar avatar-none" aria-hidden="true"></div>
                   <div class="ruju-dialogue-history-nav" aria-label="对话记录翻阅">
                     <button id="visual-prev-btn" type="button" class="ruju-history-btn hidden" aria-label="后退">‹</button>
                     <button id="visual-next-btn" type="button" class="ruju-history-btn hidden" aria-label="前进">›</button>
@@ -284,7 +286,7 @@
                       <b id="visual-speaker-name">周瑜</b>
                       <span id="visual-speaker-role">江东都督</span>
                     </div>
-                    <p id="visual-dialogue-text">曹军虽众，多是北土之兵，未必便能横行江上。</p>
+                    <div id="visual-dialogue-text">曹军虽众，多是北土之兵，未必便能横行江上。</div>
                     <button id="visual-dialogue-continue" type="button" class="ruju-visual-hint ruju-continue-btn hidden">继续</button>
                   </div>
                 </div>
@@ -523,6 +525,6 @@
       </div>
     </div>
   </div>
-  <script type="module" src="/static/js/app.js?v=law-classroom-page-20260601c"></script>
+  <script type="module" src="/static/js/app.js?v=law-classroom-page-20260603b"></script>
 </body>
 </html>

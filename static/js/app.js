@@ -12,13 +12,14 @@ const VISUAL_AVATAR_CLASS = {
     "周瑜": "avatar-zhouyu",
     "鲁肃": "avatar-lusu",
     "张昭": "avatar-zhangzhao",
+    "案吏": "avatar-clerk",
     "董仲舒": "avatar-scholar",
     "律令官": "avatar-official",
     "儒生": "avatar-lusu",
-    "乡里代表": "avatar-player",
+    "乡里代表": "avatar-zhangzhao",
     "刑部主审官": "avatar-official",
     "礼官": "avatar-scholar",
-    "被害者家属": "avatar-player",
+    "被害者家属": "avatar-zhangzhao",
     "你": "avatar-sunquan"
 };
 const STORY_KEYWORDS = [
@@ -85,7 +86,9 @@ const state = {
         visualWaitingForNext: false,
         visualBrowsingHistory: false,
         visualMaxSeenIndex: -1,
-        visualIntroStep: ""
+        visualClassroomChoicesRevealed: false,
+        visualIntroStep: "",
+        visualBriefingPageIndex: 0
     },
     isLoading: false
 };
@@ -215,18 +218,21 @@ Object.assign(elements, {
     travelRoundPill: document.getElementById('travel-round-pill'),
     travelVisualPanel: document.getElementById('travel-visual-panel'),
     travelVisualStage: document.getElementById('travel-visual-stage'),
+    visualDialogueBox: document.getElementById('visual-dialogue-box'),
     visualChoiceList: document.getElementById('visual-choice-list'),
     visualEra: document.getElementById('visual-era'),
     visualTitle: document.getElementById('visual-title'),
     visualRound: document.getElementById('visual-round'),
     visualMapBtn: document.getElementById('visual-map-btn'),
     visualAvatar: document.getElementById('visual-avatar'),
+    visualDialogueAvatar: document.getElementById('visual-dialogue-avatar'),
     visualSpeakerName: document.getElementById('visual-speaker-name'),
     visualSpeakerRole: document.getElementById('visual-speaker-role'),
     visualDialogueText: document.getElementById('visual-dialogue-text'),
     visualCinematicOverlay: document.getElementById('visual-cinematic-overlay'),
         visualOverlayTitle: document.getElementById('visual-overlay-title'),
         visualOverlayText: document.getElementById('visual-overlay-text'),
+        visualOverlaySource: document.getElementById('visual-overlay-source'),
         visualOverlayHint: document.getElementById('visual-overlay-hint'),
         visualOverlayProgress: document.getElementById('visual-overlay-progress'),
         visualOverlayProgressBar: document.getElementById('visual-overlay-progress-bar'),
@@ -849,6 +855,11 @@ async function init() {
     elements.travelChoiceList?.addEventListener('click', handleTravelChoice);
     elements.visualChoiceList?.addEventListener('click', handleTravelChoice);
     elements.timeTravelContent?.addEventListener('click', (e) => {
+        const verdictButton = e.target.closest('[data-verdict-action]');
+        if (verdictButton) {
+            handleVerdictAction(verdictButton.dataset.verdictAction || "");
+            return;
+        }
         const button = e.target.closest('[data-classroom-scene]');
         if (!button) return;
         if (!isLawClassroomDemo()) return;
@@ -869,6 +880,14 @@ async function init() {
     });
     elements.travelVisualStage?.addEventListener('click', (e) => {
         if (!e.target.closest?.('.ruju-continue-btn')) return;
+        advanceVisualDialogue();
+    });
+    elements.visualOverlayHint?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        advanceVisualDialogue();
+    });
+    elements.visualDialogueContinue?.addEventListener('click', (e) => {
+        e.stopPropagation();
         advanceVisualDialogue();
     });
     elements.visualPrevBtn?.addEventListener('click', (e) => {
@@ -1379,14 +1398,25 @@ function visualRoleForSpeaker(name = "") {
 
 function visualAvatarClass(name = "") {
     if (VISUAL_AVATAR_CLASS[name]) return VISUAL_AVATAR_CLASS[name];
+    if (/旁白/.test(name)) return "avatar-none";
+    if (/案吏/.test(name)) return "avatar-clerk";
+    if (/乡里|被害者|家属|代表/.test(name)) return "avatar-lusu";
     if (/孙权|主公|你/.test(name)) return "avatar-sunquan";
     if (/周瑜|公瑾|将/.test(name)) return "avatar-zhouyu";
     if (/鲁肃|子敬|谋/.test(name)) return "avatar-lusu";
-    if (/董仲舒|礼官|儒生|经学|先生/.test(name)) return "avatar-scholar";
-    if (/律令官|刑部|主审|廷尉|官/.test(name)) return "avatar-official";
-    if (/乡里|被害者|家属|代表/.test(name)) return "avatar-player";
+    if (/律令官|儒生|董仲舒|礼官|经学|先生|刑部|主审|廷尉|官/.test(name)) return "avatar-official";
     if (/张昭|老臣|相国|文臣|臣/.test(name)) return "avatar-zhangzhao";
     return "avatar-player";
+}
+
+function setVisualAvatarClass(avatarClass = "") {
+    const safeClass = avatarClass || "avatar-player";
+    if (elements.visualAvatar) {
+        elements.visualAvatar.className = `ruju-visual-avatar ${safeClass}`;
+    }
+    if (elements.visualDialogueAvatar) {
+        elements.visualDialogueAvatar.className = `ruju-dialogue-avatar ${safeClass}`;
+    }
 }
 
 function setVisualStagePhase(phase) {
@@ -1431,6 +1461,7 @@ function updateVisualChoiceAvailability() {
         && state.timeTravel.visualPhase === "dialogue"
         && isAtLatestShown
         && hasNoMoreLines
+        && state.timeTravel.visualClassroomChoicesRevealed
         && choices.length > 0
         && !state.timeTravel.visualTyping
         && !state.timeTravel.isBusy
@@ -1451,6 +1482,16 @@ function updateVisualContinueAvailability() {
     const nextItem = hasNextLine ? queue[state.timeTravel.visualIndex + 1] : null;
     const hasReadyNextLine = Boolean(nextItem?.text) && nextItem?.complete !== false;
     const currentLineComplete = Boolean(currentItem) && currentItem.complete !== false;
+    const choices = Array.isArray(state.timeTravel.payload?.choices) ? state.timeTravel.payload.choices.filter(choice => choice?.text) : [];
+    const canRevealClassroomChoices = Boolean(state.timeTravel.payload?.classroom_mode)
+        && phase === "dialogue"
+        && isAtLatestShown
+        && queue.length
+        && state.timeTravel.visualIndex >= queue.length - 1
+        && choices.length > 0
+        && !state.timeTravel.visualClassroomChoicesRevealed
+        && !state.timeTravel.isBusy
+        && !state.timeTravel.payload?.ended;
     const hasPendingUserRequest = phase === "dialogue"
         && Boolean(state.timeTravel.visualPendingUserRequest)
         && isAtLatestShown
@@ -1461,6 +1502,7 @@ function updateVisualContinueAvailability() {
             (phase === "loading" && Boolean(state.timeTravel.visualPendingPayload))
             || phase === "intro"
             || hasPendingUserRequest
+            || canRevealClassroomChoices
         ))
         || hasReadyNextLine
         || (phase === "dialogue" && state.timeTravel.isBusy && currentLineComplete && !state.timeTravel.visualWaitingForNext)
@@ -1543,13 +1585,14 @@ function prepareVisualLoading(sceneId = VISUAL_NOVEL_SCENE_ID) {
     state.timeTravel.visualWaitingForNext = false;
     state.timeTravel.visualBrowsingHistory = false;
     state.timeTravel.visualMaxSeenIndex = -1;
+    state.timeTravel.visualClassroomChoicesRevealed = false;
     state.timeTravel.visualIntroStep = "";
     if (elements.visualTitle) elements.visualTitle.textContent = isClassroomScene ? '公开课案例' : '赤壁战前的江东朝议';
     if (elements.visualEra) elements.visualEra.textContent = isClassroomScene ? '' : '东汉末年';
     if (elements.visualSpeakerName) elements.visualSpeakerName.textContent = '';
     if (elements.visualSpeakerRole) elements.visualSpeakerRole.textContent = '';
     if (elements.visualDialogueText) elements.visualDialogueText.textContent = '';
-    if (elements.visualAvatar) elements.visualAvatar.className = 'ruju-visual-avatar';
+    setVisualAvatarClass('avatar-none');
     setVisualStagePhase("loading");
     setVisualOverlay(
         isClassroomScene ? "案例加载中" : "事件加载中",
@@ -1590,12 +1633,35 @@ function visualBriefingText(payload) {
     return payload?.brief || payload?.public_state || payload?.scene || "前情提要正在展开。";
 }
 
+function visualBriefingPages(payload) {
+    const pages = Array.isArray(payload?.brief_pages)
+        ? payload.brief_pages
+            .map((page) => ({
+                title: String(page?.title || "前情提要").trim() || "前情提要",
+                text: String(page?.text || "").trim()
+            }))
+            .filter((page) => page.text)
+        : [];
+    return pages.length ? pages : [{ title: "前情提要", text: visualBriefingText(payload) }];
+}
+
+function visualBriefingSource(payload) {
+    if (payload?.scene_id === "law_han_qinqin_xiangyin") {
+        return "改编自：董仲舒“春秋决狱”·养父匿子案";
+    }
+    if (payload?.scene_id === "law_tang_liuyang_chengsi") {
+        return "改编自：北魏以来“存留养亲”制度与《唐律疏议》相关规定";
+    }
+    return "";
+}
+
 function visualMissionText(payload) {
     const role = payload?.user_role || {};
     const identity = [role.name, role.identity].filter(Boolean).join(" · ") || "局中决策者";
     const goal = role.goal || "听取众人意见，亲自追问并作出决定。";
     if (payload?.classroom_mode) {
-        return `你的身份：${identity}\n\n你的任务：${goal}\n\n请先听完各方陈说，再从屏幕下方选项中作出裁断。本局不开放自由输入，选择后会给出推演结果、教材联系和课堂追问。`;
+        if (payload.mission_text) return payload.mission_text;
+        return `你的身份：${identity}\n\n你的任务：${goal}\n\n请先听完各方陈说，再从屏幕中央选项中作出裁断。本局不开放自由输入。`;
     }
     return `你的身份：${identity}\n\n你的任务：${goal}\n\n你可以继续追问、质疑、命令；一旦拍板，本局历史会按你的决定推演。`;
 }
@@ -1605,8 +1671,25 @@ function startVisualIntro() {
     if (!payload) return;
     setVisualStagePhase("intro");
     state.timeTravel.visualIntroStep = "brief";
-    setVisualOverlay("前情提要", "", false);
-    typeIntoElement(elements.visualOverlayText, visualBriefingText(payload), {
+    state.timeTravel.visualBriefingPageIndex = 0;
+    startVisualBriefingPage(0);
+}
+
+function startVisualBriefingPage(index = 0) {
+    const payload = state.timeTravel.visualPendingPayload || state.timeTravel.payload;
+    if (!payload) return;
+    const pages = visualBriefingPages(payload);
+    const pageIndex = Math.max(0, Math.min(index, pages.length - 1));
+    const page = pages[pageIndex] || pages[0];
+    state.timeTravel.visualIntroStep = "brief";
+    state.timeTravel.visualBriefingPageIndex = pageIndex;
+    setVisualOverlay(page.title || "前情提要", "", false);
+    if (elements.visualOverlaySource) {
+        const source = visualBriefingSource(payload);
+        elements.visualOverlaySource.textContent = source;
+        elements.visualOverlaySource.classList.toggle('hidden', !source || pageIndex === 0);
+    }
+    typeIntoElement(elements.visualOverlayText, page.text, {
         speed: 22,
         onDone: updateVisualContinueAvailability
     });
@@ -1617,6 +1700,7 @@ function startVisualMission() {
     if (!payload) return;
     state.timeTravel.visualIntroStep = "mission";
     setVisualOverlay("你的任务", "", false);
+    elements.visualOverlaySource?.classList.add('hidden');
     typeIntoElement(elements.visualOverlayText, visualMissionText(payload), {
         speed: 22,
         onDone: updateVisualContinueAvailability
@@ -1633,12 +1717,98 @@ function normalizeVisualItem(item = {}) {
     };
 }
 
+function classroomVerdictItemForPayload(payload = {}) {
+    const dialogue = Array.isArray(payload.dialogue) ? payload.dialogue : [];
+    const systemItems = dialogue.filter(item => item?.kind === 'system' && item?.text);
+    const resultItem = systemItems.find(item => /推演|结果/.test(item.role || "")) || systemItems[0];
+    if (!resultItem) return null;
+    const extraItems = systemItems.filter(item => item !== resultItem);
+    const text = [
+        resultItem.text,
+        ...extraItems.map(item => `${item.role || "课堂提示"}：${item.text}`)
+    ].join("\n\n");
+    return { speaker: "裁断卷宗", role: "礼法断案", text, kind: "verdict" };
+}
+
+function parseClassroomVerdict(text = "") {
+    const source = String(text || "").trim();
+    const lines = source.split(/\n+/).map(line => line.trim()).filter(Boolean);
+    let title = lines[0] || "裁断结果";
+    let body = lines.slice(1).join("\n\n") || source;
+    if (!/^[A-D]\s*[｜|]/.test(title)) {
+        title = "裁断结果";
+        body = source;
+    }
+    const pickSection = (labelPattern) => {
+        const match = body.match(new RegExp(`(?:^|\\n\\n?)(${labelPattern})：([\\s\\S]*?)(?=\\n\\n?(?:教材回顾|教材联系|课堂追问|史学分析|礼法分析)：|$)`));
+        return match ? match[2].trim() : "";
+    };
+    const analysis = pickSection("史学分析|礼法分析");
+    const textbook = pickSection("教材回顾|教材联系");
+    const question = pickSection("课堂追问");
+    const main = body
+        .replace(/(?:^|\n\n?)(?:史学分析|礼法分析)：[\s\S]*?(?=\n\n?(?:教材回顾|教材联系|课堂追问)：|$)/g, "")
+        .replace(/(?:^|\n\n?)(?:教材回顾|教材联系)：[\s\S]*?(?=\n\n?课堂追问：|$)/g, "")
+        .replace(/(?:^|\n\n?)课堂追问：[\s\S]*$/g, "")
+        .trim();
+    title = title.replace(/^([A-D])\s*[｜|]\s*/, "$1 ");
+    return { title, main, analysis, textbook, question };
+}
+
+function renderClassroomVerdict(text = "") {
+    const verdict = parseClassroomVerdict(text);
+    const sideCards = [
+        verdict.analysis ? { title: "礼法分析", text: verdict.analysis } : null,
+        verdict.textbook ? { title: "教材回顾", text: verdict.textbook } : null,
+        verdict.question ? { title: "课堂追问", text: verdict.question } : null,
+    ].filter(Boolean);
+    return `
+        <article class="ruju-verdict-dossier">
+            <header class="ruju-verdict-head">
+                <span>裁断卷宗</span>
+                <h2>${escapeHtml(verdict.title)}</h2>
+            </header>
+            <section class="ruju-verdict-main">
+                <b>推演结果</b>
+                <p>${escapeHtml(verdict.main || text).replace(/\n/g, '<br>')}</p>
+            </section>
+            <div class="ruju-verdict-side">
+                ${sideCards.map(card => `
+                    <section>
+                        <b>${escapeHtml(card.title)}</b>
+                        <p>${escapeHtml(card.text).replace(/\n/g, '<br>')}</p>
+                    </section>
+                `).join('')}
+            </div>
+            <div class="ruju-verdict-actions">
+                <button type="button" data-verdict-action="rechoose">重新选择</button>
+                <button type="button" data-verdict-action="home">返回首页</button>
+            </div>
+        </article>
+    `;
+}
+
+function isVisualClassroomResultItem(item = {}) {
+    return Boolean(state.timeTravel.payload?.classroom_mode && state.timeTravel.payload?.ended && (item.kind === "system" || item.kind === "verdict"));
+}
+
 function setVisualDialogueItem(item, options = {}) {
     if (!item || !elements.visualDialogueText) return;
     const speaker = normalizeVisualSpeaker(item.speaker, item.kind);
+    const isClassroomResult = isVisualClassroomResultItem(item);
+    elements.visualDialogueBox?.classList.remove('hidden');
     elements.visualSpeakerName.textContent = speaker;
     elements.visualSpeakerRole.textContent = item.role || visualRoleForSpeaker(speaker);
-    elements.visualAvatar.className = `ruju-visual-avatar ${visualAvatarClass(speaker)}`;
+    setVisualAvatarClass(isClassroomResult ? 'avatar-none' : visualAvatarClass(speaker));
+    elements.visualDialogueBox?.classList.toggle('is-result', isClassroomResult);
+    if (isClassroomResult) {
+        clearVisualTyping();
+        elements.visualDialogueText.innerHTML = renderClassroomVerdict(item.text || "");
+        elements.visualInputForm?.classList.add('hidden');
+        updateVisualInputAvailability();
+        updateVisualContinueAvailability();
+        return;
+    }
     if (options.instant) {
         clearVisualTyping();
         elements.visualDialogueText.textContent = item.text || "";
@@ -1655,7 +1825,8 @@ function setVisualThinking(speaker = "局中人", role = "") {
     const displaySpeaker = normalizeVisualSpeaker(speaker, "ai");
     elements.visualSpeakerName.textContent = displaySpeaker;
     elements.visualSpeakerRole.textContent = role || visualRoleForSpeaker(displaySpeaker);
-    elements.visualAvatar.className = `ruju-visual-avatar ${visualAvatarClass(displaySpeaker)}`;
+    setVisualAvatarClass(visualAvatarClass(displaySpeaker));
+    elements.visualDialogueBox?.classList.remove('is-result');
     elements.visualDialogueText.innerHTML = '<span class="ruju-thinking-dots"><i></i><i></i><i></i></span>';
     state.timeTravel.visualTyping = true;
     elements.travelVisualStage?.classList.remove('can-continue');
@@ -1666,10 +1837,16 @@ function setVisualThinking(speaker = "局中人", role = "") {
 function setVisualStreamText(item, text = "") {
     if (!item || !elements.visualDialogueText) return;
     const speaker = normalizeVisualSpeaker(item.speaker, item.kind);
+    const isClassroomResult = isVisualClassroomResultItem(item);
     elements.visualSpeakerName.textContent = speaker;
     elements.visualSpeakerRole.textContent = item.role || visualRoleForSpeaker(speaker);
-    elements.visualAvatar.className = `ruju-visual-avatar ${visualAvatarClass(speaker)}`;
-    elements.visualDialogueText.textContent = text;
+    setVisualAvatarClass(isClassroomResult ? 'avatar-none' : visualAvatarClass(speaker));
+    elements.visualDialogueBox?.classList.toggle('is-result', isClassroomResult);
+    if (isClassroomResult) {
+        elements.visualDialogueText.innerHTML = renderClassroomVerdict(text);
+    } else {
+        elements.visualDialogueText.textContent = text;
+    }
 }
 
 function setVisualQueue(items = []) {
@@ -1679,6 +1856,7 @@ function setVisualQueue(items = []) {
     state.timeTravel.visualIndex = state.timeTravel.visualQueue.length ? 0 : -1;
     state.timeTravel.visualMaxSeenIndex = state.timeTravel.visualIndex;
     state.timeTravel.visualBrowsingHistory = false;
+    state.timeTravel.visualClassroomChoicesRevealed = false;
     setVisualDialogueItem(state.timeTravel.visualQueue[0]);
 }
 
@@ -1718,6 +1896,8 @@ function renderVisualChoiceButtons(payload = {}) {
 function visualDialogueItemsForPayload(payload = {}) {
     const dialogue = Array.isArray(payload.dialogue) ? payload.dialogue : [];
     if (payload.classroom_mode && payload.ended) {
+        const verdictItem = classroomVerdictItemForPayload(payload);
+        if (verdictItem) return [verdictItem];
         const lastUserIndex = dialogue.map(item => item?.kind).lastIndexOf('user');
         return lastUserIndex >= 0 ? dialogue.slice(lastUserIndex) : dialogue;
     }
@@ -1745,15 +1925,53 @@ function browseVisualDialogueForward() {
     showVisualHistoryIndex(state.timeTravel.visualIndex + 1);
 }
 
+function returnToClassroomChoices() {
+    const payload = state.timeTravel.payload || {};
+    const choices = Array.isArray(payload.choices) ? payload.choices.filter(choice => choice?.text) : [];
+    if (!choices.length) return;
+    renderVisualChoiceButtons(payload);
+    state.timeTravel.visualClassroomChoicesRevealed = true;
+    elements.visualDialogueBox?.classList.add('hidden');
+    elements.travelVisualStage?.classList.remove('can-continue');
+    updateVisualChoiceAvailability();
+    elements.visualChoiceList?.classList.remove('hidden');
+}
+
+function returnToClassroomHome() {
+    clearVisualTyping();
+    state.timeTravel.payload = null;
+    state.timeTravel.visualPendingPayload = null;
+    state.timeTravel.visualQueue = [];
+    state.timeTravel.visualIndex = -1;
+    state.timeTravel.visualMaxSeenIndex = -1;
+    state.timeTravel.visualClassroomChoicesRevealed = false;
+    state.timeTravel.sessionId = null;
+    elements.timeTravelContent?.classList.remove('ruju-playing');
+    elements.travelStartPanel?.classList.remove('hidden');
+    elements.travelPlayPanel?.classList.add('hidden');
+    elements.travelVisualPanel?.classList.add('hidden');
+    elements.visualChoiceList?.classList.add('hidden');
+    elements.visualDialogueBox?.classList.remove('hidden', 'is-result');
+}
+
+function handleVerdictAction(action = "") {
+    if (action === "rechoose") {
+        returnToClassroomChoices();
+    } else if (action === "home") {
+        returnToClassroomHome();
+    }
+}
+
 function startVisualDialogue() {
     const payload = state.timeTravel.visualPendingPayload || state.timeTravel.payload;
     if (!payload) return;
     state.timeTravel.visualPendingPayload = null;
     state.timeTravel.payload = payload;
     renderVisualChoiceButtons(payload);
+    state.timeTravel.visualClassroomChoicesRevealed = false;
     setVisualStagePhase("dialogue");
     setVisualQueue(visualDialogueItemsForPayload(payload));
-    if (payload.ended) {
+    if (payload.ended && !payload.classroom_mode) {
         appendVisualItems([{ speaker: '旁白', role: '本局结果', text: payload.ending || '这一局已经收束。', kind: 'system' }], { instant: true });
     }
     updateVisualChoiceAvailability();
@@ -1769,7 +1987,14 @@ function advanceVisualDialogue() {
     }
     if (phase === "intro") {
         if (state.timeTravel.visualIntroStep === "brief") {
-            startVisualMission();
+            const payload = state.timeTravel.visualPendingPayload || state.timeTravel.payload;
+            const pages = visualBriefingPages(payload);
+            const nextPageIndex = Number(state.timeTravel.visualBriefingPageIndex || 0) + 1;
+            if (nextPageIndex < pages.length) {
+                startVisualBriefingPage(nextPageIndex);
+            } else {
+                startVisualMission();
+            }
         } else {
             startVisualDialogue();
         }
@@ -1799,6 +2024,9 @@ function advanceVisualDialogue() {
         state.timeTravel.visualWaitingForNext = false;
         state.timeTravel.visualBrowsingHistory = false;
         setVisualDialogueItem(queue[state.timeTravel.visualIndex]);
+    } else if (state.timeTravel.payload?.classroom_mode && !state.timeTravel.visualClassroomChoicesRevealed) {
+        state.timeTravel.visualClassroomChoicesRevealed = true;
+        elements.visualDialogueBox?.classList.add('hidden');
     }
     updateVisualInputAvailability();
     updateVisualContinueAvailability();

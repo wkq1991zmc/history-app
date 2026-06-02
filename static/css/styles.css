@@ -1975,7 +1975,7 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 3.1rem;
+    min-width: 4rem;
     height: 2.2rem;
     border: 1px solid rgba(229, 191, 130, 0.32);
     border-radius: 999px;
@@ -2593,6 +2593,12 @@ body {
     background-position: 100% 100%;
 }
 
+.ruju-visual-avatar.avatar-clerk {
+    background-image: url('/static/images/law-clerk-avatar.png');
+    background-size: cover;
+    background-position: center;
+}
+
 .ruju-visual-avatar.avatar-player {
     background:
         radial-gradient(circle at 50% 35%, rgba(255, 214, 142, 0.2), rgba(151, 38, 31, 0.14)),
@@ -2649,6 +2655,7 @@ body {
     font-size: clamp(1.05rem, 1.45vw, 1.34rem);
     font-weight: 650;
     line-height: 1.85;
+    white-space: pre-wrap;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.58);
 }
 
@@ -2967,7 +2974,13 @@ body {
 }
 
 .ruju-visual-stage.is-loading.scene-law_han_qinqin_xiangyin,
-.ruju-visual-stage.is-intro.scene-law_han_qinqin_xiangyin,
+.ruju-visual-stage.is-intro.scene-law_han_qinqin_xiangyin {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.72)),
+        url('/static/images/law-han-qinqin-court-bg.png') center / cover no-repeat,
+        #050403;
+}
+
 .ruju-visual-stage.is-loading.scene-law_tang_liuyang_chengsi,
 .ruju-visual-stage.is-intro.scene-law_tang_liuyang_chengsi {
     background:
@@ -3002,6 +3015,7 @@ body {
 }
 
 .ruju-cinematic-box {
+    position: relative;
     width: min(48rem, 86vw);
     min-height: 13rem;
     display: grid;
@@ -3009,8 +3023,22 @@ body {
     gap: 1rem;
     border: 1px solid rgba(229, 191, 130, 0.26);
     background: linear-gradient(180deg, rgba(16, 12, 8, 0.9), rgba(3, 3, 3, 0.94));
-    padding: 2rem 2.2rem;
+    padding: 2rem 2.2rem 2.45rem;
     box-shadow: 0 28px 80px rgba(0, 0, 0, 0.62), inset 0 0 60px rgba(229, 191, 130, 0.035);
+}
+
+.ruju-cinematic-source {
+    position: absolute;
+    left: clamp(1.2rem, 2vw, 2rem);
+    bottom: 0.8rem;
+    color: rgba(255, 226, 172, 0.58);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+.ruju-cinematic-source.hidden {
+    display: none;
 }
 
 .ruju-cinematic-title {
@@ -3117,11 +3145,19 @@ body {
     overflow-y: auto;
 }
 
+.ruju-visual-dialogue.hidden {
+    display: none !important;
+}
+
+.ruju-dialogue-avatar {
+    display: none;
+}
+
 .ruju-visual-stage.scene-law_han_qinqin_xiangyin {
     background:
-        linear-gradient(90deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.04) 48%, rgba(0, 0, 0, 0.42)),
-        linear-gradient(180deg, rgba(40, 24, 11, 0.18), rgba(8, 5, 3, 0.5)),
-        url('/static/images/ruju-chibi-council-bg.png') center / cover no-repeat,
+        linear-gradient(90deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.03) 48%, rgba(0, 0, 0, 0.38)),
+        linear-gradient(180deg, rgba(18, 12, 7, 0.08), rgba(4, 3, 2, 0.42)),
+        url('/static/images/law-han-qinqin-court-bg.png') center / cover no-repeat,
         #080604;
 }
 
@@ -3134,9 +3170,310 @@ body {
 }
 
 .ruju-visual-stage.is-classroom .ruju-visual-dialogue {
-    bottom: 11.4rem;
-    min-height: 10.5rem;
-    max-height: min(32vh, 20rem);
+    display: grid;
+    grid-template-columns: clamp(8.4rem, 12vw, 11.5rem) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(1.4rem, 2.4vw, 2.4rem);
+    bottom: 5.8rem;
+    width: min(94rem, calc(100% - 4rem));
+    min-height: clamp(14rem, 22vh, 18rem);
+    max-height: min(42vh, 28rem);
+    padding: clamp(1.6rem, 2vw, 2.1rem) clamp(2rem, 2.8vw, 3rem);
+}
+
+.ruju-visual-stage.is-classroom > .ruju-visual-avatar {
+    display: none !important;
+}
+
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar {
+    position: relative;
+    display: block;
+    width: 100%;
+    max-width: 11.5rem;
+    aspect-ratio: 1;
+    align-self: center;
+    min-height: 0;
+    border: 1px solid rgba(255, 226, 172, 0.42);
+    border-radius: 6px;
+    background:
+        linear-gradient(180deg, rgba(24, 18, 12, 0.92), rgba(7, 6, 5, 0.96)),
+        rgba(8, 7, 5, 0.9);
+    box-shadow:
+        inset 0 0 28px rgba(255, 214, 142, 0.06),
+        0 18px 38px rgba(0, 0, 0, 0.44);
+    overflow: hidden;
+}
+
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar::after {
+    content: "";
+    position: absolute;
+    inset: 0.2rem;
+    background-image: url('/static/images/ruju-chibi-portraits.png');
+    background-size: 200% 200%;
+    background-position: var(--avatar-pos, 0 0);
+    background-repeat: no-repeat;
+    filter: saturate(0.9) contrast(1.02);
+}
+
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-sunquan {
+    --avatar-pos: 0 0;
+}
+
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-zhouyu,
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-official {
+    --avatar-pos: 100% 0;
+}
+
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-lusu {
+    --avatar-pos: 0 100%;
+}
+
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-zhangzhao,
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-scholar {
+    --avatar-pos: 100% 100%;
+}
+
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-clerk::after {
+    inset: 0;
+    background-image: url('/static/images/law-clerk-avatar.png');
+    background-size: cover;
+    background-position: center;
+}
+
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-player {
+    display: grid;
+    place-items: center;
+}
+
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-player::before {
+    content: "";
+    width: 42%;
+    aspect-ratio: 1;
+    border-radius: 999px;
+    background:
+        radial-gradient(circle at 50% 36%, rgba(255, 226, 172, 0.72), rgba(178, 116, 55, 0.38) 54%, transparent 56%),
+        linear-gradient(180deg, rgba(255, 214, 142, 0.38), rgba(104, 45, 31, 0.18));
+    box-shadow:
+        0 clamp(2.7rem, 4vw, 3.8rem) 0 clamp(1.2rem, 2vw, 1.75rem) rgba(255, 214, 142, 0.18),
+        0 0 42px rgba(255, 214, 142, 0.08);
+}
+
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-player::after,
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-none {
+    display: none;
+}
+
+.ruju-visual-stage.is-classroom .ruju-visual-speaker {
+    margin-bottom: 0.95rem;
+}
+
+.ruju-visual-stage.is-classroom .ruju-visual-speaker b {
+    font-size: clamp(1.65rem, 1.9vw, 2.2rem);
+}
+
+.ruju-visual-stage.is-classroom .ruju-visual-speaker span {
+    font-size: clamp(1rem, 1.05vw, 1.2rem);
+}
+
+.ruju-visual-stage.is-classroom #visual-dialogue-text {
+    min-height: 7.5rem;
+    font-size: clamp(1.5rem, 1.82vw, 2rem);
+    line-height: 1.92;
+    font-weight: 850;
+}
+
+.ruju-visual-stage.is-classroom .ruju-visual-dialogue .ruju-visual-hint {
+    right: clamp(2rem, 2.8vw, 3rem);
+    bottom: 1.35rem;
+    min-width: 8.8rem;
+    min-height: 3.4rem;
+    font-size: 1.22rem;
+}
+
+.ruju-visual-stage.is-classroom .ruju-visual-dialogue.is-result {
+    top: clamp(5.4rem, 8vh, 7rem);
+    bottom: clamp(0.8rem, 2vh, 1.6rem);
+    width: min(88rem, calc(100% - 5rem));
+    min-height: 0;
+    max-height: none;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    padding: clamp(1rem, 1.3vw, 1.35rem);
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.ruju-visual-stage.is-classroom .ruju-visual-dialogue.is-result .ruju-visual-lines {
+    padding-bottom: 0;
+}
+
+.ruju-visual-stage.is-classroom .ruju-visual-dialogue.is-result .ruju-visual-speaker {
+    display: none;
+}
+
+.ruju-visual-stage.is-classroom .ruju-visual-dialogue.is-result #visual-dialogue-text {
+    min-height: 0;
+    font-size: 1.18rem;
+    line-height: 1.7;
+    text-shadow: none;
+}
+
+.ruju-verdict-dossier {
+    display: grid;
+    justify-items: center;
+    gap: clamp(1.2rem, 1.8vw, 2rem);
+}
+
+.ruju-verdict-head {
+    display: none;
+    justify-items: center;
+    gap: 0.6rem;
+    border-bottom: 0;
+    padding-bottom: 0.2rem;
+    text-align: center;
+}
+
+.ruju-verdict-head span {
+    color: rgba(255, 226, 172, 0.86);
+    font-size: 1.08rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+}
+
+.ruju-verdict-head h2 {
+    margin: 0;
+    color: #ffe2a2;
+    font-family: 'Noto Serif SC', 'ZCOOL XiaoWei', serif;
+    font-size: clamp(1.15rem, 1.55vw, 1.55rem);
+    font-weight: 900;
+    line-height: 1.08;
+}
+
+.ruju-verdict-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.85fr);
+    gap: clamp(1rem, 2vw, 1.6rem);
+    align-items: start;
+}
+
+.ruju-verdict-main,
+.ruju-verdict-side section {
+    border: 2px solid rgba(255, 226, 172, 0.42);
+    border-radius: 6px;
+    background:
+        linear-gradient(180deg, rgba(16, 13, 9, 0.9), rgba(5, 5, 4, 0.92)),
+        rgba(8, 7, 5, 0.86);
+    box-shadow:
+        inset 0 0 28px rgba(255, 214, 142, 0.04),
+        0 18px 46px rgba(0, 0, 0, 0.46);
+}
+
+.ruju-verdict-main {
+    width: min(62rem, 82%);
+    min-height: clamp(19rem, 32vh, 28rem);
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    padding: clamp(1.6rem, 2.5vw, 2.8rem);
+    text-align: center;
+}
+
+.ruju-verdict-side {
+    width: min(62rem, 82%);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(1rem, 2vw, 1.7rem);
+}
+
+.ruju-verdict-side section {
+    min-height: clamp(9.6rem, 16vh, 13.5rem);
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    padding: clamp(1.2rem, 1.9vw, 1.75rem);
+    text-align: center;
+}
+
+.ruju-verdict-main b,
+.ruju-verdict-side b {
+    display: block;
+    margin-bottom: 0.8rem;
+    color: #ffd68e;
+    font-size: clamp(1.25rem, 1.42vw, 1.58rem);
+    font-weight: 900;
+}
+
+.ruju-verdict-main p,
+.ruju-verdict-side p {
+    margin: 0;
+    color: rgba(255, 243, 221, 0.94);
+    font-size: clamp(1.18rem, 1.28vw, 1.42rem);
+    font-weight: 700;
+    line-height: 1.72;
+}
+
+.ruju-verdict-side p {
+    color: rgba(255, 237, 203, 0.88);
+    font-size: clamp(1.08rem, 1.15vw, 1.24rem);
+    line-height: 1.68;
+}
+
+.ruju-verdict-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 0.2rem;
+}
+
+.ruju-verdict-actions button {
+    min-width: 10rem;
+    min-height: 3.35rem;
+    border: 1px solid rgba(255, 214, 142, 0.42);
+    border-radius: 6px;
+    background:
+        linear-gradient(180deg, rgba(110, 31, 23, 0.92), rgba(55, 16, 13, 0.96)),
+        rgba(8, 7, 5, 0.86);
+    color: #ffe1a8;
+    font-size: 1.14rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.34), inset 0 0 18px rgba(255, 214, 142, 0.06);
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
+}
+
+.ruju-verdict-actions button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 226, 172, 0.72);
+    filter: brightness(1.08);
+}
+
+.ruju-visual-stage.is-classroom .ruju-cinematic-box {
+    width: min(68rem, 90vw);
+    min-height: 19rem;
+    padding: clamp(2.4rem, 4vw, 3.6rem) clamp(2.6rem, 4.8vw, 4.4rem);
+    gap: 1.35rem;
+}
+
+.ruju-visual-stage.is-classroom .ruju-cinematic-title {
+    font-size: clamp(3.4rem, 5.2vw, 5.4rem);
+    line-height: 1.08;
+}
+
+.ruju-visual-stage.is-classroom .ruju-cinematic-box p {
+    min-height: 9rem;
+    font-size: clamp(1.42rem, 1.72vw, 1.86rem);
+    line-height: 2.05;
+    font-weight: 800;
+}
+
+.ruju-visual-stage.is-classroom .ruju-cinematic-hint {
+    min-width: 7rem;
+    min-height: 3.2rem;
+    font-size: 1.08rem;
 }
 
 .ruju-visual-choice-list {
@@ -3149,6 +3486,16 @@ body {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.75rem;
+}
+
+.ruju-visual-stage.is-classroom .ruju-visual-choice-list {
+    z-index: 9;
+    top: 43%;
+    bottom: auto;
+    width: min(92rem, calc(100% - 5rem));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    transform: translate(-50%, -50%);
 }
 
 .ruju-visual-choice-list.hidden {
@@ -3176,6 +3523,17 @@ body {
     transition: transform 0.18s, border-color 0.18s, background 0.18s;
 }
 
+.ruju-visual-stage.is-classroom .ruju-visual-choice {
+    min-height: clamp(10.6rem, 16vh, 13.4rem);
+    column-gap: 1.1rem;
+    row-gap: 0.55rem;
+    padding: clamp(1.35rem, 1.8vw, 1.85rem);
+    background:
+        linear-gradient(180deg, rgba(20, 18, 15, 0.92), rgba(7, 6, 5, 0.96)),
+        rgba(8, 7, 5, 0.9);
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45), inset 0 0 28px rgba(255, 214, 142, 0.045);
+}
+
 .ruju-visual-choice:hover {
     transform: translateY(-2px);
     border-color: rgba(255, 214, 142, 0.68);
@@ -3197,10 +3555,21 @@ body {
     font-weight: 900;
 }
 
+.ruju-visual-stage.is-classroom .ruju-visual-choice span {
+    width: 3.2rem;
+    height: 3.2rem;
+    font-size: 1.35rem;
+}
+
 .ruju-visual-choice b {
     color: #fff0cb;
     font-size: 0.94rem;
     line-height: 1.45;
+}
+
+.ruju-visual-stage.is-classroom .ruju-visual-choice b {
+    font-size: clamp(1.5rem, 1.68vw, 1.9rem);
+    line-height: 1.5;
 }
 
 .ruju-visual-choice em {
@@ -3209,6 +3578,11 @@ body {
     font-size: 0.78rem;
     font-style: normal;
     line-height: 1.45;
+}
+
+.ruju-visual-stage.is-classroom .ruju-visual-choice em {
+    font-size: clamp(1.12rem, 1.2vw, 1.3rem);
+    line-height: 1.58;
 }
 
 .ruju-visual-dialogue .ruju-visual-hint {
@@ -3268,12 +3642,18 @@ body {
     --avatar-pos: 100% 100%;
 }
 
+.ruju-visual-avatar.avatar-clerk::after {
+    background-image: url('/static/images/law-clerk-avatar.png');
+    background-size: cover;
+    background-position: center;
+}
+
 .ruju-visual-avatar.avatar-scholar {
     --avatar-pos: 100% 100%;
 }
 
 .ruju-visual-avatar.avatar-official {
-    --avatar-pos: 0 100%;
+    --avatar-pos: 100% 0;
 }
 
 .ruju-visual-avatar.avatar-player::before {
@@ -3282,6 +3662,10 @@ body {
 
 .ruju-visual-avatar.avatar-player::after {
     display: none;
+}
+
+.ruju-visual-avatar.avatar-none {
+    display: none !important;
 }
 
 .ruju-visual-input {
@@ -3298,8 +3682,46 @@ body {
     }
 
     .ruju-visual-stage.is-classroom .ruju-visual-dialogue {
-        bottom: 15rem;
-        max-height: 30vh;
+        grid-template-columns: clamp(5.8rem, 18vw, 7.2rem) minmax(0, 1fr);
+        gap: 0.9rem;
+        bottom: 4.6rem;
+        width: calc(100% - 1.2rem);
+        min-height: clamp(15rem, 26vh, 20rem);
+        max-height: 46vh;
+        padding: 1.4rem 1.25rem 1.65rem;
+    }
+
+    .ruju-visual-stage.is-classroom .ruju-dialogue-avatar {
+        max-width: 7.2rem;
+        min-height: 0;
+    }
+
+    .ruju-visual-stage.is-classroom #visual-dialogue-text {
+        font-size: clamp(1.18rem, 3.1vw, 1.55rem);
+        line-height: 1.88;
+    }
+
+    .ruju-visual-stage.is-classroom .ruju-visual-speaker b {
+        font-size: clamp(1.45rem, 4vw, 1.9rem);
+    }
+
+    .ruju-visual-stage.is-classroom .ruju-visual-speaker span {
+        font-size: clamp(0.92rem, 2.4vw, 1.08rem);
+    }
+
+    .ruju-visual-stage.is-classroom .ruju-cinematic-box {
+        width: calc(100% - 1.2rem);
+        min-height: 16rem;
+        padding: 1.45rem;
+    }
+
+    .ruju-visual-stage.is-classroom .ruju-cinematic-title {
+        font-size: 2.45rem;
+    }
+
+    .ruju-visual-stage.is-classroom .ruju-cinematic-box p {
+        font-size: 1.08rem;
+        line-height: 1.9;
     }
 
     .ruju-visual-choice-list {
@@ -3308,17 +3730,57 @@ body {
         gap: 0.55rem;
     }
 
+    .ruju-visual-stage.is-classroom .ruju-visual-choice-list {
+        top: 49%;
+        width: calc(100% - 1.2rem);
+        gap: 0.75rem;
+    }
+
     .ruju-visual-choice {
         min-height: 6.8rem;
         padding: 0.68rem;
+    }
+
+    .ruju-visual-stage.is-classroom .ruju-visual-choice {
+        min-height: 8.9rem;
+        padding: 0.95rem;
     }
 
     .ruju-visual-choice b {
         font-size: 0.84rem;
     }
 
+    .ruju-visual-stage.is-classroom .ruju-visual-choice b {
+        font-size: clamp(1.04rem, 2.7vw, 1.24rem);
+    }
+
     .ruju-visual-choice em {
         font-size: 0.72rem;
+    }
+
+    .ruju-visual-stage.is-classroom .ruju-visual-choice em {
+        font-size: clamp(0.82rem, 2.1vw, 0.98rem);
+    }
+
+    .ruju-visual-stage.is-classroom .ruju-visual-dialogue.is-result {
+        bottom: 1rem;
+        width: calc(100% - 1rem);
+        min-height: auto;
+        max-height: calc(100vh - 2rem);
+        padding: 1rem;
+        overflow: auto;
+    }
+
+    .ruju-visual-stage.is-classroom .ruju-visual-dialogue.is-result #visual-dialogue-text {
+        font-size: 1.05rem;
+    }
+
+    .ruju-verdict-body {
+        grid-template-columns: 1fr;
+    }
+
+    .ruju-verdict-head h2 {
+        font-size: 2.15rem;
     }
 
     .ruju-visual-avatar {
@@ -3327,6 +3789,13 @@ body {
         left: -0.8rem;
         bottom: 8.6rem;
         opacity: 0.72;
+    }
+
+    .ruju-visual-stage.is-classroom .ruju-visual-avatar {
+        width: clamp(6.8rem, 20vw, 9rem);
+        left: 0.5rem;
+        bottom: clamp(21rem, 48vh, 31rem);
+        opacity: 0.62;
     }
 
     .ruju-visual-input {
@@ -3338,6 +3807,68 @@ body {
     }
 
     .ruju-cinematic-box p {
+        font-size: 1rem;
+    }
+}
+
+@media (min-width: 901px) and (max-width: 1180px) {
+    .ruju-visual-stage.is-classroom .ruju-visual-avatar {
+        width: clamp(8rem, 14vw, 11rem);
+    }
+}
+
+@media (min-width: 901px) and (max-height: 760px) {
+    .ruju-visual-stage.is-classroom .ruju-visual-dialogue.is-result {
+        top: 4.2rem;
+        bottom: 0.45rem;
+        width: min(86rem, calc(100% - 3rem));
+        padding: 0.65rem;
+        overflow: hidden;
+    }
+
+    .ruju-verdict-dossier {
+        gap: 0.55rem;
+    }
+
+    .ruju-verdict-main {
+        width: min(58rem, 84%);
+        min-height: 11.6rem;
+        padding: 1rem 1.35rem;
+    }
+
+    .ruju-verdict-side {
+        width: min(58rem, 84%);
+        gap: 0.65rem;
+    }
+
+    .ruju-verdict-side section {
+        min-height: 5.8rem;
+        padding: 0.72rem 1rem;
+    }
+
+    .ruju-verdict-main p {
+        font-size: 1.08rem;
+        line-height: 1.52;
+    }
+
+    .ruju-verdict-side p {
+        font-size: 0.98rem;
+        line-height: 1.42;
+    }
+
+    .ruju-verdict-main b,
+    .ruju-verdict-side b {
+        margin-bottom: 0.35rem;
+        font-size: 1.05rem;
+    }
+
+    .ruju-verdict-actions {
+        margin-top: 0;
+    }
+
+    .ruju-verdict-actions button {
+        min-width: 8.8rem;
+        min-height: 2.5rem;
         font-size: 1rem;
     }
 }
@@ -5751,6 +6282,7 @@ body.law-classroom-demo .topbar-nav-item:not([data-top-action="time-travel"]),
 body.law-classroom-demo .sidebar-feedback,
 body.law-classroom-demo .mobile-topbar-actions,
 body.law-classroom-demo #mobile-menu-btn,
+body.law-classroom-demo #mobile-tabs,
 body.law-classroom-demo #mobile-sidebar-overlay {
     display: none !important;
 }
@@ -5762,25 +6294,35 @@ body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playin
 
 body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .travel-start-panel.ruju-entry-panel {
     display: grid !important;
-    place-items: center !important;
+    place-items: stretch !important;
     min-height: calc(100vh - 72px) !important;
-    padding: clamp(1rem, 4vw, 4rem) !important;
+    padding: 0 !important;
 }
 
 body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-entry-main {
     position: relative !important;
-    width: min(46rem, calc(100vw - 2rem)) !important;
-    min-height: auto !important;
+    width: 100vw !important;
+    min-height: calc(100vh - 72px) !important;
     display: block !important;
 }
 
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-screen-head {
+    top: clamp(7rem, 21vh, 12rem) !important;
+    left: clamp(4rem, 10vw, 12rem) !important;
+    width: min(39rem, 38vw) !important;
+}
+
 body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-entry-card {
-    position: relative !important;
-    top: auto !important;
-    right: auto !important;
-    width: 100% !important;
+    position: absolute !important;
+    top: clamp(7rem, 21vh, 12rem) !important;
+    right: clamp(4rem, 12vw, 14rem) !important;
+    width: min(38rem, 38vw) !important;
     min-height: auto !important;
-    padding: clamp(2.4rem, 5vw, 3.4rem) !important;
+    padding: clamp(2.5rem, 4vw, 3.5rem) !important;
+}
+
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-entry-card > p {
+    display: none !important;
 }
 
 body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-event-chip,
@@ -5793,4 +6335,43 @@ body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playin
 body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-classroom-cases {
     display: grid !important;
     pointer-events: auto !important;
+}
+
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-classroom-cases button {
+    min-height: 5.2rem !important;
+    padding: 1rem 1.1rem !important;
+}
+
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-classroom-cases b {
+    font-size: clamp(1.25rem, 1.25vw, 1.45rem) !important;
+}
+
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-classroom-cases em {
+    font-size: clamp(0.95rem, 0.92vw, 1.05rem) !important;
+}
+
+@media (max-width: 900px) {
+    body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .travel-start-panel.ruju-entry-panel {
+        padding: clamp(1rem, 5vw, 2rem) !important;
+    }
+
+    body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-entry-main {
+        min-height: auto !important;
+    }
+
+    body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-screen-head {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        width: 100% !important;
+        margin: clamp(3rem, 10vh, 5rem) 0 2rem !important;
+    }
+
+    body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-entry-card {
+        position: relative !important;
+        top: auto !important;
+        right: auto !important;
+        width: 100% !important;
+        margin: 0 auto 2rem !important;
+    }
 }
