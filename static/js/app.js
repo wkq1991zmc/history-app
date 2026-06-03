@@ -18,8 +18,10 @@ const VISUAL_AVATAR_CLASS = {
     "儒生": "avatar-lusu",
     "乡里代表": "avatar-zhangzhao",
     "刑部主审官": "avatar-official",
-    "礼官": "avatar-scholar",
-    "被害者家属": "avatar-zhangzhao",
+    "甲": "avatar-jia",
+    "张三": "avatar-zhangsan",
+    "礼官": "avatar-ritual-official",
+    "被害者家属": "avatar-victim-family",
     "你": "avatar-sunquan"
 };
 const CLASSROOM_GLOSSARY = {
@@ -1018,6 +1020,12 @@ async function init() {
             closeClassroomGlossary();
             return;
         }
+        const historyModal = document.getElementById('classroom-history-modal');
+        if (e.key === 'Escape' && historyModal && !historyModal.classList.contains('hidden')) {
+            e.preventDefault();
+            closeClassroomHistory();
+            return;
+        }
         if (e.key === 'Escape' && !elements.chibiMapModal?.classList.contains('hidden')) {
             e.preventDefault();
             closeChibiMapModal();
@@ -1512,7 +1520,11 @@ function visualAvatarClass(name = "") {
     if (VISUAL_AVATAR_CLASS[name]) return VISUAL_AVATAR_CLASS[name];
     if (/旁白/.test(name)) return "avatar-none";
     if (/案吏/.test(name)) return "avatar-clerk";
-    if (/乡里|被害者|家属|代表/.test(name)) return "avatar-lusu";
+    if (/张三/.test(name)) return "avatar-zhangsan";
+    if (/^甲$|养父甲/.test(name)) return "avatar-jia";
+    if (/礼官/.test(name)) return "avatar-ritual-official";
+    if (/被害者|家属/.test(name)) return "avatar-victim-family";
+    if (/乡里|代表/.test(name)) return "avatar-lusu";
     if (/孙权|主公|你/.test(name)) return "avatar-sunquan";
     if (/周瑜|公瑾|将/.test(name)) return "avatar-zhouyu";
     if (/鲁肃|子敬|谋/.test(name)) return "avatar-lusu";
@@ -1725,6 +1737,66 @@ function openClassroomGlossary(term = "") {
 
 function closeClassroomGlossary() {
     const modal = document.getElementById('classroom-glossary-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+}
+
+function ensureClassroomHistoryModal() {
+    let modal = document.getElementById('classroom-history-modal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'classroom-history-modal';
+    modal.className = 'classroom-history-modal hidden';
+    modal.setAttribute('aria-hidden', 'true');
+    modal.innerHTML = `
+        <div class="classroom-history-card" role="dialog" aria-modal="true" aria-labelledby="classroom-history-title">
+            <button type="button" class="classroom-history-close" aria-label="关闭历史还原">×</button>
+            <div class="classroom-history-kicker">历史还原</div>
+            <h3 id="classroom-history-title">真实历史中的走向</h3>
+            <div class="classroom-history-body"></div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal || event.target.closest('.classroom-history-close')) {
+            closeClassroomHistory();
+        }
+    });
+    return modal;
+}
+
+function openClassroomHistory() {
+    const payload = state.timeTravel.payload || {};
+    const points = Array.isArray(payload.orthodox_history_points)
+        ? payload.orthodox_history_points.map(item => String(item || "").trim()).filter(Boolean)
+        : [];
+    const text = String(payload.orthodox_history || "").trim();
+    if (!points.length && !text) return;
+    const modal = ensureClassroomHistoryModal();
+    const body = modal.querySelector('.classroom-history-body');
+    body.innerHTML = "";
+    if (points.length) {
+        const list = document.createElement('ul');
+        points.forEach(point => {
+            const item = document.createElement('li');
+            item.textContent = point;
+            list.appendChild(item);
+        });
+        body.appendChild(list);
+    } else {
+        text.split(/\n{2,}/).map(item => item.trim()).filter(Boolean).forEach(paragraph => {
+            const item = document.createElement('p');
+            item.textContent = paragraph;
+            body.appendChild(item);
+        });
+    }
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeClassroomHistory() {
+    const modal = document.getElementById('classroom-history-modal');
     if (!modal) return;
     modal.classList.add('hidden');
     modal.setAttribute('aria-hidden', 'true');
@@ -1967,6 +2039,9 @@ function renderClassroomVerdict(text = "") {
         verdict.textbook ? { title: "教材回顾", text: verdict.textbook } : null,
         verdict.question ? { title: "课堂追问", text: verdict.question } : null,
     ].filter(Boolean);
+    const historyButton = state.timeTravel.payload?.orthodox_history
+        ? '<button type="button" data-verdict-action="history">历史还原</button>'
+        : '';
     return `
         <article class="ruju-verdict-dossier">
             <header class="ruju-verdict-head">
@@ -1986,6 +2061,7 @@ function renderClassroomVerdict(text = "") {
                 `).join('')}
             </div>
             <div class="ruju-verdict-actions">
+                ${historyButton}
                 <button type="button" data-verdict-action="rechoose">重新选择</button>
                 <button type="button" data-verdict-action="home">返回首页</button>
             </div>
@@ -2102,7 +2178,8 @@ function visualDialogueItemsForPayload(payload = {}) {
     const dialogue = Array.isArray(payload.dialogue) ? payload.dialogue : [];
     if (payload.classroom_mode && payload.ended) {
         const verdictItem = classroomVerdictItemForPayload(payload);
-        if (verdictItem) return [verdictItem];
+        const aftermathItems = dialogue.filter(item => item?.kind !== 'system' && item?.text);
+        if (verdictItem) return [...aftermathItems, verdictItem];
         const lastUserIndex = dialogue.map(item => item?.kind).lastIndexOf('user');
         return lastUserIndex >= 0 ? dialogue.slice(lastUserIndex) : dialogue;
     }
@@ -2160,7 +2237,9 @@ function returnToClassroomHome() {
 }
 
 function handleVerdictAction(action = "") {
-    if (action === "rechoose") {
+    if (action === "history") {
+        openClassroomHistory();
+    } else if (action === "rechoose") {
         returnToClassroomChoices();
     } else if (action === "home") {
         returnToClassroomHome();

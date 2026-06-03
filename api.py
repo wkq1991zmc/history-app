@@ -1468,6 +1468,7 @@ def _build_intrigue_payload(scene: Dict, seed_text: str = "") -> Dict:
         "branch_axes": scene.get("branch_axes", []),
         "historical_anchor": scene.get("historical_anchor", []),
         "orthodox_history": scene.get("orthodox_history", ""),
+        "orthodox_history_points": scene.get("orthodox_history_points", []),
         "user_role": user_role,
         "decision_maker": decision_maker,
         "counterpart": counterpart,
@@ -1619,6 +1620,8 @@ def _normalize_travel_payload(data: Dict, fallback: Optional[Dict] = None) -> Di
             payload[list_key] = data[list_key][:12]
     if isinstance(data.get("historical_anchor"), list):
         payload["historical_anchor"] = [str(item)[:220] for item in data["historical_anchor"][:5]]
+    if isinstance(data.get("orthodox_history_points"), list):
+        payload["orthodox_history_points"] = [str(item)[:360] for item in data["orthodox_history_points"][:8] if str(item).strip()]
     for role_key in ("user_role", "decision_maker", "counterpart"):
         if isinstance(data.get(role_key), dict):
             role_data = dict(base.get(role_key, {}))
@@ -1674,6 +1677,24 @@ def _normalize_travel_payload(data: Dict, fallback: Optional[Dict] = None) -> Di
         payload["choices"] = choices[:4]
     return payload
 
+def _classroom_dialogue_items(items, limit: int = 6) -> List[Dict]:
+    dialogue: List[Dict] = []
+    if not isinstance(items, list):
+        return dialogue
+    for item in items[:limit]:
+        if not isinstance(item, dict):
+            continue
+        text = str(item.get("text") or "").strip()
+        if not text:
+            continue
+        dialogue.append({
+            "speaker": str(item.get("speaker") or "旁白")[:24],
+            "role": str(item.get("role") or "")[:36],
+            "text": text[:700],
+            "kind": str(item.get("kind") or "ai")[:16],
+        })
+    return dialogue
+
 def _classroom_choice_payload(current: Dict, selected: Dict) -> Dict:
     choice_id = str(selected.get("id") or "").strip() or "?"
     choice_text = str(selected.get("text") or "").strip()
@@ -1681,18 +1702,9 @@ def _classroom_choice_payload(current: Dict, selected: Dict) -> Dict:
     analysis = str(selected.get("analysis") or "").strip()
     orthodox_note = str(selected.get("orthodox_note") if "orthodox_note" in selected else (current.get("orthodox_history") or "")).strip()
     classroom_question = str(selected.get("classroom_question") if "classroom_question" in selected else "这个选择怎样体现礼与法的关系？").strip()
-    dialogue = []
-    reactions = selected.get("reactions")
-    if isinstance(reactions, list):
-        for item in reactions[:3]:
-            if not isinstance(item, dict):
-                continue
-            dialogue.append({
-                "speaker": str(item.get("speaker") or "局中人")[:24],
-                "role": str(item.get("role") or "")[:36],
-                "text": str(item.get("text") or "")[:600],
-                "kind": "ai",
-            })
+    dialogue = _classroom_dialogue_items(selected.get("aftermath"), limit=6)
+    if not dialogue:
+        dialogue = _classroom_dialogue_items(selected.get("reactions"), limit=3)
     dialogue.append({
         "speaker": "旁白",
         "role": "推演结果",
