@@ -698,7 +698,7 @@ body {
         background-image:
             radial-gradient(circle at 32% 20%, rgba(229, 191, 130, 0.22), transparent 28rem),
             linear-gradient(90deg, rgba(7, 6, 5, 0.94), rgba(7, 6, 5, 0.40) 48%, rgba(7, 6, 5, 0.92)),
-            url('/static/images/qin-skeleton-bg.png.png') !important;
+            url('/static/images/qin-skeleton-bg.webp') !important;
         background-size: cover !important;
         background-position: center !important;
     }
@@ -1349,7 +1349,7 @@ body {
     background:
         linear-gradient(90deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.16) 48%, rgba(0, 0, 0, 0.3)),
         linear-gradient(180deg, rgba(7, 5, 4, 0.18), rgba(4, 3, 2, 0.48) 100%),
-        url('/static/images/ruju-entry-bg.png') center / cover no-repeat,
+        url('/static/images/ruju-entry-bg.webp') center / cover no-repeat,
         #030201;
     box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.5);
 }
@@ -1698,7 +1698,7 @@ body {
     background:
         linear-gradient(90deg, rgba(0, 0, 0, 0.58), rgba(0, 0, 0, 0.18) 44%, rgba(0, 0, 0, 0.54)),
         linear-gradient(180deg, rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0.42) 62%, rgba(0, 0, 0, 0.82)),
-        url('/static/images/ruju-entry-bg.png') center / cover no-repeat,
+        url('/static/images/ruju-entry-bg.webp') center / cover no-repeat,
         #030201;
 }
 
@@ -2463,7 +2463,7 @@ body {
     border-radius: 7px;
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.38)),
-        url('/static/images/ruju-chibi-council-bg.png') center / cover no-repeat,
+        url('/static/images/ruju-chibi-council-bg.webp') center / cover no-repeat,
         #080604;
     box-shadow: 0 28px 80px rgba(0, 0, 0, 0.52), inset 0 0 0 1px rgba(255, 214, 142, 0.04);
 }
@@ -2571,7 +2571,7 @@ body {
     aspect-ratio: 1;
     border: 1px solid rgba(255, 214, 142, 0.48);
     border-radius: 999px;
-    background-image: url('/static/images/ruju-chibi-portraits.png');
+    background-image: url('/static/images/ruju-chibi-portraits.webp');
     background-size: 200% 200%;
     background-position: 0 0;
     box-shadow: 0 10px 26px rgba(0, 0, 0, 0.42);
@@ -2594,7 +2594,7 @@ body {
 }
 
 .ruju-visual-avatar.avatar-clerk {
-    background-image: url('/static/images/law-clerk-avatar.png');
+    background-image: url('/static/images/law-clerk-avatar.webp');
     background-size: cover;
     background-position: center;
 }
@@ -2977,7 +2977,7 @@ body {
 .ruju-visual-stage.is-intro.scene-law_han_qinqin_xiangyin {
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.72)),
-        url('/static/images/law-han-qinqin-court-bg.png') center / cover no-repeat,
+        url('/static/images/law-han-qinqin-court-bg.webp') center / cover no-repeat,
         #050403;
 }
 
@@ -2985,7 +2985,7 @@ body {
 .ruju-visual-stage.is-intro.scene-law_tang_liuyang_chengsi {
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.72)),
-        url('/static/images/ruju-chibi-council-bg.png') center / cover no-repeat,
+        url('/static/images/ruju-chibi-council-bg.webp') center / cover no-repeat,
         #050403;
 }
 
@@ -3157,7 +3157,7 @@ body {
     background:
         linear-gradient(90deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.03) 48%, rgba(0, 0, 0, 0.38)),
         linear-gradient(180deg, rgba(18, 12, 7, 0.08), rgba(4, 3, 2, 0.42)),
-        url('/static/images/law-han-qinqin-court-bg.png') center / cover no-repeat,
+        url('/static/images/law-han-qinqin-court-bg.webp') center / cover no-repeat,
         #080604;
 }
 
@@ -3165,7 +3165,7 @@ body {
     background:
         linear-gradient(90deg, rgba(11, 8, 5, 0.18), rgba(0, 0, 0, 0.05) 48%, rgba(0, 0, 0, 0.36)),
         linear-gradient(180deg, rgba(22, 12, 6, 0.06), rgba(4, 3, 2, 0.32)),
-        url('/static/images/qin-skeleton-bg.png.png') center / cover no-repeat,
+        url('/static/images/qin-skeleton-bg.webp') center / cover no-repeat,
         #120d08;
 }
 
@@ -3217,7 +3217,7 @@ body {
     content: "";
     position: absolute;
     inset: 0.2rem;
-    background-image: url('/static/images/ruju-chibi-portraits.png');
+    background-image: url('/static/images/ruju-chibi-portraits.webp');
     background-size: 200% 200%;
     background-position: var(--avatar-pos, 0 0);
     background-repeat: no-repeat;
@@ -3244,7 +3244,7 @@ body {
 
 .ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-clerk::after {
     inset: 0;
-    background-image: url('/static/images/law-clerk-avatar.png');
+    background-image: url('/static/images/law-clerk-avatar.webp');
     background-size: cover;
     background-position: center;
 }
@@ -3732,7 +3732,7 @@ body {
     content: "";
     position: absolute;
     inset: 0;
-    background-image: url('/static/images/ruju-chibi-portraits.png');
+    background-image: url('/static/images/ruju-chibi-portraits.webp');
     background-size: 200% 200%;
     background-position: var(--avatar-pos);
     background-repeat: no-repeat;
@@ -3763,7 +3763,7 @@ body {
 }
 
 .ruju-visual-avatar.avatar-clerk::after {
-    background-image: url('/static/images/law-clerk-avatar.png');
+    background-image: url('/static/images/law-clerk-avatar.webp');
     background-size: cover;
     background-position: center;
 }
@@ -4006,8 +4006,8 @@ body {
     background-color: #e6d2b7;
     background-image:
         linear-gradient(180deg, rgba(255, 247, 232, 0.05), rgba(49, 29, 18, 0.08)),
-        url('/static/images/home-hero-bg2.png'),
-        url('/static/images/qin-skeleton-bg.png.png');
+        url('/static/images/home-hero-bg2.webp'),
+        url('/static/images/qin-skeleton-bg.webp');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -4174,7 +4174,7 @@ body {
         radial-gradient(ellipse at left center, rgba(92, 56, 32, 0.16) 0%, rgba(92, 56, 32, 0.08) 18%, rgba(0,0,0,0) 44%),
         radial-gradient(ellipse at right center, rgba(92, 56, 32, 0.18) 0%, rgba(92, 56, 32, 0.08) 18%, rgba(0,0,0,0) 46%),
         linear-gradient(90deg, rgba(48, 28, 18, 0.16) 0%, rgba(0,0,0,0) 4%, rgba(0,0,0,0) 96%, rgba(48, 28, 18, 0.18) 100%),
-        url('https://www.transparenttextures.com/patterns/cream-paper.png');
+        repeating-linear-gradient(0deg, rgba(92, 56, 32, 0.035) 0, rgba(92, 56, 32, 0.035) 1px, transparent 1px, transparent 6px);
 }
 
 .bg-paper::before {
@@ -5694,7 +5694,7 @@ h1, h2, h3, h4, h5, h6 {
             --home-button-top: clamp(19rem, 43vh, 28rem);
             background-image:
                 linear-gradient(180deg, rgba(255, 247, 232, 0.05), rgba(49, 29, 18, 0.08)),
-                url('/static/images/home-hero-bg-mobile.png');
+                url('/static/images/home-hero-bg-mobile.webp');
             background-size: cover, cover;
             background-position: center, center;
         }
