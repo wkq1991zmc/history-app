@@ -272,6 +272,13 @@ Object.assign(elements, {
     feedbackEmail: document.getElementById('feedback-email'),
     feedbackStatus: document.getElementById('feedback-status'),
     feedbackEmailLink: document.getElementById('feedback-email-link'),
+    classroomReflectionModal: document.getElementById('classroom-reflection-modal'),
+    classroomReflectionForm: document.getElementById('classroom-reflection-form'),
+    classroomReflectionClose: document.getElementById('classroom-reflection-close'),
+    classroomReflectionName: document.getElementById('classroom-reflection-name'),
+    classroomReflectionThought: document.getElementById('classroom-reflection-thought'),
+    classroomReflectionStatus: document.getElementById('classroom-reflection-status'),
+    classroomReflectionSubmit: document.getElementById('classroom-reflection-submit'),
     authOpenBtn: document.getElementById('auth-open-btn'),
     mobileAuthOpenBtn: document.getElementById('mobile-auth-open-btn'),
     authUserPill: document.getElementById('auth-user-pill'),
@@ -426,6 +433,70 @@ function openFeedbackModal() {
 function closeFeedbackModal() {
     elements.feedbackModal.classList.add('hidden');
     elements.feedbackModal.setAttribute('aria-hidden', 'true');
+}
+
+function classroomReflectionContext() {
+    const payload = state.timeTravel.payload || {};
+    const result = String(payload.result || "");
+    const choiceId = result.match(/^([A-D])\s*[｜|]/)?.[1] || "";
+    const choice = (payload.choices || []).find(item => String(item?.id || "") === choiceId);
+    return {
+        scene_id: String(payload.scene_id || ""),
+        scene_title: String(payload.title || ""),
+        choice_id: choiceId,
+        choice_text: String(choice?.text || ""),
+    };
+}
+
+function openClassroomReflectionModal() {
+    if (!elements.classroomReflectionModal) return;
+    elements.classroomReflectionStatus.textContent = "";
+    elements.classroomReflectionSubmit.disabled = false;
+    elements.classroomReflectionSubmit.textContent = "提交";
+    elements.classroomReflectionModal.classList.remove('hidden');
+    elements.classroomReflectionModal.setAttribute('aria-hidden', 'false');
+    elements.classroomReflectionName.focus();
+}
+
+function closeClassroomReflectionModal() {
+    elements.classroomReflectionModal?.classList.add('hidden');
+    elements.classroomReflectionModal?.setAttribute('aria-hidden', 'true');
+}
+
+async function submitClassroomReflection() {
+    const name = elements.classroomReflectionName?.value.trim() || "";
+    const thought = elements.classroomReflectionThought?.value.trim() || "";
+    if (!name) {
+        elements.classroomReflectionStatus.textContent = "请先填写姓名。";
+        elements.classroomReflectionName?.focus();
+        return;
+    }
+    if (thought.length < 2) {
+        elements.classroomReflectionStatus.textContent = "请写下你的想法。";
+        elements.classroomReflectionThought?.focus();
+        return;
+    }
+
+    elements.classroomReflectionSubmit.disabled = true;
+    elements.classroomReflectionSubmit.textContent = "提交中";
+    elements.classroomReflectionStatus.textContent = "正在保存你的想法……";
+    const res = await apiPost('/classroom/reflection', {
+        name,
+        thought,
+        ...classroomReflectionContext(),
+    });
+    if (!res?.success) {
+        elements.classroomReflectionSubmit.disabled = false;
+        elements.classroomReflectionSubmit.textContent = "提交";
+        elements.classroomReflectionStatus.textContent = res?.error || "提交失败，请稍后再试。";
+        return;
+    }
+
+    elements.classroomReflectionStatus.textContent = "提交成功，谢谢你的思考。";
+    elements.classroomReflectionSubmit.textContent = "已提交";
+    elements.classroomReflectionName.value = "";
+    elements.classroomReflectionThought.value = "";
+    setTimeout(closeClassroomReflectionModal, 1100);
 }
 
 function renderAuthState() {
@@ -1032,6 +1103,11 @@ async function init() {
             closeClassroomHistory();
             return;
         }
+        if (e.key === 'Escape' && !elements.classroomReflectionModal?.classList.contains('hidden')) {
+            e.preventDefault();
+            closeClassroomReflectionModal();
+            return;
+        }
         if (e.key === 'Escape' && !elements.chibiMapModal?.classList.contains('hidden')) {
             e.preventDefault();
             closeChibiMapModal();
@@ -1087,6 +1163,14 @@ async function init() {
         if (e.target === elements.feedbackModal) closeFeedbackModal();
     });
     elements.feedbackSubmitBtn.addEventListener('click', submitFeedback);
+    elements.classroomReflectionClose?.addEventListener('click', closeClassroomReflectionModal);
+    elements.classroomReflectionModal?.addEventListener('click', (e) => {
+        if (e.target === elements.classroomReflectionModal) closeClassroomReflectionModal();
+    });
+    elements.classroomReflectionForm?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        submitClassroomReflection();
+    });
     initRememberLoginOption();
     loadAuthUser();
     loadSiteConfig();
@@ -2068,6 +2152,7 @@ function renderClassroomVerdict(text = "") {
             </div>
             <div class="ruju-verdict-actions">
                 ${historyButton}
+                <button type="button" data-verdict-action="reflection">你的想法</button>
                 <button type="button" data-verdict-action="rechoose">重新选择</button>
                 <button type="button" data-verdict-action="home">返回首页</button>
             </div>
@@ -2257,6 +2342,8 @@ function returnToClassroomHome() {
 function handleVerdictAction(action = "") {
     if (action === "history") {
         openClassroomHistory();
+    } else if (action === "reflection") {
+        openClassroomReflectionModal();
     } else if (action === "rechoose") {
         returnToClassroomChoices();
     } else if (action === "home") {

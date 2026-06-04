@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>公开课课堂后台</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #11100e;
+      color: #2f2821;
+      font-family: "Noto Serif SC", "Microsoft YaHei", serif;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .topbar {
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 28px;
+      border-bottom: 1px solid rgba(232, 196, 132, 0.22);
+      background: #080706;
+      color: #f2d8a2;
+    }
+    .brand b { display: block; font-size: 20px; }
+    .brand span { color: #78d6d8; font-size: 12px; }
+    .topbar a { color: #efcf94; text-decoration: none; font-weight: 700; }
+    .page {
+      width: min(1280px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 30px 0 52px;
+    }
+    .login, .dashboard {
+      border: 1px solid #ad9470;
+      background: #f0e7d8;
+      box-shadow: 0 18px 64px rgba(0,0,0,0.3);
+    }
+    .login {
+      width: min(440px, 100%);
+      margin: 10vh auto 0;
+      padding: 26px;
+    }
+    h1, h2, p { margin-top: 0; }
+    h1 { color: #6d1e18; margin-bottom: 8px; }
+    .intro { color: #756554; line-height: 1.7; }
+    input {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid #ac9273;
+      background: #fffaf1;
+      color: #33271d;
+      padding: 0 12px;
+    }
+    .login input { margin: 12px 0; }
+    .primary {
+      min-height: 42px;
+      border: 1px solid #6d1e18;
+      background: #7d241c;
+      color: #fff4dc;
+      padding: 0 18px;
+      font-weight: 800;
+    }
+    .error { min-height: 22px; margin-top: 10px; color: #a42323; }
+    .hidden { display: none !important; }
+    .dashboard { padding: 22px; }
+    .dashboard-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .dashboard-head h1 { margin-bottom: 4px; }
+    .dashboard-head p { margin-bottom: 0; color: #756554; }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .toolbar input { width: min(300px, 36vw); }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .stat {
+      border-left: 4px solid #7d241c;
+      background: rgba(255,255,255,0.46);
+      padding: 16px;
+    }
+    .stat b { display: block; color: #681d18; font-size: 30px; line-height: 1.1; }
+    .stat span { color: #756554; font-size: 13px; }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    section {
+      border: 1px solid rgba(117, 101, 84, 0.3);
+      background: rgba(255,255,255,0.32);
+      padding: 15px;
+    }
+    section h2 { margin-bottom: 12px; color: #681d18; font-size: 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td {
+      padding: 8px 5px;
+      border-bottom: 1px solid rgba(117,101,84,0.24);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { color: #756554; }
+    .reflection-list { display: grid; gap: 10px; }
+    .reflection {
+      border-left: 3px solid #78aeb0;
+      background: rgba(255,255,255,0.5);
+      padding: 12px 14px;
+    }
+    .reflection-meta {
+      margin-bottom: 6px;
+      color: #756554;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .reflection-name { color: #681d18; font-weight: 900; }
+    .reflection-text { white-space: pre-wrap; line-height: 1.75; }
+    .empty { color: #756554; padding: 18px 0; }
+    @media (max-width: 800px) {
+      .topbar { padding: 0 14px; }
+      .page { width: min(100% - 16px, 1280px); padding-top: 12px; }
+      .dashboard { padding: 12px; }
+      .dashboard-head, .toolbar { align-items: stretch; flex-direction: column; }
+      .toolbar input { width: 100%; }
+      .stats, .summary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <b>公开课课堂后台</b>
+      <span>学生观点与选择统计</span>
+    </div>
+    <a href="/?x=lawvisual#time-travel-dev">返回公开课</a>
+  </header>
+
+  <main class="page">
+    <section id="login" class="login">
+      <h1>进入课堂后台</h1>
+      <p class="intro">此页面仅展示公开课案例中提交的学生想法，不包含主线项目的访问与对话数据。</p>
+      <label for="admin-key">管理员密码</label>
+      <input id="admin-key" type="password" autocomplete="current-password" placeholder="输入管理员密码">
+      <button id="load-btn" class="primary" type="button">查看课堂数据</button>
+      <div id="error" class="error"></div>
+    </section>
+
+    <div id="dashboard" class="dashboard hidden">
+      <div class="dashboard-head">
+        <div>
+          <h1>课堂想法汇总</h1>
+          <p>查看学生对案件裁断和历史还原的独立思考。</p>
+        </div>
+        <div class="toolbar">
+          <input id="search-input" type="search" placeholder="搜索姓名、案例、选择或想法">
+          <button id="refresh-btn" class="primary" type="button">刷新</button>
+        </div>
+      </div>
+
+      <div id="stats" class="stats"></div>
+
+      <div class="summary-grid">
+        <section>
+          <h2>案例提交分布</h2>
+          <table id="scene-table"></table>
+        </section>
+        <section>
+          <h2>选择分布</h2>
+          <table id="choice-table"></table>
+        </section>
+      </div>
+
+      <section>
+        <h2>学生想法</h2>
+        <div id="reflection-list" class="reflection-list"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const keyInput = document.getElementById('admin-key');
+    const loadBtn = document.getElementById('load-btn');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const searchInput = document.getElementById('search-input');
+    const errorBox = document.getElementById('error');
+    const login = document.getElementById('login');
+    const dashboard = document.getElementById('dashboard');
+    let classroomData = null;
+
+    const savedKey = localStorage.getItem('classroomAdminKey') || '';
+    if (savedKey) {
+      keyInput.value = savedKey;
+      loadClassroomData();
+    }
+
+    function escapeHtml(text) {
+      return String(text || '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      }[ch]));
+    }
+
+    function renderTable(id, rows, columns) {
+      const table = document.getElementById(id);
+      table.innerHTML = `<thead><tr>${columns.map(col => `<th>${col.label}</th>`).join('')}</tr></thead>` +
+        `<tbody>${rows.map(row => `<tr>${columns.map(col => `<td>${escapeHtml(row[col.key])}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    }
+
+    function renderReflections() {
+      const query = searchInput.value.trim().toLowerCase();
+      const rows = (classroomData?.reflections || []).filter(item => {
+        if (!query) return true;
+        return [item.student_name, item.thought, item.scene_title, item.choice_id, item.choice_text]
+          .some(value => String(value || '').toLowerCase().includes(query));
+      });
+      document.getElementById('reflection-list').innerHTML = rows.map(item => `
+        <article class="reflection">
+          <div class="reflection-meta">
+            <span class="reflection-name">${escapeHtml(item.student_name)}</span>
+            · ${escapeHtml(item.time)}
+            · ${escapeHtml(item.scene_title || item.scene_id || '')}
+            ${item.choice_id ? `· 选择 ${escapeHtml(item.choice_id)} ${escapeHtml(item.choice_text || '')}` : ''}
+          </div>
+          <div class="reflection-text">${escapeHtml(item.thought)}</div>
+        </article>
+      `).join('') || '<div class="empty">没有符合条件的课堂想法。</div>';
+    }
+
+    function render(data) {
+      classroomData = data;
+      const totals = data.totals || {};
+      document.getElementById('stats').innerHTML = [
+        ['想法提交', totals.reflections || 0],
+        ['参与设备', totals.unique_participants || 0],
+        ['学生姓名', totals.named_students || 0],
+      ].map(([label, value]) => `<div class="stat"><b>${value}</b><span>${label}</span></div>`).join('');
+      renderTable('scene-table', data.by_scene || [], [
+        { key: 'name', label: '案例' },
+        { key: 'submissions', label: '提交数' },
+      ]);
+      renderTable('choice-table', data.by_choice || [], [
+        { key: 'scene_title', label: '案例' },
+        { key: 'choice_id', label: '选择' },
+        { key: 'choice_text', label: '选择内容' },
+        { key: 'submissions', label: '提交数' },
+      ]);
+      renderReflections();
+    }
+
+    async function loadClassroomData() {
+      errorBox.textContent = '';
+      const key = keyInput.value.trim();
+      if (!key) {
+        errorBox.textContent = '请输入管理员密码。';
+        return;
+      }
+      try {
+        const response = await fetch('/admin/classroom', { headers: { 'X-ADMIN-KEY': key } });
+        if (!response.ok) throw new Error('密码错误或课堂后台未配置');
+        const data = await response.json();
+        localStorage.setItem('classroomAdminKey', key);
+        render(data);
+        login.classList.add('hidden');
+        dashboard.classList.remove('hidden');
+      } catch (error) {
+        errorBox.textContent = error.message;
+      }
+    }
+
+    loadBtn.addEventListener('click', loadClassroomData);
+    refreshBtn.addEventListener('click', loadClassroomData);
+    searchInput.addEventListener('input', renderReflections);
+    keyInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') loadClassroomData();
+    });
+  </script>
+</body>
+</html>

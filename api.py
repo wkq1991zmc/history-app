@@ -53,6 +53,13 @@ async def serve_admin():
         return FileResponse(admin_path)
     return {"message": "找不到后台页面"}
 
+@app.get("/classroom-admin")
+async def serve_classroom_admin():
+    admin_path = os.path.join("static", "classroom_admin.html")
+    if os.path.exists(admin_path):
+        return FileResponse(admin_path)
+    return {"message": "找不到公开课后台页面"}
+
 DASHSCOPE_API_KEY = os.environ.get("DASHSCOPE_API_KEY")
 DASHSCOPE_MODEL = os.environ.get("MINIPROGRAM_MODEL", "qwen-turbo")
 dashscope_client = AsyncOpenAI(
@@ -159,6 +166,14 @@ class FeedbackRequest(BaseModel):
     page: Optional[str] = ""
     event_name: Optional[str] = ""
 
+class ClassroomReflectionRequest(BaseModel):
+    name: str
+    thought: str
+    scene_id: Optional[str] = ""
+    scene_title: Optional[str] = ""
+    choice_id: Optional[str] = ""
+    choice_text: Optional[str] = ""
+
 class EmailCodeRequest(BaseModel):
     email: str
 
@@ -254,6 +269,19 @@ def _init_analytics_db():
                     visitor_hash TEXT NOT NULL
                 )
             """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS classroom_reflections (
+                    id BIGSERIAL PRIMARY KEY,
+                    created_at TEXT NOT NULL,
+                    student_name TEXT NOT NULL,
+                    thought TEXT NOT NULL,
+                    scene_id TEXT DEFAULT '',
+                    scene_title TEXT DEFAULT '',
+                    choice_id TEXT DEFAULT '',
+                    choice_text TEXT DEFAULT '',
+                    visitor_hash TEXT NOT NULL
+                )
+            """)
         else:
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS analytics_events (
@@ -286,6 +314,19 @@ def _init_analytics_db():
                     event_name TEXT DEFAULT '',
                     character TEXT DEFAULT '',
                     answer_mode TEXT DEFAULT '',
+                    visitor_hash TEXT NOT NULL
+                )
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS classroom_reflections (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    student_name TEXT NOT NULL,
+                    thought TEXT NOT NULL,
+                    scene_id TEXT DEFAULT '',
+                    scene_title TEXT DEFAULT '',
+                    choice_id TEXT DEFAULT '',
+                    choice_text TEXT DEFAULT '',
                     visitor_hash TEXT NOT NULL
                 )
             """)
@@ -627,6 +668,41 @@ def _record_feedback(req: FeedbackRequest, visitor_id: str):
         conn.commit()
     _safe_record_analytics("feedback", visitor_id, req.event_name or "", "", message[:40])
 
+def _record_classroom_reflection(req: ClassroomReflectionRequest, visitor_id: str):
+    name = (req.name or "").strip()
+    thought = (req.thought or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="请填写姓名")
+    if len(name) > 40:
+        raise HTTPException(status_code=400, detail="姓名请控制在40字以内")
+    if len(thought) < 2:
+        raise HTTPException(status_code=400, detail="请写下你的想法")
+    if len(thought) > 1200:
+        raise HTTPException(status_code=400, detail="想法请控制在1200字以内")
+
+    _init_analytics_db()
+    now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    p = _db_placeholder()
+    values = (
+        now,
+        name,
+        thought,
+        (req.scene_id or "")[:120],
+        (req.scene_title or "")[:160],
+        (req.choice_id or "")[:8],
+        (req.choice_text or "")[:240],
+        _hash_visitor_id(visitor_id),
+    )
+    with _connect_db() as conn:
+        conn.execute(
+            f"""INSERT INTO classroom_reflections
+                (created_at, student_name, thought, scene_id, scene_title, choice_id, choice_text, visitor_hash)
+                VALUES ({p}, {p}, {p}, {p}, {p}, {p}, {p}, {p})""",
+            values,
+        )
+        conn.commit()
+    _safe_record_analytics("classroom_reflection", visitor_id, req.scene_title or req.scene_id or "", name, thought[:40])
+
 def _should_record_chat_question(message: str) -> bool:
     text = (message or "").strip()
     if len(text) < 2:
@@ -821,6 +897,49 @@ def _admin_analytics_payload() -> Dict:
         "questions": questions,
     }
 
+def _classroom_admin_payload() -> Dict:
+    _init_analytics_db()
+    with _connect_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) AS count FROM classroom_reflections")
+        total_reflections = int(cur.fetchone()[0])
+        cur.execute("SELECT COUNT(DISTINCT visitor_hash) AS count FROM classroom_reflections")
+        unique_participants = int(cur.fetchone()[0])
+        cur.execute("SELECT COUNT(DISTINCT student_name) AS count FROM classroom_reflections")
+        named_students = int(cur.fetchone()[0])
+        cur.execute("""
+            SELECT scene_title AS name, COUNT(*) AS submissions
+            FROM classroom_reflections
+            GROUP BY scene_title
+            ORDER BY submissions DESC, scene_title ASC
+        """)
+        by_scene = _fetch_all(cur)
+        cur.execute("""
+            SELECT scene_title, choice_id, choice_text, COUNT(*) AS submissions
+            FROM classroom_reflections
+            GROUP BY scene_title, choice_id, choice_text
+            ORDER BY scene_title ASC, choice_id ASC
+        """)
+        by_choice = _fetch_all(cur)
+        cur.execute("""
+            SELECT created_at AS time, student_name, thought, scene_id, scene_title, choice_id, choice_text
+            FROM classroom_reflections
+            ORDER BY id DESC
+            LIMIT 300
+        """)
+        reflections = _fetch_all(cur)
+    return {
+        "success": True,
+        "totals": {
+            "reflections": total_reflections,
+            "unique_participants": unique_participants,
+            "named_students": named_students,
+        },
+        "by_scene": by_scene,
+        "by_choice": by_choice,
+        "reflections": reflections,
+    }
+
 @app.post("/analytics/visit")
 async def analytics_visit(req: AnalyticsVisitRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
     recorded = _safe_record_analytics("visit", x_client_id or "anonymous", detail=req.path or "/")
@@ -840,6 +959,14 @@ async def submit_feedback(req: FeedbackRequest, x_client_id: Optional[str] = Hea
         raise HTTPException(status_code=429, detail="提交太频繁，请稍后再试")
     _record_feedback(req, visitor_id)
     return {"success": True, "message": "反馈已收到，感谢你愿意帮我改进。"}
+
+@app.post("/classroom/reflection")
+async def submit_classroom_reflection(req: ClassroomReflectionRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    visitor_id = x_client_id or "anonymous"
+    if not check_rate_limit(f"classroom-reflection-{visitor_id}"):
+        raise HTTPException(status_code=429, detail="提交太频繁，请稍后再试")
+    _record_classroom_reflection(req, visitor_id)
+    return {"success": True, "message": "你的想法已提交。"}
 
 @app.get("/site_config")
 async def site_config():
@@ -953,6 +1080,15 @@ async def admin_analytics(key: Optional[str] = None, x_admin_key: Optional[str] 
     except Exception as exc:
         _log_analytics_failure("admin_payload", exc)
         raise HTTPException(status_code=503, detail="统计数据库暂时不可用，请检查 analytics_data 或数据库配置")
+
+@app.get("/admin/classroom")
+async def classroom_admin_data(key: Optional[str] = None, x_admin_key: Optional[str] = Header(None, alias="X-ADMIN-KEY")):
+    _require_admin_key(key, x_admin_key)
+    try:
+        return _classroom_admin_payload()
+    except Exception as exc:
+        _log_analytics_failure("classroom_admin_payload", exc)
+        raise HTTPException(status_code=503, detail="公开课数据暂时不可用，请检查统计数据库配置")
 
 def check_rate_limit(player_id: str) -> bool:
     now = time.time()

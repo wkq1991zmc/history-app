@@ -9,7 +9,7 @@
   <script defer src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=chibi-turn-prototype-20260604c">
+  <link rel="stylesheet" href="/static/css/styles.css?v=classroom-reflection-20260604a">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -475,6 +475,23 @@
     </div>
   </div>
 
+  <div id="classroom-reflection-modal" class="classroom-reflection-modal hidden" aria-hidden="true">
+    <form id="classroom-reflection-form" class="classroom-reflection-card">
+      <button id="classroom-reflection-close" type="button" class="classroom-reflection-close" aria-label="关闭想法提交">×</button>
+      <div class="classroom-reflection-kicker">留下思考</div>
+      <h2>你的想法</h2>
+      <p>结合刚才的裁断与历史还原，写下你的判断。</p>
+      <label for="classroom-reflection-name">姓名</label>
+      <input id="classroom-reflection-name" type="text" maxlength="40" autocomplete="name" placeholder="请输入姓名">
+      <label for="classroom-reflection-thought">你的想法</label>
+      <textarea id="classroom-reflection-thought" rows="6" maxlength="1200" placeholder="我认为……"></textarea>
+      <div class="classroom-reflection-actions">
+        <span id="classroom-reflection-status"></span>
+        <button id="classroom-reflection-submit" type="submit">提交</button>
+      </div>
+    </form>
+  </div>
+
   <div id="chibi-map-modal" class="chibi-map-modal hidden" aria-hidden="true">
     <div class="chibi-map-card">
       <button id="chibi-map-close" type="button" class="chibi-map-close" aria-label="关闭地图">×</button>
@@ -542,6 +559,6 @@
       </div>
     </div>
   </div>
-  <script type="module" src="/static/js/app.js?v=chibi-turn-prototype-20260604c"></script>
+  <script type="module" src="/static/js/app.js?v=classroom-reflection-20260604a"></script>
 </body>
 </html>
