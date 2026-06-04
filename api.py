@@ -1415,6 +1415,218 @@ def _build_initial_adviser_debate(scene: Dict, user_role: Dict) -> List[Dict]:
         for role in people[:3]
     ]
 
+CHIBI_TURN_SCENE_ID = "three_kingdoms_chibi_council"
+
+def _is_turn_based_scene(scene_id: str) -> bool:
+    return scene_id == CHIBI_TURN_SCENE_ID
+
+def _initial_chibi_turn_state() -> Dict:
+    return {
+        "enabled": True,
+        "turn": 1,
+        "actor": "孙权",
+        "phase": "朝议期",
+        "max_ap": 3,
+        "ap": 3,
+        "actions_this_turn": 0,
+        "stats": {
+            "cao_pressure": 48,
+            "alliance": 18,
+            "surrender": 18,
+            "jiangdong_stability": 62,
+            "naval_readiness": 24,
+            "liubei_position": 44,
+        },
+        "announcements": [
+            {"faction": "曹操", "text": "曹军占据荆州后沿江压来，劝降与威慑同时逼近江东。"},
+            {"faction": "刘备", "text": "刘备残部退向夏口，仍在寻找与江东结盟的机会。"},
+            {"faction": "江东内部", "text": "主战与主降两派尚未分出高下，孙权仍握有转向空间。"},
+        ],
+        "last_action_cost": 0,
+        "last_action_label": "",
+    }
+
+def _chibi_action_cost(message: str) -> int:
+    text = message or ""
+    if any(word in text for word in ("本轮暂不行动", "结束本轮", "什么都不做", "暂不行动", "先观望")):
+        return 3
+    heavy_words = (
+        "出兵", "调兵", "进军", "决战", "投降", "归降", "称臣", "联手刘备", "联合刘备",
+        "联刘", "假意投降", "诈降", "写降书", "派鲁肃", "派使者", "扣押", "拘押",
+        "火攻", "整备水军", "备战"
+    )
+    return 2 if any(word in text for word in heavy_words) else 1
+
+def _chibi_label_for_action(message: str) -> str:
+    text = message or ""
+    if any(word in text for word in ("本轮暂不行动", "结束本轮", "什么都不做", "暂不行动", "先观望")):
+        return "观望"
+    if any(word in text for word in ("假意投降", "假意归降", "诈降", "表面投降", "表面归降", "佯降")):
+        return "诈降布局"
+    if any(word in text for word in ("投降", "归降", "称臣", "降曹")):
+        return "归降曹操"
+    if any(word in text for word in ("刘备", "鲁肃", "诸葛", "联刘", "联盟", "联合")):
+        return "接触刘备"
+    if any(word in text for word in ("水军", "周瑜", "火攻", "备战", "楼船", "战船")):
+        return "整军备战"
+    if any(word in text for word in ("张昭", "主降", "士族", "江东内部")):
+        return "整顿内部"
+    return "现场处置"
+
+def _chibi_stat_delta_for_action(message: str) -> Dict[str, int]:
+    text = message or ""
+    delta = {
+        "cao_pressure": 0,
+        "alliance": 0,
+        "surrender": 0,
+        "jiangdong_stability": 0,
+        "naval_readiness": 0,
+        "liubei_position": 0,
+    }
+    if any(word in text for word in ("本轮暂不行动", "结束本轮", "什么都不做", "暂不行动", "先观望")):
+        delta.update({"cao_pressure": 8, "liubei_position": -6, "jiangdong_stability": -4})
+        return delta
+    if any(word in text for word in ("假意投降", "假意归降", "诈降", "表面投降", "表面归降", "佯降")):
+        delta.update({"surrender": 12, "alliance": 16, "naval_readiness": 8, "jiangdong_stability": -8, "cao_pressure": 4})
+    elif any(word in text for word in ("投降", "归降", "称臣", "降曹")):
+        delta.update({"surrender": 30, "alliance": -12, "jiangdong_stability": 6, "cao_pressure": -8, "liubei_position": -10})
+    if any(word in text for word in ("刘备", "鲁肃", "诸葛", "联刘", "联盟", "联合")):
+        delta.update({"alliance": delta["alliance"] + 22, "liubei_position": delta["liubei_position"] + 9, "cao_pressure": delta["cao_pressure"] + 2})
+    if any(word in text for word in ("水军", "周瑜", "火攻", "备战", "楼船", "战船", "操练")):
+        delta.update({"naval_readiness": delta["naval_readiness"] + 20, "jiangdong_stability": delta["jiangdong_stability"] + 2})
+    if any(word in text for word in ("张昭", "主降", "士族", "江东内部", "安抚", "压住")):
+        delta.update({"jiangdong_stability": delta["jiangdong_stability"] + (8 if "安抚" in text else -8)})
+    if any(word in text for word in ("拖延", "等等", "缓", "观望")):
+        delta.update({"cao_pressure": delta["cao_pressure"] + 7, "liubei_position": delta["liubei_position"] - 5})
+    return delta
+
+def _apply_stat_delta(stats: Dict, delta: Dict[str, int]) -> Dict:
+    merged = dict(stats or {})
+    for key, value in delta.items():
+        merged[key] = _clamp_int(int(merged.get(key, 0)) + int(value), 0, 100)
+    return merged
+
+def _chibi_phase(stats: Dict) -> str:
+    if stats.get("surrender", 0) >= 70:
+        return "归降交涉"
+    if stats.get("alliance", 0) >= 60 and stats.get("naval_readiness", 0) >= 55:
+        return "决战前夜"
+    if stats.get("alliance", 0) >= 48:
+        return "外交结盟"
+    if stats.get("naval_readiness", 0) >= 50:
+        return "备战期"
+    if stats.get("cao_pressure", 0) >= 72:
+        return "压境期"
+    return "朝议期"
+
+def _chibi_auto_ending(stats: Dict) -> Optional[Dict]:
+    if stats.get("surrender", 0) >= 82 and stats.get("alliance", 0) < 55:
+        return {
+            "title": "江东归曹",
+            "text": "孙权选择归附曹操，江东暂时避开大战。曹操稳定江东后转向刘备残部，赤壁不再成为孙刘联军拒曹的战场，而变成曹操继续追击刘备、重整南方秩序的一段新局。",
+        }
+    if stats.get("surrender", 0) >= 58 and stats.get("alliance", 0) >= 58 and stats.get("naval_readiness", 0) >= 52:
+        return {
+            "title": "诈降火起",
+            "text": "孙权表面向曹操示弱，暗中推动孙刘协同与水军备战。曹操虽有疑心，却仍被江东的迟疑姿态牵制，火攻与水战的条件逐渐成熟，赤壁进入一条更险的诈降决战线。",
+        }
+    if stats.get("alliance", 0) >= 78 and stats.get("naval_readiness", 0) >= 68:
+        return {
+            "title": "孙刘合战",
+            "text": "孙刘联盟成形，周瑜水军准备充分，刘备残部也稳住夏口一线。曹军虽势大，却被拖入不熟悉的江上战场，赤壁之战由此爆发，本局进入联刘抗曹的决战结局。",
+        }
+    if stats.get("cao_pressure", 0) >= 92 and stats.get("alliance", 0) < 45:
+        return {
+            "title": "曹军压境",
+            "text": "孙权迟疑太久，刘备失去稳定支援，曹操趁江东未定继续施压。江东仍可自保一时，却失去主动塑造战局的窗口，赤壁难以按正史中的孙刘合力方式展开。",
+        }
+    if stats.get("jiangdong_stability", 0) <= 18:
+        return {
+            "title": "江东内裂",
+            "text": "主战与主降两派撕裂加深，孙权的命令难以顺畅落地。曹操与刘备都开始根据江东内部分裂重新布局，赤壁不再是单纯的外战，而变成江东政令能否维持的危局。",
+        }
+    return None
+
+def _advance_chibi_ai_turn(turn_state: Dict) -> Dict:
+    state = dict(turn_state or _initial_chibi_turn_state())
+    stats = dict(state.get("stats") or {})
+    announcements = []
+
+    if stats.get("surrender", 0) >= 60:
+        announcements.append({"faction": "曹操", "text": "曹操遣使再入江东，许以保全孙氏宗庙与江东旧部，但要求孙权尽快给出明确信号。"})
+        stats = _apply_stat_delta(stats, {"surrender": 6, "alliance": -3})
+    elif stats.get("alliance", 0) >= 55:
+        announcements.append({"faction": "曹操", "text": "曹操察觉江东与刘备接近，命水寨加紧训练，并派斥候窥探夏口与柴桑之间的往来。"})
+        stats = _apply_stat_delta(stats, {"cao_pressure": 7})
+    else:
+        announcements.append({"faction": "曹操", "text": "曹军沿江推进，劝降书与军威同时压来，江东朝堂的犹豫被进一步放大。"})
+        stats = _apply_stat_delta(stats, {"cao_pressure": 8})
+
+    if stats.get("alliance", 0) >= 55:
+        announcements.append({"faction": "刘备", "text": "刘备收拢残部，诸葛亮准备向江东说明联手利害；若孙权继续回应，联盟会更稳。"})
+        stats = _apply_stat_delta(stats, {"liubei_position": 6, "alliance": 4})
+    elif stats.get("surrender", 0) >= 65:
+        announcements.append({"faction": "刘备", "text": "刘备察觉江东有归曹之势，只能加速西撤与求援，孙刘合力的窗口正在收窄。"})
+        stats = _apply_stat_delta(stats, {"liubei_position": -8, "alliance": -4})
+    else:
+        announcements.append({"faction": "刘备", "text": "刘备仍在夏口一线观望，既希望鲁肃牵线，又担心江东迟疑导致自己孤立。"})
+        stats = _apply_stat_delta(stats, {"liubei_position": -2})
+
+    if stats.get("jiangdong_stability", 0) <= 35:
+        announcements.append({"faction": "江东内部", "text": "主战、主降两派争执外泄，部分士族开始观望曹操条件，孙权的内部控制压力上升。"})
+        stats = _apply_stat_delta(stats, {"jiangdong_stability": -5})
+    elif stats.get("naval_readiness", 0) >= 58:
+        announcements.append({"faction": "江东内部", "text": "周瑜整军见效，水军士气上升；但张昭等人仍要求孙权说明大战代价。"})
+        stats = _apply_stat_delta(stats, {"naval_readiness": 4, "jiangdong_stability": 2})
+    else:
+        announcements.append({"faction": "江东内部", "text": "朝堂仍在摇摆，主战者催促备战，主降者强调保境安民，孙权下一轮仍需给出方向。"})
+        stats = _apply_stat_delta(stats, {"jiangdong_stability": -1})
+
+    ending = _chibi_auto_ending(stats)
+    state.update({
+        "turn": int(state.get("turn") or 1) + 1,
+        "actor": "孙权",
+        "ap": int(state.get("max_ap") or 3),
+        "actions_this_turn": 0,
+        "stats": stats,
+        "phase": _chibi_phase(stats),
+        "announcements": announcements,
+        "last_action_cost": 0,
+        "last_action_label": "AI 势力行动",
+        "ended": bool(ending),
+        "ending_title": (ending or {}).get("title", ""),
+        "ending": (ending or {}).get("text", ""),
+    })
+    return state
+
+def _update_chibi_turn_after_player(current: Dict, message: str) -> Dict:
+    state = dict(current.get("turn_state") or _initial_chibi_turn_state())
+    stats = dict(state.get("stats") or {})
+    cost = min(_chibi_action_cost(message), max(1, int(state.get("ap") or 1)))
+    label = _chibi_label_for_action(message)
+    stats = _apply_stat_delta(stats, _chibi_stat_delta_for_action(message))
+    state.update({
+        "stats": stats,
+        "phase": _chibi_phase(stats),
+        "ap": max(0, int(state.get("ap") or 0) - cost),
+        "actions_this_turn": int(state.get("actions_this_turn") or 0) + (0 if label == "观望" else 1),
+        "last_action_cost": cost,
+        "last_action_label": label,
+    })
+    ending = _chibi_auto_ending(stats)
+    if ending:
+        state.update({
+            "ended": True,
+            "ending_title": ending.get("title", ""),
+            "ending": ending.get("text", ""),
+            "announcements": [],
+        })
+        return state
+    if state["ap"] <= 0:
+        return _advance_chibi_ai_turn(state)
+    state.update({"ended": False, "ending": "", "ending_title": ""})
+    return state
+
 def _build_intrigue_payload(scene: Dict, seed_text: str = "") -> Dict:
     seed = int(hashlib.sha256((seed_text + scene["scene_id"]).encode("utf-8")).hexdigest()[:8], 16)
     roles = scene.get("roles", [])
@@ -1443,11 +1655,11 @@ def _build_intrigue_payload(scene: Dict, seed_text: str = "") -> Dict:
     else:
         scene_text = (
             f"{briefing}\n\n"
-            f"你的任务：你就是「{user_role.get('name')}」，需要听取众人意见，亲自追问并做出决定。"
-            "你可以继续询问，也可以直接下令；一旦下令，本局历史会按你的决定推演。"
+            f"你的任务：你就是「{user_role.get('name')}」，需要在有限行动力内听取意见、追问、遣使、整军或改变路线。"
+            "你的行动会推动局势；行动力耗尽后，曹操、刘备和江东内部也会各自行动，直到赤壁走向一个自然结局。"
         ).strip()
     dialogue = _build_initial_adviser_debate(scene, user_role)
-    return {
+    payload = {
         "mode": "classroom_choice" if classroom_mode else "intrigue",
         "classroom_mode": classroom_mode,
         "scene_id": scene.get("scene_id", ""),
@@ -1492,6 +1704,9 @@ def _build_intrigue_payload(scene: Dict, seed_text: str = "") -> Dict:
         "ended": False,
         "ending": ""
     }
+    if _is_turn_based_scene(scene.get("scene_id", "")) and not classroom_mode:
+        payload["turn_state"] = _initial_chibi_turn_state()
+    return payload
 
 def _sanitize_initial_adviser_debate(current: Dict, raw_messages: List[Dict]) -> List[Dict]:
     people = current.get("encountered") or []
@@ -1786,12 +2001,12 @@ def _intrigue_choice_fallback(current: Dict, selected: Dict) -> Dict:
         "ended": False,
     }, fallback=current)
 
-def _intrigue_talk_fallback(current: Dict, person_name: str, message: str) -> Dict:
+def _intrigue_talk_fallback(current: Dict, person_name: str, message: str, final_decision: bool = False) -> Dict:
     round_no = int(current.get("round") or 0) + 1
     counterpart = current.get("counterpart") or {"name": person_name or "另一位大臣", "identity": "朝臣", "goal": "谨慎观望"}
     plan = _intrigue_player_plan(current, message)
     short_message = (message or "你的主张").strip()[:80]
-    if _intrigue_is_player_decision(message):
+    if final_decision and _intrigue_is_player_decision(message):
         resolution = _intrigue_resolution_text(current, message)
         messages = [
             {
@@ -1811,6 +2026,27 @@ def _intrigue_talk_fallback(current: Dict, person_name: str, message: str) -> Di
             "messages": messages,
             "ended": True,
             "ending": "你已经做出决定，本局进入新的历史分支。",
+            "round": round_no,
+        }
+    if _intrigue_is_player_decision(message):
+        messages = [
+            {
+                "speaker": counterpart.get("name", "另一位大臣"),
+                "role": counterpart.get("identity", "朝臣"),
+                "text": f"臣明白您的命令：{plan}。臣先照此推进第一步，但此策还未到盖棺定局之时；若执行中遇阻，还需主上继续裁断。",
+                "kind": "ai",
+            },
+            {
+                "speaker": "旁白",
+                "role": "本局推演",
+                "text": f"本局推演：{plan}。命令传下后，局势开始移动，但新的阻力也会浮现：执行者能否到位、反对者是否掣肘、外部形势是否允许，都还需要下一轮判断。",
+                "kind": "system",
+            },
+        ]
+        return {
+            "messages": messages,
+            "ended": False,
+            "ending": "",
             "round": round_no,
         }
     if _intrigue_wants_all_advisers(message):
@@ -2126,6 +2362,8 @@ def _intrigue_is_unclear_message(current: Dict, message: str) -> bool:
     if not text:
         return True
     if _intrigue_wants_all_advisers(text) or _intrigue_is_player_decision(text):
+        return False
+    if _is_turn_based_scene(str(current.get("scene_id") or "")) and any(word in text for word in ("本轮暂不行动", "结束本轮", "什么都不做", "暂不行动", "先观望")):
         return False
     if len(text) <= 1:
         return True
@@ -2515,6 +2753,17 @@ async def time_travel_talk(req: TimeTravelTalkRequest, x_client_id: Optional[str
     else:
         turn_judgement = await _classify_intrigue_turn(current, req.message.strip())
     intent = turn_judgement.get("intent") or _intrigue_intent(current, req.message.strip())
+    turn_based_scene = _is_turn_based_scene(str(current.get("scene_id") or ""))
+    if turn_based_scene and any(word in req.message.strip() for word in ("本轮暂不行动", "结束本轮", "什么都不做", "暂不行动", "先观望")):
+        intent = "command"
+        turn_judgement = {
+            **turn_judgement,
+            "intent": "command",
+            "plan": "本轮暂不行动，观察曹操、刘备和江东内部的动向。",
+            "reason": "玩家结束当前回合",
+        }
+    final_decision = bool(req.force_decision) and not turn_based_scene
+    previous_turn_state = dict(current.get("turn_state") or {}) if turn_based_scene else {}
     if intent == "unclear":
         messages = _intrigue_clarification_messages(current, req.message.strip(), person_name)
         user_message = {
@@ -2562,6 +2811,9 @@ async def time_travel_talk(req: TimeTravelTalkRequest, x_client_id: Optional[str
 当前游戏状态（这是局中人可见的信息，不包含后世正史真相）：
 {json.dumps(_intrigue_prompt_state(current), ensure_ascii=False)}
 
+回合制局势状态（只用于控制节奏，不要把数值直接念给玩家）：
+{json.dumps(current.get("turn_state") or {}, ensure_ascii=False)}
+
 局中人知识边界：
 {_intrigue_npc_context(current)}
 
@@ -2571,6 +2823,7 @@ async def time_travel_talk(req: TimeTravelTalkRequest, x_client_id: Optional[str
 用户扮演「{current.get('user_role', {}).get('name') or current.get('character', {}).get('identity')}」，也就是本局最终决策者。
 这是第 {round_no} 轮玩家发言。
 系统识别到的玩家意图类型：{intent}
+玩家是否通过“决定/拍板”按钮正式收局：{"是" if final_decision else "否"}
 系统识别到的玩家具体方案是：{player_plan}
 系统识别到的分支方向：{json.dumps({"key": (branch or {}).get("key", ""), "label": (branch or {}).get("label", "")}, ensure_ascii=False)}
 意图裁判理由：{turn_judgement.get("reason", "")}
@@ -2578,12 +2831,13 @@ async def time_travel_talk(req: TimeTravelTalkRequest, x_client_id: Optional[str
 请生成臣子/将领/使者的回应。你不能扮演玩家本人，也不能替玩家拍板。
 绝对不要代替用户角色发言；messages 里不允许出现 speaker 为「{current.get('user_role', {}).get('name') or '用户角色'}」的内容。
 如果用户要求“你们替我下令/替我决定”，但没有由玩家本人明确拍板具体方案，臣子必须请玩家亲自明示，不得自行当作已下令。
-每轮最多返回 {len(people) if wants_all_advisers and people else 2} 条发言；如果玩家已经下令，最多返回 1 条臣子反应和 1 条旁白推演。{adviser_instruction}
+每轮最多返回 {len(people) if wants_all_advisers and people else 2} 条发言；如果玩家已经下令但没有点击“决定/拍板”，最多返回 1 条臣子反应和 1 条旁白推演，并继续保留下一轮。{adviser_instruction}
 回应结构：
 1. 如果意图是 ask 或 debate，让臣子围绕玩家具体问题回答或互相驳论，不得结局。
 2. 如果意图是 ask_all，所有在场者必须各自表态一次，不得漏人，不得结局；每个人都要独立说明自己的立场，不得只说“附议”，也不得假定玩家已经有倾向。
-3. 如果意图是 command，臣子只能反应、提醒风险；旁白必须写出本局行动真的发生，例如“扶苏决定亲赴咸阳核验诏书”。
-4. 旁白要区分“本局推演”与“正史中实际发生”，但不能把本局分支强行拉回正史。
+3. 如果意图是 command，但“正式收局”为否，这只是阶段性命令：臣子要回应执行与阻力，旁白要写出行动真的开始发生，并留下新的风险、反弹或下一步问题；ended 必须为 false，ending 必须为空。
+4. 只有“正式收局”为是，才可以写最终历史分支、正史对照，并允许 ended 为 true。
+5. 旁白要区分“本局推演”与“正史中实际发生”，但普通阶段性命令不要展开完整正史结局，也不能把本局分支强行拉回正史。
 用户的话：{req.message.strip()}
 
 返回 JSON：
@@ -2612,13 +2866,14 @@ async def time_travel_talk(req: TimeTravelTalkRequest, x_client_id: Optional[str
                         "text": str(item.get("text") or "")[:1200],
                         "kind": str(item.get("kind") or "ai")[:16],
                     })
-        player_decided = intent == "command"
+        stage_command = intent == "command"
+        player_decided = final_decision
         messages = _sanitize_intrigue_messages(
             current,
             messages,
             round_no,
             person_name,
-            allow_system=player_decided,
+            allow_system=stage_command or player_decided,
             all_advisers=wants_all_advisers,
         )
         messages = _sanitize_intrigue_forbidden_knowledge(current, messages)
@@ -2633,6 +2888,33 @@ async def time_travel_talk(req: TimeTravelTalkRequest, x_client_id: Optional[str
                 if speaker_key and speaker_key not in present:
                     messages.append(fallback_item)
                     present.add(speaker_key)
+        if stage_command and not player_decided:
+            for item in messages:
+                if item.get("kind") == "system":
+                    text = str(item.get("text") or "")
+                    text = text.replace("正式拍板", "先行下令")
+                    text = text.replace("拍板", "下令先行推进")
+                    text = text.replace("再无退路", "仍需继续观察后续反应")
+                    text = text.replace("最终结局", "下一步局势")
+                    item["text"] = text
+            has_system_progress = any(item.get("kind") == "system" for item in messages)
+            if not has_system_progress:
+                branch_impact = str((branch or {}).get("impact") or "").strip()
+                progress_text = (
+                    f"本局推演：{player_plan}。命令传下后，局势开始移动。"
+                    f"{_trim_sentence_end(branch_impact) + '。' if branch_impact else ''}"
+                    "但这还不是最终结局，执行中的阻力、反对者的掣肘和外部形势的变化，仍会把局面推向下一轮裁断。"
+                )
+                adviser_messages = [item for item in messages if item.get("kind") != "system"][:1]
+                messages = [
+                    *adviser_messages,
+                    {
+                        "speaker": "旁白",
+                        "role": "本局推演",
+                        "text": progress_text,
+                        "kind": "system",
+                    },
+                ]
         if not messages:
             raise ValueError("empty intrigue messages")
         ended = bool(data.get("ended", False)) if player_decided else False
@@ -2652,12 +2934,30 @@ async def time_travel_talk(req: TimeTravelTalkRequest, x_client_id: Optional[str
             ended = True
             ending = "你已经做出决定，本局进入新的历史分支。"
     except Exception:
-        data = _intrigue_talk_fallback(current, person_name, req.message.strip())
+        data = _intrigue_talk_fallback(current, person_name, req.message.strip(), final_decision=final_decision)
         messages = _sanitize_intrigue_forbidden_knowledge(current, data["messages"])
         messages = _repair_intrigue_stage_language(current, messages)
         messages = _repair_intrigue_speaker_voice(current, messages)
-        ended = bool(data.get("ended", False))
-        ending = str(data.get("ending") or "")[:800]
+        ended = bool(data.get("ended", False)) if final_decision else False
+        ending = str(data.get("ending") or "")[:800] if final_decision else ""
+    turn_events = []
+    if turn_based_scene:
+        updated_turn_state = _update_chibi_turn_after_player(current, req.message.strip())
+        turn_events = list(updated_turn_state.get("announcements") or []) if int(updated_turn_state.get("turn") or 1) > int(previous_turn_state.get("turn") or 1) else []
+        current["turn_state"] = updated_turn_state
+        ended = bool(updated_turn_state.get("ended"))
+        ending = str(updated_turn_state.get("ending") or "")
+        if ended:
+            messages = [
+                item for item in messages
+                if item.get("kind") != "system" or "本局推演" not in str(item.get("role") or item.get("text") or "")
+            ][:1]
+            messages.append({
+                "speaker": "旁白",
+                "role": updated_turn_state.get("ending_title") or "自动结局",
+                "text": ending or "本局已经自然收束。",
+                "kind": "system",
+            })
     user_message = {
         "speaker": current.get("user_role", {}).get("name") or "你",
         "role": current.get("user_role", {}).get("identity") or "玩家",
@@ -2674,7 +2974,15 @@ async def time_travel_talk(req: TimeTravelTalkRequest, x_client_id: Optional[str
     session["history"].append({"type": "talk", "speaker": user_message["speaker"], "message": req.message.strip(), "messages": messages})
     first_speaker = messages[0].get("speaker", "") if messages else ""
     _safe_record_analytics("time_travel", player_id, current.get("title", "入局"), first_speaker, "talk")
-    return {"success": True, "messages": messages, "ended": ended, "ending": ending, "round": round_no}
+    return {
+        "success": True,
+        "messages": messages,
+        "ended": ended,
+        "ending": ending,
+        "round": round_no,
+        "turn_state": current.get("turn_state", {}),
+        "turn_events": turn_events,
+    }
 
 @app.post("/time_travel/talk_stream")
 async def time_travel_talk_stream(req: TimeTravelTalkRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
@@ -2700,6 +3008,8 @@ async def time_travel_talk_stream(req: TimeTravelTalkRequest, x_client_id: Optio
             "ending": result.get("ending", ""),
             "round": result.get("round", 0),
             "messages": result.get("messages", []),
+            "turn_state": result.get("turn_state", {}),
+            "turn_events": result.get("turn_events", []),
         }
         yield f"data: {json.dumps(done, ensure_ascii=False)}\n\n"
 

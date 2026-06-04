@@ -2511,6 +2511,130 @@ body {
     line-height: 1;
 }
 
+.ruju-turn-panel {
+    position: absolute;
+    z-index: 4;
+    top: 6.2rem;
+    right: clamp(1rem, 2.2vw, 2rem);
+    width: min(22rem, 30vw);
+    max-height: calc(100% - 13.5rem);
+    overflow: auto;
+    padding: 1rem;
+    border: 1px solid rgba(255, 214, 142, 0.28);
+    background: linear-gradient(180deg, rgba(11, 9, 7, 0.86), rgba(11, 9, 7, 0.68));
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(10px);
+    color: rgba(250, 239, 217, 0.92);
+}
+
+.ruju-turn-panel.hidden {
+    display: none !important;
+}
+
+.ruju-turn-head {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid rgba(255, 214, 142, 0.18);
+}
+
+.ruju-turn-head span,
+.ruju-announcement-title {
+    display: block;
+    color: rgba(139, 242, 244, 0.82);
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    font-weight: 800;
+}
+
+.ruju-turn-head b {
+    display: block;
+    margin-top: 0.2rem;
+    color: #ffd68e;
+    font-size: 1.25rem;
+    font-family: 'Ma Shan Zheng', 'ZCOOL XiaoWei', 'Noto Serif SC', serif;
+    letter-spacing: 0.04em;
+}
+
+.ruju-turn-head strong {
+    flex: 0 0 auto;
+    border: 1px solid rgba(139, 242, 244, 0.26);
+    padding: 0.36rem 0.55rem;
+    color: #8bf2f4;
+    background: rgba(139, 242, 244, 0.08);
+    font-size: 0.78rem;
+}
+
+.ruju-last-action {
+    margin: 0.8rem 0;
+    color: rgba(250, 239, 217, 0.72);
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+
+.ruju-status-bars {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 0.9rem;
+}
+
+.ruju-status-row {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    gap: 0.55rem;
+    align-items: center;
+}
+
+.ruju-status-row span {
+    color: rgba(250, 239, 217, 0.72);
+    font-size: 0.76rem;
+}
+
+.ruju-status-row i {
+    display: block;
+    height: 0.42rem;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.ruju-status-row b {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #8bf2f4, #ffd68e);
+}
+
+.ruju-announcement-title {
+    margin: 0.75rem 0 0.55rem;
+}
+
+.ruju-announcement-list {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.ruju-announcement-item {
+    border-left: 2px solid rgba(255, 214, 142, 0.52);
+    padding: 0.55rem 0.65rem;
+    background: rgba(255, 255, 255, 0.055);
+}
+
+.ruju-announcement-item b {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: #ffd68e;
+    font-size: 0.82rem;
+}
+
+.ruju-announcement-item p,
+.ruju-announcement-empty {
+    margin: 0;
+    color: rgba(250, 239, 217, 0.78);
+    font-size: 0.82rem;
+    line-height: 1.58;
+}
+
 #visual-round {
     border: 1px solid rgba(139, 242, 244, 0.34);
     border-radius: 4px;
@@ -6664,5 +6788,62 @@ body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playin
         right: auto !important;
         width: 100% !important;
         margin: 0 auto 2rem !important;
+    }
+}
+
+/* Classroom verdicts read like a normal page so shorter desktop viewports can reach every section. */
+body.law-classroom-result-reading {
+    overflow-y: auto !important;
+}
+
+body.law-classroom-result-reading .app-shell:not(.hidden) {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
+}
+
+body.law-classroom-result-reading .app-shell > main,
+body.law-classroom-result-reading #story-section,
+body.law-classroom-result-reading #story-container,
+body.law-classroom-result-reading #time-travel-content.ruju-playing,
+body.law-classroom-result-reading #travel-visual-panel,
+body.law-classroom-result-reading #travel-visual-stage {
+    height: auto !important;
+    min-height: calc(100vh - 72px) !important;
+    overflow: visible !important;
+}
+
+body.law-classroom-result-reading .ruju-visual-stage.is-ended .ruju-visual-dialogue.is-result {
+    position: relative;
+    inset: auto;
+    left: auto;
+    bottom: auto;
+    width: min(88rem, calc(100% - 3rem));
+    min-height: 0;
+    max-height: none;
+    margin: 0 auto;
+    padding: clamp(1rem, 1.3vw, 1.35rem) clamp(1rem, 2vw, 2rem) 3rem;
+    overflow: visible;
+    transform: none;
+}
+
+body.law-classroom-result-reading .ruju-visual-stage.is-ended .ruju-visual-dialogue.is-result .ruju-visual-lines,
+body.law-classroom-result-reading .ruju-visual-stage.is-ended .ruju-visual-dialogue.is-result #visual-dialogue-text {
+    overflow: visible;
+}
+
+body.law-classroom-result-reading .ruju-verdict-dossier {
+    padding-bottom: 2rem;
+}
+
+@media (max-width: 900px) {
+    body.law-classroom-result-reading .ruju-visual-stage.is-ended .ruju-visual-dialogue.is-result {
+        width: calc(100% - 1rem);
+        padding: 0.8rem 0.25rem 2rem;
+    }
+
+    body.law-classroom-result-reading .ruju-verdict-main,
+    body.law-classroom-result-reading .ruju-verdict-side {
+        width: 100%;
     }
 }

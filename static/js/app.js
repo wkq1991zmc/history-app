@@ -324,6 +324,12 @@ Object.assign(elements, {
     visualEra: document.getElementById('visual-era'),
     visualTitle: document.getElementById('visual-title'),
     visualRound: document.getElementById('visual-round'),
+    visualTurnPanel: document.getElementById('visual-turn-panel'),
+    visualPhase: document.getElementById('visual-phase'),
+    visualAp: document.getElementById('visual-ap'),
+    visualLastAction: document.getElementById('visual-last-action'),
+    visualStatusBars: document.getElementById('visual-status-bars'),
+    visualAnnouncementList: document.getElementById('visual-announcement-list'),
     visualMapBtn: document.getElementById('visual-map-btn'),
     visualAvatar: document.getElementById('visual-avatar'),
     visualDialogueAvatar: document.getElementById('visual-dialogue-avatar'),
@@ -1011,7 +1017,7 @@ async function init() {
         submitVisualNovelInput(false);
     });
     elements.visualDecideBtn?.addEventListener('click', () => {
-        submitVisualNovelInput(true);
+        submitVisualNovelInput(false, { endTurn: true });
     });
     document.addEventListener('keydown', (e) => {
         const glossaryModal = document.getElementById('classroom-glossary-modal');
@@ -1940,7 +1946,7 @@ function visualMissionText(payload) {
         if (payload.mission_text) return payload.mission_text;
         return `你的身份：${identity}\n\n你的任务：${goal}\n\n请先听完各方陈说，再从屏幕中央选项中作出裁断。本局不开放自由输入。`;
     }
-    return `你的身份：${identity}\n\n你的任务：${goal}\n\n你可以继续追问、质疑、命令；一旦拍板，本局历史会按你的决定推演。`;
+    return `你的身份：${identity}\n\n你的任务：${goal}\n\n你可以追问、质疑、遣使、整军或改变路线。行动力耗尽后，曹操、刘备和江东内部会各自行动，局势会自然走向结局。`;
 }
 
 function startVisualIntro() {
@@ -2073,10 +2079,18 @@ function isVisualClassroomResultItem(item = {}) {
     return Boolean(state.timeTravel.payload?.classroom_mode && state.timeTravel.payload?.ended && (item.kind === "system" || item.kind === "verdict"));
 }
 
+function setClassroomResultReadingMode(enabled) {
+    const active = Boolean(enabled);
+    document.documentElement.classList.toggle('law-classroom-result-reading', active);
+    document.body.classList.toggle('law-classroom-result-reading', active);
+    elements.travelVisualStage?.classList.toggle('is-ended', active);
+}
+
 function setVisualDialogueItem(item, options = {}) {
     if (!item || !elements.visualDialogueText) return;
     const speaker = normalizeVisualSpeaker(item.speaker, item.kind);
     const isClassroomResult = isVisualClassroomResultItem(item);
+    setClassroomResultReadingMode(isClassroomResult);
     elements.visualDialogueBox?.classList.remove('hidden');
     setGlossaryLabel(elements.visualSpeakerName, speaker);
     setGlossaryLabel(elements.visualSpeakerRole, item.role || visualRoleForSpeaker(speaker));
@@ -2103,6 +2117,7 @@ function setVisualDialogueItem(item, options = {}) {
 
 function setVisualThinking(speaker = "局中人", role = "") {
     clearVisualTyping();
+    setClassroomResultReadingMode(false);
     const displaySpeaker = normalizeVisualSpeaker(speaker, "ai");
     setGlossaryLabel(elements.visualSpeakerName, displaySpeaker);
     setGlossaryLabel(elements.visualSpeakerRole, role || visualRoleForSpeaker(displaySpeaker));
@@ -2119,6 +2134,7 @@ function setVisualStreamText(item, text = "") {
     if (!item || !elements.visualDialogueText) return;
     const speaker = normalizeVisualSpeaker(item.speaker, item.kind);
     const isClassroomResult = isVisualClassroomResultItem(item);
+    setClassroomResultReadingMode(isClassroomResult);
     setGlossaryLabel(elements.visualSpeakerName, speaker);
     setGlossaryLabel(elements.visualSpeakerRole, item.role || visualRoleForSpeaker(speaker));
     setVisualAvatarClass(isClassroomResult ? 'avatar-none' : visualAvatarClass(speaker));
@@ -2211,6 +2227,7 @@ function returnToClassroomChoices() {
     const payload = state.timeTravel.payload || {};
     const choices = Array.isArray(payload.choices) ? payload.choices.filter(choice => choice?.text) : [];
     if (!choices.length) return;
+    setClassroomResultReadingMode(false);
     renderVisualChoiceButtons(payload);
     state.timeTravel.visualClassroomChoicesRevealed = true;
     elements.visualDialogueBox?.classList.add('hidden');
@@ -2221,6 +2238,7 @@ function returnToClassroomChoices() {
 
 function returnToClassroomHome() {
     clearVisualTyping();
+    setClassroomResultReadingMode(false);
     state.timeTravel.payload = null;
     state.timeTravel.visualPendingPayload = null;
     state.timeTravel.visualQueue = [];
@@ -2316,9 +2334,59 @@ function advanceVisualDialogue() {
     updateVisualContinueAvailability();
 }
 
+function renderChibiTurnPanel(payload = {}) {
+    const turnState = payload.turn_state || {};
+    const enabled = Boolean(turnState.enabled) && !payload.classroom_mode;
+    elements.visualTurnPanel?.classList.toggle('hidden', !enabled);
+    if (!enabled) return;
+
+    const maxAp = Number(turnState.max_ap || 3);
+    const ap = Math.max(0, Math.min(maxAp, Number(turnState.ap ?? maxAp)));
+    if (elements.visualPhase) elements.visualPhase.textContent = turnState.phase || "朝议期";
+    if (elements.visualAp) elements.visualAp.textContent = `行动力 ${ap}/${maxAp}`;
+    if (elements.visualLastAction) {
+        const label = turnState.last_action_label || "等待你的行动";
+        const cost = Number(turnState.last_action_cost || 0);
+        elements.visualLastAction.textContent = cost ? `上一步：${label}，消耗 ${cost} 点` : label;
+    }
+
+    const stats = turnState.stats || {};
+    const statRows = [
+        ["曹军压力", stats.cao_pressure],
+        ["联刘进度", stats.alliance],
+        ["归降倾向", stats.surrender],
+        ["江东稳定", stats.jiangdong_stability],
+        ["水军准备", stats.naval_readiness],
+    ];
+    if (elements.visualStatusBars) {
+        elements.visualStatusBars.innerHTML = statRows.map(([label, value]) => {
+            const safeValue = Math.max(0, Math.min(100, Number(value || 0)));
+            return `
+                <div class="ruju-status-row">
+                    <span>${escapeHtml(label)}</span>
+                    <i><b style="width:${safeValue}%"></b></i>
+                </div>
+            `;
+        }).join('');
+    }
+
+    const announcements = Array.isArray(turnState.announcements) ? turnState.announcements : [];
+    if (elements.visualAnnouncementList) {
+        elements.visualAnnouncementList.innerHTML = announcements.length
+            ? announcements.map(item => `
+                <div class="ruju-announcement-item">
+                    <b>${escapeHtml(item.faction || "势力")}</b>
+                    <p>${escapeHtml(item.text || "")}</p>
+                </div>
+            `).join('')
+            : '<div class="ruju-announcement-empty">行动力耗尽后，各方势力会在这里行动。</div>';
+    }
+}
+
 function renderVisualNovel(payload, options = {}) {
     elements.travelVisualPanel?.classList.remove('hidden');
     elements.travelPlayPanel?.classList.add('hidden');
+    setClassroomResultReadingMode(false);
     if (elements.travelVisualStage) {
         elements.travelVisualStage.className = `ruju-visual-stage scene-${payload.scene_id || 'default'}${payload.classroom_mode ? ' is-classroom' : ''}`;
     }
@@ -2326,9 +2394,11 @@ function renderVisualNovel(payload, options = {}) {
     if (elements.visualEra) elements.visualEra.textContent = [payload.era, payload.year, payload.location].filter(Boolean).join(' · ');
     if (elements.visualTitle) elements.visualTitle.textContent = payload.title || '赤壁战前的江东朝议';
     if (elements.visualRound) {
+        const turn = Number(payload.turn_state?.turn || 0);
         const round = Number(payload.round || 0) + 1;
-        elements.visualRound.textContent = payload.ended ? '已定局' : `第 ${round} 轮`;
+        elements.visualRound.textContent = payload.ended ? '已定局' : (turn ? `第 ${turn} 回合` : `第 ${round} 轮`);
     }
+    renderChibiTurnPanel(payload);
     const people = payload.encountered || [];
     elements.travelTalkPerson.innerHTML = people.length
         ? people.map(person => `<option value="${escapeAttr(person.name || '')}">${escapeHtml(person.name || '局中人')}</option>`).join('')
@@ -2510,9 +2580,11 @@ async function talkTimeTravel() {
     await submitTravelTalk(message, false);
 }
 
-async function submitVisualNovelInput(forceDecision = false) {
+async function submitVisualNovelInput(forceDecision = false, options = {}) {
     const rawMessage = elements.visualPlayerInput?.value.trim() || "";
-    const message = rawMessage || (forceDecision ? "我意已决，按当前判断拍板执行。" : "");
+    const message = options.endTurn
+        ? "本轮暂不行动，观察曹操、刘备和江东内部的动向。"
+        : (rawMessage || (forceDecision ? "按当前判断推进下一步。" : ""));
     if (!message || state.timeTravel.isBusy || !state.timeTravel.sessionId) return;
     const activeSpeaker = state.timeTravel.visualQueue[state.timeTravel.visualIndex]?.speaker || "";
     const targetSpeaker = activeSpeaker === "你" || !activeSpeaker
@@ -2520,7 +2592,7 @@ async function submitVisualNovelInput(forceDecision = false) {
         : activeSpeaker;
     state.timeTravel.visualPendingUserRequest = {
         message,
-        forceDecision,
+        forceDecision: options.endTurn ? false : forceDecision,
         person: targetSpeaker
     };
     elements.visualInputForm?.classList.add('hidden');
@@ -2628,8 +2700,15 @@ async function processVisualNovelPendingInput() {
     }
     updateVisualInputAvailability();
     updateVisualContinueAvailability();
+    if (res?.turn_state && state.timeTravel.payload) {
+        state.timeTravel.payload.turn_state = res.turn_state;
+        state.timeTravel.payload.ended = Boolean(res.ended);
+        state.timeTravel.payload.ending = res.ending || "";
+        renderChibiTurnPanel(state.timeTravel.payload);
+    }
     if (res?.round !== undefined && elements.visualRound) {
-        elements.visualRound.textContent = res.ended ? '已定局' : `第 ${Number(res.round || 0) + 1} 轮`;
+        const turn = Number(res.turn_state?.turn || state.timeTravel.payload?.turn_state?.turn || 0);
+        elements.visualRound.textContent = res.ended ? '已定局' : (turn ? `第 ${turn} 回合` : `第 ${Number(res.round || 0) + 1} 轮`);
     }
     if (res?.ended) {
         state.timeTravel.payload.ended = true;

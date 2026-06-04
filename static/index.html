@@ -9,7 +9,7 @@
   <script defer src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=law-classroom-page-20260603k">
+  <link rel="stylesheet" href="/static/css/styles.css?v=chibi-turn-prototype-20260604c">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -274,6 +274,19 @@
                     <div id="visual-round">第 1 轮</div>
                   </div>
                 </div>
+                <aside id="visual-turn-panel" class="ruju-turn-panel hidden" aria-label="回合公告">
+                  <div class="ruju-turn-head">
+                    <div>
+                      <span>孙权回合</span>
+                      <b id="visual-phase">朝议期</b>
+                    </div>
+                    <strong id="visual-ap">行动力 3/3</strong>
+                  </div>
+                  <div id="visual-last-action" class="ruju-last-action">等待你的行动</div>
+                  <div id="visual-status-bars" class="ruju-status-bars"></div>
+                  <div class="ruju-announcement-title">势力公告</div>
+                  <div id="visual-announcement-list" class="ruju-announcement-list"></div>
+                </aside>
                 <div id="visual-avatar" class="ruju-visual-avatar"></div>
                 <div class="ruju-visual-dialogue" id="visual-dialogue-box">
                   <div id="visual-dialogue-avatar" class="ruju-dialogue-avatar avatar-none" aria-hidden="true"></div>
@@ -294,7 +307,7 @@
                 <form id="visual-input-form" class="ruju-visual-input">
                   <input id="visual-player-input" maxlength="600" placeholder="以孙权身份发言、追问或下令..." autocomplete="off">
                   <button id="visual-send-btn" type="submit">说</button>
-                  <button id="visual-decide-btn" type="button">拍板</button>
+                  <button id="visual-decide-btn" type="button">结束本轮</button>
                 </form>
               </div>
             </section>
@@ -529,6 +542,6 @@
       </div>
     </div>
   </div>
-  <script type="module" src="/static/js/app.js?v=law-classroom-page-20260603k"></script>
+  <script type="module" src="/static/js/app.js?v=chibi-turn-prototype-20260604c"></script>
 </body>
 </html>
