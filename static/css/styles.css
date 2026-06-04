@@ -2747,6 +2747,18 @@ body {
     background-position: center;
 }
 
+.ruju-visual-avatar.avatar-chenziang {
+    background-image: url('/static/images/law-wuzhou-chenziang-avatar.webp');
+    background-size: cover;
+    background-position: center;
+}
+
+.ruju-visual-avatar.avatar-xuyuanqing {
+    background-image: url('/static/images/law-wuzhou-xuyuanqing-avatar.webp');
+    background-size: cover;
+    background-position: center;
+}
+
 .ruju-visual-avatar.avatar-player {
     background:
         radial-gradient(circle at 50% 35%, rgba(255, 214, 142, 0.2), rgba(151, 38, 31, 0.14)),
@@ -3137,6 +3149,14 @@ body {
         #050403;
 }
 
+.ruju-visual-stage.is-loading.scene-law_wuzhou_xuyuanqing_revenge,
+.ruju-visual-stage.is-intro.scene-law_wuzhou_xuyuanqing_revenge {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.72)),
+        url('/static/images/law-wuzhou-xuyuanqing-court-bg.webp') center / cover no-repeat,
+        #050403;
+}
+
 .ruju-visual-stage.is-loading .ruju-visual-topline,
 .ruju-visual-stage.is-intro .ruju-visual-topline,
 .ruju-visual-stage.is-loading .ruju-visual-avatar,
@@ -3317,6 +3337,14 @@ body {
         #120d08;
 }
 
+.ruju-visual-stage.scene-law_wuzhou_xuyuanqing_revenge {
+    background:
+        linear-gradient(90deg, rgba(11, 8, 5, 0.18), rgba(0, 0, 0, 0.05) 48%, rgba(0, 0, 0, 0.36)),
+        linear-gradient(180deg, rgba(22, 12, 6, 0.06), rgba(4, 3, 2, 0.32)),
+        url('/static/images/law-wuzhou-xuyuanqing-court-bg.webp') center / cover no-repeat,
+        #120d08;
+}
+
 .ruju-visual-stage.is-classroom .ruju-visual-dialogue {
     display: grid;
     grid-template-columns: clamp(8.4rem, 12vw, 11.5rem) minmax(0, 1fr);
@@ -3421,6 +3449,20 @@ body {
 .ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-victim-family::after {
     inset: 0;
     background-image: url('/static/images/law-tang-victim-family-avatar.webp');
+    background-size: cover;
+    background-position: center;
+}
+
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-chenziang::after {
+    inset: 0;
+    background-image: url('/static/images/law-wuzhou-chenziang-avatar.webp');
+    background-size: cover;
+    background-position: center;
+}
+
+.ruju-visual-stage.is-classroom .ruju-dialogue-avatar.avatar-xuyuanqing::after {
+    inset: 0;
+    background-image: url('/static/images/law-wuzhou-xuyuanqing-avatar.webp');
     background-size: cover;
     background-position: center;
 }
@@ -4060,6 +4102,18 @@ body {
 
 .ruju-visual-avatar.avatar-victim-family::after {
     background-image: url('/static/images/law-tang-victim-family-avatar.webp');
+    background-size: cover;
+    background-position: center;
+}
+
+.ruju-visual-avatar.avatar-chenziang::after {
+    background-image: url('/static/images/law-wuzhou-chenziang-avatar.webp');
+    background-size: cover;
+    background-position: center;
+}
+
+.ruju-visual-avatar.avatar-xuyuanqing::after {
+    background-image: url('/static/images/law-wuzhou-xuyuanqing-avatar.webp');
     background-size: cover;
     background-position: center;
 }

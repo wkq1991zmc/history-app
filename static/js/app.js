@@ -15,6 +15,9 @@ const VISUAL_AVATAR_CLASS = {
     "案吏": "avatar-clerk",
     "董仲舒": "avatar-scholar",
     "律令官": "avatar-official",
+    "廷尉属官": "avatar-official",
+    "刑部属官": "avatar-official",
+    "法司官": "avatar-official",
     "儒生": "avatar-lusu",
     "乡里代表": "avatar-zhangzhao",
     "刑部主审官": "avatar-official",
@@ -22,6 +25,8 @@ const VISUAL_AVATAR_CLASS = {
     "张三": "avatar-zhangsan",
     "礼官": "avatar-ritual-official",
     "被害者家属": "avatar-victim-family",
+    "陈子昂": "avatar-chenziang",
+    "徐元庆": "avatar-xuyuanqing",
     "你": "avatar-sunquan"
 };
 const CLASSROOM_GLOSSARY = {
@@ -50,8 +55,16 @@ const CLASSROOM_GLOSSARY = {
         body: "本心指行为人内在的真实动机和主观意图。在儒家化的司法观念中，判断一个行为的轻重，有时不仅看外在结果，也会追问行为背后的用心、情理与伦理关系。"
     },
     "律令官": {
-        subtitle: "代表成文法与刑罚秩序的角色",
-        body: "律令官可理解为熟悉律令、负责解释和适用成文法的司法官员。古代国家依靠这类官员维护法令统一、刑罚威严和审判秩序，使案件处理不至于完全依附个人情感或地方习俗。"
+        subtitle: "概括性的司法角色称呼",
+        body: "“律令官”可以概括熟悉律令、负责解释和适用成文法的司法官员，但它并不是汉唐时期长期通用的固定官名。不同朝代承担类似职责的官员名称各不相同，如汉代廷尉属官、唐代刑部与大理寺官员等。"
+    },
+    "刑部属官": {
+        subtitle: "唐代刑部中的司法官员",
+        body: "刑部属官是对唐代刑部中协助处理刑狱、复核与律令事务官员的概括称呼。唐代刑部负责司法行政和案件复核，并与大理寺、御史台等机构共同参与重大案件处理；刑部内部的具体官名与职责仍有进一步区分。"
+    },
+    "法司官": {
+        subtitle: "朝廷司法官员的概括称呼",
+        body: "法司是对掌管刑狱、审判与司法复核机构的概括称呼，法司官泛指其中负责司法事务的官员。它并非某一固定品级的正式官名，但适合概括史料未明确记载姓名和具体官职的朝廷司法参与者。"
     },
     "儒生": {
         subtitle: "以经义和伦理解释政治法律的人",
@@ -120,6 +133,50 @@ const CLASSROOM_GLOSSARY = {
     "死刑复核": {
         subtitle: "对死刑案件再次审查",
         body: "死刑复核是对死刑案件进行再次审查的制度安排，目的在于避免错杀、慎用极刑。中国古代较早形成对重大刑案层层审核的传统，隋唐以后相关程序逐渐制度化。"
+    },
+    "陈子昂": {
+        subtitle: "唐代文学家与政治人物",
+        body: "陈子昂是初唐重要文学家、诗人和政治人物，曾任右拾遗。他不仅以诗歌革新闻名，也关心现实政治与司法问题。徐元庆复仇案发生后，他撰写《复仇议状》，主张依法处死徐元庆，同时表彰其孝义。"
+    },
+    "武则天": {
+        subtitle: "武周皇帝",
+        body: "武则天是中国历史上唯一得到普遍承认的女皇帝。她在唐高宗时期逐渐参与朝政，后建立武周政权。其统治时期重视选官与政治整顿，也留下多起涉及律法、礼制和官僚治理的历史争议。徐元庆复仇案即发生于武则天时期。"
+    },
+    "右拾遗": {
+        subtitle: "负责规谏与补察的谏官",
+        body: "右拾遗是唐代谏官之一，职责在于向皇帝进言、补察政事缺失。官位虽不很高，却可以就政治、司法和制度问题提出意见。陈子昂曾任右拾遗，并以这一身份参与徐元庆复仇案的讨论。"
+    },
+    "柳宗元": {
+        subtitle: "唐代文学家与思想家",
+        body: "柳宗元是中唐重要文学家、思想家和政治人物，唐宋八大家之一。他重视国家治理、官吏责任与制度原则。在《驳复仇议》中，他批评对徐元庆同时施加刑罚与表彰，主张先查明徐爽旧案曲直，再决定赏罚。"
+    },
+    "旌闾": {
+        subtitle: "表彰某人及其乡里门闾",
+        body: "旌闾是古代国家表彰忠孝、节义人物的一种方式，通常通过标识、旌表其居所门闾，使其名誉为乡里和社会所知。它不仅奖励个人，也具有树立道德典范、传播教化的作用。"
+    },
+    "徐元庆": {
+        subtitle: "武周时期复仇案当事人",
+        body: "徐元庆是同州下邽人。其父徐爽被县尉赵师韫所杀后，他隐姓埋名、伺机复仇，最终杀死赵师韫并主动投案。围绕其行为应诛、应赦还是应当表彰，引发了中国古代礼法史上的著名争论。"
+    },
+    "诛其人而旌其闾": {
+        subtitle: "陈子昂提出的礼法折中方案",
+        body: "“诛其人而旌其闾”是对陈子昂《复仇议状》主张的概括：徐元庆擅自杀人，应依法处死；但其为父复仇的孝义，又应通过表彰门闾加以褒扬。这种方案试图分别维护国法与礼教，也因赏罚并行而受到柳宗元批评。"
+    },
+    "复仇议状": {
+        subtitle: "陈子昂讨论徐元庆案的奏议",
+        body: "《复仇议状》是陈子昂针对徐元庆复仇案撰写的奏议。文章认为，为父复仇符合礼义，但私人杀人又触犯国法，因此提出先依法诛杀，再旌表孝义的处置方式。"
+    },
+    "驳复仇议": {
+        subtitle: "柳宗元反驳陈子昂复仇议的文章",
+        body: "《驳复仇议》是柳宗元对陈子昂复仇方案的批评。柳宗元认为刑赏不能同时施于同一行为，朝廷应先查明徐爽是否无罪、赵师韫是否枉法，再决定徐元庆应当受诛还是得到伸张。"
+    },
+    "父仇不共戴天": {
+        subtitle: "传统礼教中的复仇观念",
+        body: "“父仇不共戴天”源于传统礼制中对父子伦理的强调，意指杀父之仇极其深重，不能与仇人共同生存于天地之间。这一观念强化了为亲复仇的道德责任，也与国家禁止私人杀人的法律秩序产生长期冲突。"
+    },
+    "私人复仇": {
+        subtitle: "个人绕过官府实施的报复",
+        body: "私人复仇是个人或家族不经国家司法程序，直接对仇人实施报复的行为。它可能源于真实冤屈与亲属义务，但也会造成仇杀循环，并挑战国家对审判、刑罚和公共秩序的控制。"
     }
 };
 const CLASSROOM_GLOSSARY_TERMS = Object.keys(CLASSROOM_GLOSSARY).sort((a, b) => b.length - a.length);
@@ -2019,6 +2076,9 @@ function visualBriefingSource(payload) {
     if (payload?.scene_id === "law_tang_liuyang_chengsi") {
         return "改编自：北魏以来“存留养亲”制度与《唐律疏议》相关规定";
     }
+    if (payload?.scene_id === "law_wuzhou_xuyuanqing_revenge") {
+        return "改编自：陈子昂《复仇议状》与柳宗元《驳复仇议》";
+    }
     return "";
 }
 
@@ -2106,20 +2166,22 @@ function parseClassroomVerdict(text = "") {
         title = "裁断结果";
         body = source;
     }
+    const sectionLabels = "教材回顾|教材联系|史料回顾|课堂追问|史学分析|礼法分析";
     const pickSection = (labelPattern) => {
-        const match = body.match(new RegExp(`(?:^|\\n\\n?)(${labelPattern})：([\\s\\S]*?)(?=\\n\\n?(?:教材回顾|教材联系|课堂追问|史学分析|礼法分析)：|$)`));
+        const match = body.match(new RegExp(`(?:^|\\n\\n?)(${labelPattern})：([\\s\\S]*?)(?=\\n\\n?(?:${sectionLabels})：|$)`));
         return match ? match[2].trim() : "";
     };
     const analysis = pickSection("史学分析|礼法分析");
     const textbook = pickSection("教材回顾|教材联系");
+    const sourceReview = pickSection("史料回顾");
     const question = pickSection("课堂追问");
     const main = body
-        .replace(/(?:^|\n\n?)(?:史学分析|礼法分析)：[\s\S]*?(?=\n\n?(?:教材回顾|教材联系|课堂追问)：|$)/g, "")
-        .replace(/(?:^|\n\n?)(?:教材回顾|教材联系)：[\s\S]*?(?=\n\n?课堂追问：|$)/g, "")
+        .replace(new RegExp(`(?:^|\\n\\n?)(?:史学分析|礼法分析)：[\\s\\S]*?(?=\\n\\n?(?:${sectionLabels})：|$)`, "g"), "")
+        .replace(new RegExp(`(?:^|\\n\\n?)(?:教材回顾|教材联系|史料回顾)：[\\s\\S]*?(?=\\n\\n?(?:${sectionLabels})：|$)`, "g"), "")
         .replace(/(?:^|\n\n?)课堂追问：[\s\S]*$/g, "")
         .trim();
     title = title.replace(/^([A-D])\s*[｜|]\s*/, "$1 ");
-    return { title, main, analysis, textbook, question };
+    return { title, main, analysis, textbook, sourceReview, question };
 }
 
 function renderClassroomVerdict(text = "") {
@@ -2127,6 +2189,7 @@ function renderClassroomVerdict(text = "") {
     const sideCards = [
         verdict.analysis ? { title: "礼法分析", text: verdict.analysis } : null,
         verdict.textbook ? { title: "教材回顾", text: verdict.textbook } : null,
+        verdict.sourceReview ? { title: "史料回顾", text: verdict.sourceReview } : null,
         verdict.question ? { title: "课堂追问", text: verdict.question } : null,
     ].filter(Boolean);
     const historyButton = state.timeTravel.payload?.orthodox_history
