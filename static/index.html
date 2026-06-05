@@ -9,7 +9,7 @@
   <script defer src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=xuyuanqing-case-20260604b">
+  <link rel="stylesheet" href="/static/css/styles.css?v=tang-xiaoqin-case-20260605a">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -225,6 +225,16 @@
                       <span>案例三｜</span>
                       <b>徐元庆复仇案</b>
                       <em>武周：国法与天理之间</em>
+                    </button>
+                    <button type="button" data-classroom-scene="law_jin_wufu_zhizui">
+                      <span>案例四｜</span>
+                      <b>五服断罪</b>
+                      <em>魏晋：亲属之间的法与礼</em>
+                    </button>
+                    <button type="button" data-classroom-scene="law_tang_xiaoqin_daoji">
+                      <span>案例五｜</span>
+                      <b>孝亲盗鸡</b>
+                      <em>唐代：德礼为本，刑罚为用</em>
                     </button>
                   </div>
                 </div>
@@ -483,12 +493,14 @@
   <div id="classroom-reflection-modal" class="classroom-reflection-modal hidden" aria-hidden="true">
     <form id="classroom-reflection-form" class="classroom-reflection-card">
       <button id="classroom-reflection-close" type="button" class="classroom-reflection-close" aria-label="关闭想法提交">×</button>
-      <div class="classroom-reflection-kicker">留下思考</div>
-      <h2>你的想法</h2>
-      <p>结合刚才的裁断与历史还原，写下你的判断。</p>
-      <label for="classroom-reflection-name">姓名</label>
-      <input id="classroom-reflection-name" type="text" maxlength="40" autocomplete="name" placeholder="请输入姓名">
-      <label for="classroom-reflection-thought">你的想法</label>
+      <div id="classroom-reflection-kicker" class="classroom-reflection-kicker">留下思考</div>
+      <h2 id="classroom-reflection-title">你的想法</h2>
+      <p id="classroom-reflection-copy">结合刚才的裁断与历史还原，写下你的判断。</p>
+      <div id="classroom-reflection-name-wrap" class="classroom-reflection-name-wrap">
+        <label for="classroom-reflection-name">姓名</label>
+        <input id="classroom-reflection-name" type="text" maxlength="40" autocomplete="name" placeholder="请输入姓名">
+      </div>
+      <label id="classroom-reflection-thought-label" for="classroom-reflection-thought">你的想法</label>
       <textarea id="classroom-reflection-thought" rows="6" maxlength="1200" placeholder="我认为……"></textarea>
       <div class="classroom-reflection-actions">
         <span id="classroom-reflection-status"></span>
@@ -564,6 +576,6 @@
       </div>
     </div>
   </div>
-  <script type="module" src="/static/js/app.js?v=source-review-cards-20260605a"></script>
+  <script type="module" src="/static/js/app.js?v=tang-xiaoqin-case-20260605a"></script>
 </body>
 </html>

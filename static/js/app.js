@@ -27,6 +27,16 @@ const VISUAL_AVATAR_CLASS = {
     "被害者家属": "avatar-victim-family",
     "陈子昂": "avatar-chenziang",
     "徐元庆": "avatar-xuyuanqing",
+    "晋律议案官": "avatar-official",
+    "晋律官": "avatar-official",
+    "礼学博士": "avatar-ritual-official",
+    "族中长者": "avatar-zhangzhao",
+    "李侄": "avatar-jia",
+    "唐律主审官": "avatar-official",
+    "律学博士": "avatar-ritual-official",
+    "邻人": "avatar-victim-family",
+    "里正": "avatar-zhangzhao",
+    "张某": "avatar-zhangsan",
     "你": "avatar-sunquan"
 };
 const CLASSROOM_GLOSSARY = {
@@ -102,6 +112,34 @@ const CLASSROOM_GLOSSARY = {
         subtitle: "古代法律儒家化的重要特征",
         body: "礼法结合指法律制度吸收儒家礼教原则，使刑罚规范与伦理秩序相互配合。自汉代以后，礼教对法律的影响逐步加深，到唐律体系中形成较成熟的制度表达。"
     },
+    "晋律": {
+        subtitle: "魏晋时期重要法典",
+        body: "《晋律》是西晋时期的重要法典，今已佚失，但其内容和特点可从《晋书·刑法志》等文献中窥见。后世常以“峻礼教之防，准五服以制罪”概括其把礼教亲属关系纳入法律制度的特点。"
+    },
+    "准五服以制罪": {
+        subtitle: "按亲属服制确定罪责轻重",
+        body: "“准五服以制罪”指依据五服亲等、尊卑长幼来调整刑罚轻重。它不是亲属犯罪一概从轻，而是把亲疏远近和上下名分都纳入法律判断，是魏晋法律儒家化制度化的重要表现。"
+    },
+    "五服": {
+        subtitle: "表示亲属远近的丧服等级",
+        body: "五服本是丧服制度，按亲属关系远近分为斩衰、齐衰、大功、小功、缌麻。古代法律把五服用于判断亲属相犯时的轻重，说明家庭伦理关系已经成为刑罚适用的重要依据。"
+    },
+    "大功": {
+        subtitle: "五服中的一种亲等",
+        body: "大功是五服之一，服期通常为九个月，涉及伯叔父母、堂兄弟等一定范围内的亲属。法律讨论亲属相犯时，大功既表示双方亲属关系较近，也需要进一步区分谁是尊长、谁是卑幼。"
+    },
+    "尊长": {
+        subtitle: "亲属关系中的长辈或上位者",
+        body: "尊长指家族伦理中地位较高的长辈或上位亲属，如父母、伯叔父母等。儒家礼法重视长幼尊卑，因此卑幼冒犯尊长在古代法律中往往会被加重评价。"
+    },
+    "卑幼": {
+        subtitle: "亲属关系中的晚辈或下位者",
+        body: "卑幼指家族伦理中地位较低的晚辈或下位亲属，如子侄等。古代法律在处理亲属相犯时，会依据卑幼与尊长的方向关系决定加重或减轻。"
+    },
+    "服制": {
+        subtitle: "以丧服表达亲属等级的制度",
+        body: "服制通过不同丧服等级表示亲属关系远近和伦理责任。魏晋以后，服制不仅用于礼仪，也被法律吸收，成为亲属之间犯罪时确定刑罚轻重的重要依据。"
+    },
     "刑部": {
         subtitle: "古代中央司法行政机构",
         body: "刑部是隋唐以后中央政府中主管刑狱、司法行政和部分案件复核的重要机构，位列六部之一。它与大理寺、御史台等机构共同构成古代中央司法运行体系的一部分。"
@@ -109,6 +147,46 @@ const CLASSROOM_GLOSSARY = {
     "唐律疏议": {
         subtitle: "唐代重要法典及其解释",
         body: "《唐律疏议》又称《永徽律疏》，是在唐高宗永徽年间形成的律文及官方解释汇编。它保存了较完整的唐代法律体系，是研究中国古代法律制度和礼法结合的重要文献。"
+    },
+    "德礼为政教之本": {
+        subtitle: "《唐律疏议》开篇总纲",
+        body: "“德礼为政教之本”出自《唐律疏议》名例律开篇，强调国家治理应以道德教化和礼制秩序为根本。它说明唐律重视礼教精神，但并不意味着法官可以脱离具体律条任意免刑。"
+    },
+    "刑罚为政教之用": {
+        subtitle: "刑罚服务于教化秩序",
+        body: "“刑罚为政教之用”与“德礼为政教之本”相连，意思是刑罚是实现政治教化和社会秩序的工具。唐律中的刑罚不只是惩罚，也承担警戒、教化和维护秩序的功能。"
+    },
+    "德礼为本": {
+        subtitle: "唐律礼法合一的价值基础",
+        body: "德礼为本是对《唐律疏议》总纲精神的概括，指法律制度以儒家德礼教化为根本价值。但在具体案件中，德礼通常要通过成文条文、量刑规则和程序体现，而不是直接替代法律。"
+    },
+    "刑罚为用": {
+        subtitle: "刑罚作为治理工具",
+        body: "刑罚为用强调刑罚服务于政教秩序，而不是单纯为了报复或惩罚。唐律礼法合一的成熟处，正在于刑罚、教化、名分和程序共同构成法律秩序。"
+    },
+    "窃盗": {
+        subtitle: "秘密盗取他人财物",
+        body: "窃盗指秘密盗取他人财物的行为。唐律对窃盗按赃值轻重递增处罚，低额盗窃也会入罪，只是刑罚较轻。它体现出唐代法律对财产秩序和乡里安定的维护。"
+    },
+    "赃计": {
+        subtitle: "按赃物价值计算刑罚",
+        body: "赃计是指根据赃物价值确定罪责轻重的量刑方法。唐律中许多财产犯罪都按赃额递增处罚，赃值越高，刑罚越重；赃值很低时，也可能只处笞杖轻刑。"
+    },
+    "笞刑": {
+        subtitle: "五刑中较轻的身体刑",
+        body: "笞刑是中国古代五刑中较轻的一种，用竹板或荆条责打，常用于较轻罪行。唐律五刑包括笞、杖、徒、流、死，笞刑位于最轻一等。"
+    },
+    "杖刑": {
+        subtitle: "重于笞刑的身体刑",
+        body: "杖刑是古代五刑之一，重于笞刑，通常用杖责打。唐律中低额盗窃等轻罪可能落入笞杖范围，体现按罪行轻重分层处罚。"
+    },
+    "断罪引律": {
+        subtitle: "裁判须引用成文依据",
+        body: "断罪引律指裁断罪名时须引用律、令、格、式等成文依据。它体现唐代法制对规则和程序的重视，也限制了法官只凭抽象道德任意裁断。"
+    },
+    "礼法合一": {
+        subtitle: "礼教精神与成文法的成熟结合",
+        body: "礼法合一指礼教伦理已经深度进入法律总纲、条文和制度运行之中。唐律的特点不是临案以礼废法，而是在成文法内部体现德礼教化、亲属名分和社会秩序。"
     },
     "一准乎礼": {
         subtitle: "唐律礼法结合的概括",
@@ -246,7 +324,14 @@ const state = {
         visualMaxSeenIndex: -1,
         visualClassroomChoicesRevealed: false,
         visualIntroStep: "",
-        visualBriefingPageIndex: 0
+        visualBriefingPageIndex: 0,
+        classroomStudentName: "",
+        classroomReflectionMode: "supplement",
+        classroomReflectionPrompt: "",
+        classroomInitialPrompted: false,
+        classroomInitialSubmitted: false,
+        classroomCounterSubmitted: false,
+        classroomPendingChoice: null
     },
     isLoading: false
 };
@@ -332,7 +417,12 @@ Object.assign(elements, {
     classroomReflectionModal: document.getElementById('classroom-reflection-modal'),
     classroomReflectionForm: document.getElementById('classroom-reflection-form'),
     classroomReflectionClose: document.getElementById('classroom-reflection-close'),
+    classroomReflectionKicker: document.getElementById('classroom-reflection-kicker'),
+    classroomReflectionTitle: document.getElementById('classroom-reflection-title'),
+    classroomReflectionCopy: document.getElementById('classroom-reflection-copy'),
+    classroomReflectionNameWrap: document.getElementById('classroom-reflection-name-wrap'),
     classroomReflectionName: document.getElementById('classroom-reflection-name'),
+    classroomReflectionThoughtLabel: document.getElementById('classroom-reflection-thought-label'),
     classroomReflectionThought: document.getElementById('classroom-reflection-thought'),
     classroomReflectionStatus: document.getElementById('classroom-reflection-status'),
     classroomReflectionSubmit: document.getElementById('classroom-reflection-submit'),
@@ -555,6 +645,198 @@ async function submitClassroomReflection() {
     elements.classroomReflectionThought.value = "";
     setTimeout(closeClassroomReflectionModal, 1100);
 }
+
+const CLASSROOM_THOUGHT_SCENE_ID = "law_tang_xiaoqin_daoji";
+const CLASSROOM_REFLECTION_PHASE_COPY = {
+    initial: {
+        kicker: "初判思路",
+        title: "先写下你的裁断思路",
+        copy: "案情虽小，礼法两难。请先写下你更看重盗律、孝亲，还是二者之间的调和。",
+        thoughtLabel: "裁断思路",
+        placeholder: "我认为本案应当……理由是……",
+        submitText: "提交思路",
+        requireName: true
+    },
+    counter: {
+        kicker: "回应追问",
+        title: "回应案中人的追问",
+        copy: "请回应刚才案中人的质疑，再继续推进案情。",
+        thoughtLabel: "你的回应",
+        placeholder: "面对这个追问，我的想法是……",
+        submitText: "提交回应",
+        requireName: false
+    },
+    supplement: {
+        kicker: "我想补充",
+        title: "我想补充",
+        copy: "看完推演结果后，如果你有新的想法或不同判断，可以继续补充。",
+        thoughtLabel: "补充想法",
+        placeholder: "我还想补充……",
+        submitText: "提交补充",
+        requireName: false
+    }
+};
+
+function isClassroomThoughtScene(payload = state.timeTravel.payload) {
+    return Boolean(payload?.classroom_mode && payload?.scene_id === CLASSROOM_THOUGHT_SCENE_ID);
+}
+
+function resetClassroomThoughtState() {
+    state.timeTravel.classroomReflectionMode = "supplement";
+    state.timeTravel.classroomReflectionPrompt = "";
+    state.timeTravel.classroomInitialPrompted = false;
+    state.timeTravel.classroomInitialSubmitted = false;
+    state.timeTravel.classroomCounterSubmitted = false;
+    state.timeTravel.classroomPendingChoice = null;
+}
+
+function classroomInitialPromptItem() {
+    const text = "案情虽小，礼法两难。请大人先写下裁断思路：你更看重盗律、孝亲，还是二者之间的调和？";
+    return {
+        speaker: "律学博士",
+        role: "裁断前问",
+        text,
+        kind: "ai",
+        thoughtGate: "initial",
+        reflectionPrompt: text
+    };
+}
+
+function classroomInitialAckItem() {
+    return {
+        speaker: "案吏",
+        role: "承命",
+        text: "下官明白，已将大人的裁断思路记入案卷。请大人据此作出裁定。",
+        kind: "ai"
+    };
+}
+
+function classroomCounterPromptForChoice(choice = {}) {
+    const id = String(choice?.id || "");
+    const prompts = {
+        A: { speaker: "里正", role: "德礼追问", text: "若只依法笞责，张母病困仍在，所谓德礼为本将落在何处？" },
+        B: { speaker: "邻人", role: "邻里追问", text: "若人人皆以孝亲为名取人财物，乡里财产之安又该如何维护？" },
+        C: { speaker: "律学博士", role: "制度追问", text: "轻罚与救济并行看似周全，但若张某仍受刑，孝心在裁断中究竟改变了什么？" },
+        D: { speaker: "案吏", role: "程序追问", text: "若一只鸡的小案也上请等待，病母之急与邻里之安又该如何及时处理？" }
+    };
+    const prompt = prompts[id] || { speaker: "律学博士", role: "裁断追问", text: "此断看似可行，但它会不会留下新的礼法疑难？" };
+    return {
+        ...prompt,
+        kind: "ai",
+        thoughtGate: "counter",
+        reflectionPrompt: prompt.text,
+        choiceId: id,
+        choiceText: String(choice?.text || "")
+    };
+}
+
+function revealClassroomChoices() {
+    state.timeTravel.visualClassroomChoicesRevealed = true;
+    elements.visualDialogueBox?.classList.add('hidden');
+}
+
+function appendClassroomGateItem(item) {
+    appendVisualItems([item], { jumpToNew: true });
+}
+
+classroomReflectionContext = function() {
+    const payload = state.timeTravel.payload || {};
+    const result = String(payload.result || "");
+    const choiceId = result.match(/^([A-D])\s*[—:：]/)?.[1] || "";
+    const choice = (payload.choices || []).find(item => String(item?.id || "") === choiceId);
+    const pendingChoice = state.timeTravel.classroomPendingChoice || {};
+    const mode = state.timeTravel.classroomReflectionMode || "supplement";
+    return {
+        scene_id: String(payload.scene_id || ""),
+        scene_title: String(payload.title || ""),
+        choice_id: mode === "initial" ? "" : String(pendingChoice.id || choiceId || ""),
+        choice_text: mode === "initial" ? "" : String(pendingChoice.text || choice?.text || ""),
+        phase: mode,
+        prompt: String(state.timeTravel.classroomReflectionPrompt || ""),
+    };
+};
+
+openClassroomReflectionModal = function(options = {}) {
+    if (!elements.classroomReflectionModal) return;
+    const mode = options.phase || "supplement";
+    const copy = CLASSROOM_REFLECTION_PHASE_COPY[mode] || CLASSROOM_REFLECTION_PHASE_COPY.supplement;
+    state.timeTravel.classroomReflectionMode = mode;
+    state.timeTravel.classroomReflectionPrompt = options.prompt || "";
+    const hasRememberedName = Boolean(state.timeTravel.classroomStudentName);
+    const shouldRequireName = Boolean(copy.requireName || !hasRememberedName);
+    if (elements.classroomReflectionKicker) elements.classroomReflectionKicker.textContent = copy.kicker;
+    if (elements.classroomReflectionTitle) elements.classroomReflectionTitle.textContent = copy.title;
+    if (elements.classroomReflectionCopy) elements.classroomReflectionCopy.textContent = options.prompt || copy.copy;
+    if (elements.classroomReflectionThoughtLabel) elements.classroomReflectionThoughtLabel.textContent = copy.thoughtLabel;
+    if (elements.classroomReflectionThought) {
+        elements.classroomReflectionThought.value = "";
+        elements.classroomReflectionThought.placeholder = copy.placeholder;
+    }
+    elements.classroomReflectionNameWrap?.classList.toggle('hidden', !shouldRequireName);
+    if (elements.classroomReflectionName) {
+        elements.classroomReflectionName.value = shouldRequireName ? state.timeTravel.classroomStudentName : "";
+    }
+    elements.classroomReflectionStatus.textContent = "";
+    elements.classroomReflectionSubmit.disabled = false;
+    elements.classroomReflectionSubmit.textContent = copy.submitText;
+    elements.classroomReflectionModal.classList.remove('hidden');
+    elements.classroomReflectionModal.setAttribute('aria-hidden', 'false');
+    (shouldRequireName ? elements.classroomReflectionName : elements.classroomReflectionThought)?.focus();
+};
+
+submitClassroomReflection = async function() {
+    const mode = state.timeTravel.classroomReflectionMode || "supplement";
+    const copy = CLASSROOM_REFLECTION_PHASE_COPY[mode] || CLASSROOM_REFLECTION_PHASE_COPY.supplement;
+    const needsName = Boolean(copy.requireName || !state.timeTravel.classroomStudentName);
+    const name = needsName
+        ? (elements.classroomReflectionName?.value.trim() || "")
+        : state.timeTravel.classroomStudentName;
+    const thought = elements.classroomReflectionThought?.value.trim() || "";
+    if (!name) {
+        elements.classroomReflectionStatus.textContent = "请先填写姓名。";
+        elements.classroomReflectionName?.focus();
+        return;
+    }
+    if (thought.length < 2) {
+        elements.classroomReflectionStatus.textContent = "请写下你的想法。";
+        elements.classroomReflectionThought?.focus();
+        return;
+    }
+    elements.classroomReflectionSubmit.disabled = true;
+    elements.classroomReflectionSubmit.textContent = "提交中";
+    elements.classroomReflectionStatus.textContent = "正在保存……";
+    const res = await apiPost('/classroom/reflection', {
+        name,
+        thought,
+        ...classroomReflectionContext(),
+    });
+    if (!res?.success) {
+        elements.classroomReflectionSubmit.disabled = false;
+        elements.classroomReflectionSubmit.textContent = copy.submitText;
+        elements.classroomReflectionStatus.textContent = res?.error || "提交失败，请稍后再试。";
+        return;
+    }
+    state.timeTravel.classroomStudentName = name;
+    elements.classroomReflectionStatus.textContent = "已保存。";
+    elements.classroomReflectionSubmit.textContent = "已提交";
+    elements.classroomReflectionThought.value = "";
+    if (mode === "initial") {
+        state.timeTravel.classroomInitialSubmitted = true;
+        closeClassroomReflectionModal();
+        appendClassroomGateItem(classroomInitialAckItem());
+        return;
+    }
+    if (mode === "counter") {
+        state.timeTravel.classroomCounterSubmitted = true;
+        const pendingChoice = state.timeTravel.classroomPendingChoice;
+        closeClassroomReflectionModal();
+        if (pendingChoice?.id) {
+            await chooseTravelChoice(pendingChoice.id);
+        }
+        return;
+    }
+    setTimeout(closeClassroomReflectionModal, 700);
+};
 
 function renderAuthState() {
     const email = state.authUser?.email || "";
@@ -2011,6 +2293,7 @@ function prepareVisualLoading(sceneId = VISUAL_NOVEL_SCENE_ID) {
     state.timeTravel.visualMaxSeenIndex = -1;
     state.timeTravel.visualClassroomChoicesRevealed = false;
     state.timeTravel.visualIntroStep = "";
+    resetClassroomThoughtState();
     if (elements.visualTitle) elements.visualTitle.textContent = isClassroomScene ? '公开课案例' : '赤壁战前的江东朝议';
     if (elements.visualEra) elements.visualEra.textContent = isClassroomScene ? '' : '东汉末年';
     if (elements.visualSpeakerName) elements.visualSpeakerName.textContent = '';
@@ -2079,6 +2362,12 @@ function visualBriefingSource(payload) {
     if (payload?.scene_id === "law_wuzhou_xuyuanqing_revenge") {
         return "改编自：陈子昂《复仇议状》与柳宗元《驳复仇议》";
     }
+    if (payload?.scene_id === "law_jin_wufu_zhizui") {
+        return "改编自：《晋书·刑法志》“准五服以制罪”与唐律亲属相犯规则";
+    }
+    if (payload?.scene_id === "law_tang_xiaoqin_daoji") {
+        return "改编自：《唐律疏议》名例律总纲与窃盗计赃原则";
+    }
     return "";
 }
 
@@ -2140,7 +2429,12 @@ function normalizeVisualItem(item = {}) {
         speaker,
         role: item.role || visualRoleForSpeaker(speaker),
         text: item.text || "",
-        kind: item.kind || "ai"
+        kind: item.kind || "ai",
+        complete: item.complete,
+        thoughtGate: item.thoughtGate || "",
+        reflectionPrompt: item.reflectionPrompt || "",
+        choiceId: item.choiceId || "",
+        choiceText: item.choiceText || ""
     };
 }
 
@@ -2215,7 +2509,7 @@ function renderClassroomVerdict(text = "") {
             </div>
             <div class="ruju-verdict-actions">
                 ${historyButton}
-                <button type="button" data-verdict-action="reflection">你的想法</button>
+                <button type="button" data-verdict-action="reflection">我想补充</button>
                 <button type="button" data-verdict-action="rechoose">重新选择</button>
                 <button type="button" data-verdict-action="home">返回首页</button>
             </div>
@@ -2375,6 +2669,8 @@ function returnToClassroomChoices() {
     const payload = state.timeTravel.payload || {};
     const choices = Array.isArray(payload.choices) ? payload.choices.filter(choice => choice?.text) : [];
     if (!choices.length) return;
+    state.timeTravel.classroomCounterSubmitted = false;
+    state.timeTravel.classroomPendingChoice = null;
     setClassroomResultReadingMode(false);
     renderVisualChoiceButtons(payload);
     state.timeTravel.visualClassroomChoicesRevealed = true;
@@ -2393,6 +2689,7 @@ function returnToClassroomHome() {
     state.timeTravel.visualIndex = -1;
     state.timeTravel.visualMaxSeenIndex = -1;
     state.timeTravel.visualClassroomChoicesRevealed = false;
+    resetClassroomThoughtState();
     state.timeTravel.sessionId = null;
     elements.timeTravelContent?.classList.remove('ruju-playing');
     elements.travelStartPanel?.classList.remove('hidden');
@@ -2463,6 +2760,20 @@ function advanceVisualDialogue() {
         processVisualNovelPendingInput();
         return;
     }
+    if (isClassroomThoughtScene() && currentItem?.thoughtGate === "initial" && !state.timeTravel.classroomInitialSubmitted) {
+        openClassroomReflectionModal({
+            phase: "initial",
+            prompt: currentItem.reflectionPrompt || currentItem.text || ""
+        });
+        return;
+    }
+    if (isClassroomThoughtScene() && currentItem?.thoughtGate === "counter" && !state.timeTravel.classroomCounterSubmitted) {
+        openClassroomReflectionModal({
+            phase: "counter",
+            prompt: currentItem.reflectionPrompt || currentItem.text || ""
+        });
+        return;
+    }
     if (state.timeTravel.isBusy && !hasReadyNextLine) {
         if (currentItem?.complete !== false) {
             state.timeTravel.visualWaitingForNext = true;
@@ -2477,8 +2788,12 @@ function advanceVisualDialogue() {
         state.timeTravel.visualBrowsingHistory = false;
         setVisualDialogueItem(queue[state.timeTravel.visualIndex]);
     } else if (state.timeTravel.payload?.classroom_mode && !state.timeTravel.visualClassroomChoicesRevealed) {
-        state.timeTravel.visualClassroomChoicesRevealed = true;
-        elements.visualDialogueBox?.classList.add('hidden');
+        if (isClassroomThoughtScene() && !state.timeTravel.classroomInitialPrompted) {
+            state.timeTravel.classroomInitialPrompted = true;
+            appendClassroomGateItem(classroomInitialPromptItem());
+            return;
+        }
+        revealClassroomChoices();
     }
     updateVisualInputAvailability();
     updateVisualContinueAvailability();
@@ -2681,9 +2996,43 @@ async function startTimeTravel(options = {}) {
     trackAnalytics('time_travel', { detail: 'start' });
 }
 
+async function chooseTravelChoice(choiceId) {
+    if (state.timeTravel.isBusy || !state.timeTravel.sessionId) return;
+    setTravelBusy(true);
+    startTravelLoadingLoop('choice');
+    const res = await apiPost('/time_travel/choose', {
+        session_id: state.timeTravel.sessionId,
+        choice_id: String(choiceId || '')
+    });
+    setTravelBusy(false);
+    stopTravelLoading();
+    if (!res || !res.success) {
+        alert(res?.error || '这一轮推进失败，请重试。');
+        return;
+    }
+    state.timeTravel.classroomPendingChoice = null;
+    renderTravel(res);
+    trackAnalytics('time_travel', { detail: 'choose' });
+}
+
 async function handleTravelChoice(e) {
     const button = e.target.closest('[data-choice-id]');
     if (!button || state.timeTravel.isBusy || !state.timeTravel.sessionId) return;
+    const choiceId = String(button.dataset.choiceId || '');
+    const payload = state.timeTravel.payload || {};
+    const choice = (payload.choices || []).find(item => String(item?.id || "") === choiceId) || { id: choiceId, text: "" };
+    if (isClassroomThoughtScene(payload) && !state.timeTravel.classroomCounterSubmitted) {
+        state.timeTravel.classroomPendingChoice = {
+            id: choiceId,
+            text: String(choice?.text || "")
+        };
+        state.timeTravel.visualClassroomChoicesRevealed = false;
+        elements.visualChoiceList?.classList.add('hidden');
+        elements.visualDialogueBox?.classList.remove('hidden');
+        appendClassroomGateItem(classroomCounterPromptForChoice(choice));
+        return;
+    }
+    return chooseTravelChoice(choiceId);
     setTravelBusy(true);
     startTravelLoadingLoop('choice');
     const res = await apiPost('/time_travel/choose', {

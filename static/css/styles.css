@@ -3149,11 +3149,27 @@ body {
         #050403;
 }
 
+.ruju-visual-stage.is-loading.scene-law_tang_xiaoqin_daoji,
+.ruju-visual-stage.is-intro.scene-law_tang_xiaoqin_daoji {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.72)),
+        url('/static/images/law-tang-liuyang-court-bg.webp') center / cover no-repeat,
+        #050403;
+}
+
 .ruju-visual-stage.is-loading.scene-law_wuzhou_xuyuanqing_revenge,
 .ruju-visual-stage.is-intro.scene-law_wuzhou_xuyuanqing_revenge {
     background:
         linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.72)),
         url('/static/images/law-wuzhou-xuyuanqing-court-bg.webp') center / cover no-repeat,
+        #050403;
+}
+
+.ruju-visual-stage.is-loading.scene-law_jin_wufu_zhizui,
+.ruju-visual-stage.is-intro.scene-law_jin_wufu_zhizui {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.58), rgba(0, 0, 0, 0.74)),
+        url('/static/images/law-han-qinqin-court-bg.webp') center / cover no-repeat,
         #050403;
 }
 
@@ -3337,12 +3353,28 @@ body {
         #120d08;
 }
 
+.ruju-visual-stage.scene-law_tang_xiaoqin_daoji {
+    background:
+        linear-gradient(90deg, rgba(11, 8, 5, 0.18), rgba(0, 0, 0, 0.05) 48%, rgba(0, 0, 0, 0.36)),
+        linear-gradient(180deg, rgba(22, 12, 6, 0.06), rgba(4, 3, 2, 0.32)),
+        url('/static/images/law-tang-liuyang-court-bg.webp') center / cover no-repeat,
+        #120d08;
+}
+
 .ruju-visual-stage.scene-law_wuzhou_xuyuanqing_revenge {
     background:
         linear-gradient(90deg, rgba(11, 8, 5, 0.18), rgba(0, 0, 0, 0.05) 48%, rgba(0, 0, 0, 0.36)),
         linear-gradient(180deg, rgba(22, 12, 6, 0.06), rgba(4, 3, 2, 0.32)),
         url('/static/images/law-wuzhou-xuyuanqing-court-bg.webp') center / cover no-repeat,
         #120d08;
+}
+
+.ruju-visual-stage.scene-law_jin_wufu_zhizui {
+    background:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.04) 48%, rgba(0, 0, 0, 0.42)),
+        linear-gradient(180deg, rgba(25, 14, 7, 0.08), rgba(4, 3, 2, 0.38)),
+        url('/static/images/law-han-qinqin-court-bg.webp') center / cover no-repeat,
+        #080604;
 }
 
 .ruju-visual-stage.is-classroom .ruju-visual-dialogue {

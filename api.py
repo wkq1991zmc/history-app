@@ -173,6 +173,8 @@ class ClassroomReflectionRequest(BaseModel):
     scene_title: Optional[str] = ""
     choice_id: Optional[str] = ""
     choice_text: Optional[str] = ""
+    phase: Optional[str] = "supplement"
+    prompt: Optional[str] = ""
 
 class EmailCodeRequest(BaseModel):
     email: str
@@ -279,6 +281,8 @@ def _init_analytics_db():
                     scene_title TEXT DEFAULT '',
                     choice_id TEXT DEFAULT '',
                     choice_text TEXT DEFAULT '',
+                    phase TEXT DEFAULT 'supplement',
+                    prompt TEXT DEFAULT '',
                     visitor_hash TEXT NOT NULL
                 )
             """)
@@ -327,9 +331,21 @@ def _init_analytics_db():
                     scene_title TEXT DEFAULT '',
                     choice_id TEXT DEFAULT '',
                     choice_text TEXT DEFAULT '',
+                    phase TEXT DEFAULT 'supplement',
+                    prompt TEXT DEFAULT '',
                     visitor_hash TEXT NOT NULL
                 )
             """)
+        if _is_postgres():
+            cur.execute("ALTER TABLE classroom_reflections ADD COLUMN IF NOT EXISTS phase TEXT DEFAULT 'supplement'")
+            cur.execute("ALTER TABLE classroom_reflections ADD COLUMN IF NOT EXISTS prompt TEXT DEFAULT ''")
+        else:
+            cur.execute("PRAGMA table_info(classroom_reflections)")
+            existing_columns = {row[1] for row in cur.fetchall()}
+            if "phase" not in existing_columns:
+                cur.execute("ALTER TABLE classroom_reflections ADD COLUMN phase TEXT DEFAULT 'supplement'")
+            if "prompt" not in existing_columns:
+                cur.execute("ALTER TABLE classroom_reflections ADD COLUMN prompt TEXT DEFAULT ''")
         conn.commit()
 
 def _fetch_all(cur) -> List[Dict]:
@@ -671,6 +687,10 @@ def _record_feedback(req: FeedbackRequest, visitor_id: str):
 def _record_classroom_reflection(req: ClassroomReflectionRequest, visitor_id: str):
     name = (req.name or "").strip()
     thought = (req.thought or "").strip()
+    phase = (req.phase or "supplement").strip()
+    if phase not in {"initial", "counter", "supplement"}:
+        phase = "supplement"
+    prompt = (req.prompt or "").strip()
     if not name:
         raise HTTPException(status_code=400, detail="请填写姓名")
     if len(name) > 40:
@@ -691,17 +711,19 @@ def _record_classroom_reflection(req: ClassroomReflectionRequest, visitor_id: st
         (req.scene_title or "")[:160],
         (req.choice_id or "")[:8],
         (req.choice_text or "")[:240],
+        phase,
+        prompt[:500],
         _hash_visitor_id(visitor_id),
     )
     with _connect_db() as conn:
         conn.execute(
             f"""INSERT INTO classroom_reflections
-                (created_at, student_name, thought, scene_id, scene_title, choice_id, choice_text, visitor_hash)
-                VALUES ({p}, {p}, {p}, {p}, {p}, {p}, {p}, {p})""",
+                (created_at, student_name, thought, scene_id, scene_title, choice_id, choice_text, phase, prompt, visitor_hash)
+                VALUES ({p}, {p}, {p}, {p}, {p}, {p}, {p}, {p}, {p}, {p})""",
             values,
         )
         conn.commit()
-    _safe_record_analytics("classroom_reflection", visitor_id, req.scene_title or req.scene_id or "", name, thought[:40])
+    _safe_record_analytics("classroom_reflection", visitor_id, req.scene_title or req.scene_id or "", name, f"{phase}:{thought[:40]}")
 
 def _should_record_chat_question(message: str) -> bool:
     text = (message or "").strip()
@@ -917,12 +939,13 @@ def _classroom_admin_payload() -> Dict:
         cur.execute("""
             SELECT scene_title, choice_id, choice_text, COUNT(*) AS submissions
             FROM classroom_reflections
+            WHERE choice_id != ''
             GROUP BY scene_title, choice_id, choice_text
             ORDER BY scene_title ASC, choice_id ASC
         """)
         by_choice = _fetch_all(cur)
         cur.execute("""
-            SELECT created_at AS time, student_name, thought, scene_id, scene_title, choice_id, choice_text
+            SELECT created_at AS time, student_name, thought, scene_id, scene_title, choice_id, choice_text, phase, prompt
             FROM classroom_reflections
             ORDER BY id DESC
             LIMIT 300

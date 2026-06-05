@@ -128,6 +128,25 @@
       line-height: 1.55;
     }
     .reflection-name { color: #681d18; font-weight: 900; }
+    .reflection-phase {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(120, 174, 176, 0.45);
+      background: rgba(120, 174, 176, 0.13);
+      color: #256a6d;
+      font-weight: 800;
+      padding: 1px 7px;
+      margin-left: 4px;
+    }
+    .reflection-prompt {
+      margin: 8px 0 6px;
+      padding: 8px 10px;
+      border-left: 2px solid #c37a54;
+      background: rgba(195, 122, 84, 0.1);
+      color: #756554;
+      line-height: 1.65;
+      white-space: pre-wrap;
+    }
     .reflection-text { white-space: pre-wrap; line-height: 1.75; }
     .empty { color: #756554; padding: 18px 0; }
     @media (max-width: 800px) {
@@ -221,19 +240,22 @@
 
     function renderReflections() {
       const query = searchInput.value.trim().toLowerCase();
+      const phaseLabels = { initial: '初判思路', counter: '追问回应', supplement: '结果补充' };
       const rows = (classroomData?.reflections || []).filter(item => {
         if (!query) return true;
-        return [item.student_name, item.thought, item.scene_title, item.choice_id, item.choice_text]
+        return [item.student_name, item.thought, item.scene_title, item.choice_id, item.choice_text, item.phase, item.prompt, phaseLabels[item.phase]]
           .some(value => String(value || '').toLowerCase().includes(query));
       });
       document.getElementById('reflection-list').innerHTML = rows.map(item => `
         <article class="reflection">
           <div class="reflection-meta">
             <span class="reflection-name">${escapeHtml(item.student_name)}</span>
+            <span class="reflection-phase">${escapeHtml(phaseLabels[item.phase] || '想法')}</span>
             · ${escapeHtml(item.time)}
             · ${escapeHtml(item.scene_title || item.scene_id || '')}
             ${item.choice_id ? `· 选择 ${escapeHtml(item.choice_id)} ${escapeHtml(item.choice_text || '')}` : ''}
           </div>
+          ${item.prompt ? `<div class="reflection-prompt">${escapeHtml(item.prompt)}</div>` : ''}
           <div class="reflection-text">${escapeHtml(item.thought)}</div>
         </article>
       `).join('') || '<div class="empty">没有符合条件的课堂想法。</div>';
