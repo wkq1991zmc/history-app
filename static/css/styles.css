@@ -3612,6 +3612,7 @@ body {
     display: grid;
     justify-items: center;
     gap: clamp(1.2rem, 1.8vw, 2rem);
+    width: 100%;
 }
 
 .ruju-verdict-head {
@@ -3646,6 +3647,21 @@ body {
     align-items: start;
 }
 
+.ruju-verdict-layout {
+    width: min(96rem, 100%);
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(22rem, 0.72fr);
+    gap: clamp(1rem, 1.8vw, 1.6rem);
+    align-items: start;
+}
+
+.ruju-verdict-result-column {
+    min-width: 0;
+    display: grid;
+    justify-items: center;
+    gap: clamp(1.2rem, 1.8vw, 2rem);
+}
+
 .ruju-verdict-main,
 .ruju-verdict-side section {
     border: 2px solid rgba(255, 226, 172, 0.42);
@@ -3659,7 +3675,7 @@ body {
 }
 
 .ruju-verdict-main {
-    width: min(62rem, 82%);
+    width: 100%;
     min-height: clamp(19rem, 32vh, 28rem);
     display: grid;
     align-content: center;
@@ -3669,7 +3685,7 @@ body {
 }
 
 .ruju-verdict-side {
-    width: min(62rem, 82%);
+    width: 100%;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: clamp(1rem, 2vw, 1.7rem);
@@ -3737,6 +3753,139 @@ body {
     transform: translateY(-1px);
     border-color: rgba(255, 226, 172, 0.72);
     filter: brightness(1.08);
+}
+
+.classroom-historian-panel {
+    width: 100%;
+    max-height: min(72vh, 46rem);
+    display: grid;
+    grid-template-rows: auto minmax(14rem, 1fr) auto;
+    gap: 0.9rem;
+    border: 2px solid rgba(139, 242, 244, 0.36);
+    border-radius: 6px;
+    background:
+        linear-gradient(180deg, rgba(11, 18, 18, 0.93), rgba(5, 6, 6, 0.96)),
+        rgba(8, 7, 5, 0.9);
+    padding: clamp(1rem, 1.45vw, 1.35rem);
+    box-shadow:
+        inset 0 0 28px rgba(139, 242, 244, 0.045),
+        0 18px 46px rgba(0, 0, 0, 0.42);
+}
+
+.classroom-historian-head {
+    display: grid;
+    gap: 0.3rem;
+    border-bottom: 1px solid rgba(139, 242, 244, 0.2);
+    padding-bottom: 0.75rem;
+}
+
+.classroom-historian-head span {
+    color: #8bf2f4;
+    font-size: 0.92rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+}
+
+.classroom-historian-head b {
+    color: #ffe2a2;
+    font-size: clamp(1.18rem, 1.24vw, 1.38rem);
+    line-height: 1.25;
+}
+
+.classroom-historian-log {
+    display: grid;
+    align-content: start;
+    gap: 0.8rem;
+    overflow-y: auto;
+    padding-right: 0.2rem;
+}
+
+.classroom-historian-msg {
+    display: grid;
+    gap: 0.35rem;
+    border: 1px solid rgba(255, 226, 172, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 247, 230, 0.055);
+    padding: 0.78rem 0.85rem;
+    text-align: left;
+}
+
+.classroom-historian-msg.user {
+    border-color: rgba(255, 214, 142, 0.34);
+    background: rgba(110, 31, 23, 0.28);
+}
+
+.classroom-historian-msg div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.45rem;
+}
+
+.classroom-historian-msg b {
+    color: #ffd68e;
+    font-size: 0.98rem;
+    font-weight: 900;
+}
+
+.classroom-historian-msg span {
+    color: rgba(139, 242, 244, 0.82);
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.classroom-historian-msg p {
+    margin: 0;
+    color: rgba(255, 243, 221, 0.93);
+    font-size: 1rem;
+    font-weight: 650;
+    line-height: 1.68;
+    white-space: pre-wrap;
+}
+
+.classroom-historian-form {
+    display: grid;
+    gap: 0.65rem;
+    border-top: 1px solid rgba(139, 242, 244, 0.2);
+    padding-top: 0.8rem;
+}
+
+.classroom-historian-form textarea {
+    width: 100%;
+    min-height: 5.8rem;
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 226, 172, 0.3);
+    border-radius: 5px;
+    outline: none;
+    background: rgba(255, 247, 230, 0.075);
+    color: #fff4dc;
+    padding: 0.78rem 0.85rem;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 0.98rem;
+    line-height: 1.62;
+    resize: vertical;
+}
+
+.classroom-historian-form textarea:focus {
+    border-color: rgba(139, 242, 244, 0.72);
+    box-shadow: 0 0 0 2px rgba(139, 242, 244, 0.1);
+}
+
+.classroom-historian-form button {
+    min-height: 2.8rem;
+    border: 1px solid rgba(139, 242, 244, 0.4);
+    border-radius: 5px;
+    background: linear-gradient(180deg, rgba(27, 83, 83, 0.94), rgba(11, 43, 43, 0.96));
+    color: #dffefe;
+    font-size: 1rem;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.classroom-historian-form button:disabled,
+.classroom-historian-form textarea:disabled {
+    cursor: wait;
+    opacity: 0.66;
 }
 
 .ruju-visual-stage.is-classroom .ruju-cinematic-box {
@@ -6905,7 +7054,7 @@ body.law-classroom-result-reading .ruju-visual-stage.is-ended .ruju-visual-dialo
     inset: auto;
     left: auto;
     bottom: auto;
-    width: min(88rem, calc(100% - 3rem));
+    width: min(100rem, calc(100% - 3rem));
     min-height: 0;
     max-height: none;
     margin: 0 auto;
@@ -7058,6 +7207,14 @@ body.law-classroom-result-reading .ruju-verdict-dossier {
 }
 
 @media (max-width: 900px) {
+    .ruju-verdict-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .classroom-historian-panel {
+        max-height: none;
+    }
+
     body.law-classroom-result-reading .ruju-visual-stage.is-ended .ruju-visual-dialogue.is-result {
         width: calc(100% - 1rem);
         padding: 0.8rem 0.25rem 2rem;

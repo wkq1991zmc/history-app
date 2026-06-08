@@ -68,7 +68,7 @@ dashscope_client = AsyncOpenAI(
     timeout=httpx.Timeout(180.0, connect=10.0),
 )
 
-GEMINI_API_KEY = os.environ.get("WEB_API_KEY") or os.environ.get("GEMINI_API_KEY") or os.environ.get("DASHSCOPE_API_KEY")
+GEMINI_API_KEY = os.environ.get("WEB_API_KEY") or os.environ.get("DASHSCOPE_API_KEY") or os.environ.get("GEMINI_API_KEY")
 GEMINI_MODEL = os.environ.get("WEB_MODEL", "qwen3.6-plus") # 默认换成qwen的
 WEB_FAST_MODEL = os.environ.get("WEB_FAST_MODEL", "qwen3.6-flash")
 WEB_FAST_ENABLE_THINKING = os.environ.get("WEB_FAST_ENABLE_THINKING", "").lower() in ("1", "true", "yes", "on")
@@ -1173,6 +1173,10 @@ class TimeTravelTalkRequest(BaseModel):
     person: Optional[str] = ""
     force_decision: bool = False
 
+class ClassroomHistorianTalkRequest(BaseModel):
+    session_id: str
+    message: str
+
 def _normalize_person_name(name: str) -> str:
     return re.sub(r"[\s·・，。！？、,.!?《》〈〉“”\"'’‘]", "", name or "").lower()
 
@@ -1808,8 +1812,9 @@ def _build_intrigue_payload(scene: Dict, seed_text: str = "") -> Dict:
     classroom_mode = bool(scene.get("classroom_mode"))
     if classroom_mode:
         classroom_mission = str(scene.get("mission_text") or "").strip()
+        default_classroom_mission = f"你的任务：你就是「{user_role.get('name')}」，请根据案情和各方意见，在屏幕下方选项中作出裁断。本局不需要自由输入。"
         scene_text = (
-            f"{briefing}\n\n{classroom_mission or f'你的任务：你就是「{user_role.get('name')}」，请根据案情和各方意见，在屏幕下方选项中作出裁断。本局不需要自由输入。'}"
+            f"{briefing}\n\n{classroom_mission or default_classroom_mission}"
         ).strip()
     else:
         scene_text = (
@@ -1840,6 +1845,7 @@ def _build_intrigue_payload(scene: Dict, seed_text: str = "") -> Dict:
         "historical_anchor": scene.get("historical_anchor", []),
         "orthodox_history": scene.get("orthodox_history", ""),
         "orthodox_history_points": scene.get("orthodox_history_points", []),
+        "reflection_config": scene.get("reflection_config", {}) if classroom_mode else {},
         "user_role": user_role,
         "decision_maker": decision_maker,
         "counterpart": counterpart,
@@ -3169,6 +3175,149 @@ async def time_travel_talk_stream(req: TimeTravelTalkRequest, x_client_id: Optio
             "messages": result.get("messages", []),
             "turn_state": result.get("turn_state", {}),
             "turn_events": result.get("turn_events", []),
+        }
+        yield f"data: {json.dumps(done, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+def _classroom_historian_context(current: Dict) -> Dict:
+    choices = []
+    for choice in list(current.get("choices") or [])[:4]:
+        if not isinstance(choice, dict):
+            continue
+        choices.append({
+            "id": choice.get("id", ""),
+            "text": choice.get("text", ""),
+            "hint": choice.get("hint", ""),
+            "classroom_question": choice.get("classroom_question", ""),
+        })
+    return {
+        "title": current.get("title", ""),
+        "era": current.get("era", ""),
+        "year": current.get("year", ""),
+        "location": current.get("location", ""),
+        "brief": current.get("brief", ""),
+        "public_state": current.get("public_state", ""),
+        "stakes": current.get("stakes", ""),
+        "hidden_truth": current.get("hidden_truth", ""),
+        "npc_context": current.get("npc_context", ""),
+        "orthodox_history": current.get("orthodox_history", ""),
+        "orthodox_history_points": current.get("orthodox_history_points", []),
+        "selected_result": current.get("result", ""),
+        "result_scene": current.get("scene", ""),
+        "choices": choices,
+    }
+
+def _classroom_historian_fallback(current: Dict, message: str) -> List[Dict]:
+    title = str(current.get("title") or "本案")
+    stakes = str(current.get("stakes") or "").strip()
+    text = (
+        f"这个问题可以从「{title}」的礼法关系来理解。"
+        f"{stakes[:180] if stakes else '本节课的核心，是看儒家德礼怎样进入法律，又怎样受到成文律令和国家秩序的限制。'}"
+        "若继续追问，可以把问题放回教材中的“德治与法治”“礼法结合”“以礼入法”来讨论；我不会续写案情，也不会替你重新判案。"
+    )
+    return [{"speaker": "史官", "role": "课堂问答", "text": text, "kind": "ai"}]
+
+async def classroom_historian_talk(req: ClassroomHistorianTalkRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    player_id = x_client_id if x_client_id else "unknown_player"
+    if not check_rate_limit(f"classroom-historian-{player_id}"):
+        raise HTTPException(status_code=429, detail="提问太快了，请稍等一下。")
+    question = req.message.strip()
+    if not question or len(question) > 1200:
+        raise HTTPException(status_code=400, detail="问题不能为空，且不要超过 1200 字。")
+    session = _get_travel_session(req.session_id)
+    current = session["payload"]
+    if not current.get("classroom_mode"):
+        raise HTTPException(status_code=400, detail="当前不是公开课案例。")
+
+    context = _classroom_historian_context(current)
+    prompt = f"""你是高中历史公开课中的“史官”，负责帮助学生理解《中国古代的法治与教化》这一课。
+
+课堂边界：
+1. 可以回答本案相关问题，也可以回答由本案发散出的历史制度、思想、人物、时代背景问题。
+2. 回答必须始终能扣回教材主题：德治与法治、儒家伦理、礼法结合、以礼入法、乡约教化、法律儒家化等。
+3. 不能续写剧情，不能编造案情后续，不能替学生重新选择或改判。
+4. 不要使用现代法学概念直接替代古代语境；可以比较，但要说明“不能直接等同”。
+5. 如果学生问题明显脱离教材范围，请温和拉回本课主题。
+6. 回答要适合高中课堂投屏：清楚、短段落、有思辨性，不要长篇论文。
+7. 学生问题已经由系统按 UTF-8 正常传入；除非问题中出现明显不可读字符，不要说“乱码”“没有输入清楚”等寒暄，直接回答问题。
+
+当前公开课案例上下文：
+{json.dumps(context, ensure_ascii=False)}
+
+学生问题：
+{question}
+
+请只返回 JSON：
+{{
+  "messages": [
+    {{"speaker":"史官","role":"课堂问答","text":"回答内容","kind":"ai"}}
+  ]
+}}
+"""
+    try:
+        data = await _call_travel_model(
+            [{"role": "user", "content": prompt}],
+            max_tokens=620,
+            model=TIME_TRAVEL_FAST_MODEL,
+            timeout_seconds=TIME_TRAVEL_FAST_TIMEOUT,
+        )
+        messages: List[Dict] = []
+        for item in list(data.get("messages") or [])[:2]:
+            if not isinstance(item, dict):
+                continue
+            text = str(item.get("text") or "").strip()
+            if not text:
+                continue
+            messages.append({
+                "speaker": str(item.get("speaker") or "史官")[:24],
+                "role": str(item.get("role") or "课堂问答")[:36],
+                "text": text[:1200],
+                "kind": "ai",
+            })
+        if not messages:
+            raise ValueError("empty classroom historian answer")
+    except Exception:
+        messages = _classroom_historian_fallback(current, question)
+
+    session["history"].append({"type": "classroom_historian", "speaker": "学生", "message": question, "messages": messages})
+    _safe_record_analytics("classroom_historian", player_id, current.get("title", "公开课案例"), messages[0].get("speaker", ""), question[:60])
+    return {
+        "success": True,
+        "messages": messages,
+        "ended": bool(current.get("ended")),
+        "ending": current.get("ending", ""),
+        "round": int(current.get("round") or 0),
+    }
+
+@app.post("/classroom/talk")
+async def classroom_historian_talk_endpoint(req: ClassroomHistorianTalkRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    return await classroom_historian_talk(req, x_client_id)
+
+@app.post("/classroom/talk_stream")
+async def classroom_historian_talk_stream(req: ClassroomHistorianTalkRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    result = await classroom_historian_talk(req, x_client_id)
+
+    async def event_stream():
+        for item in result.get("messages", []):
+            meta = {
+                "type": "message_start",
+                "speaker": item.get("speaker", "史官"),
+                "role": item.get("role", "课堂问答"),
+                "kind": item.get("kind", "ai"),
+            }
+            yield f"data: {json.dumps(meta, ensure_ascii=False)}\n\n"
+            for char in str(item.get("text", "")):
+                yield f"data: {json.dumps({'type': 'delta', 'delta': char}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.004)
+            yield f"data: {json.dumps({'type': 'message_end'}, ensure_ascii=False)}\n\n"
+        done = {
+            "type": "done",
+            "success": True,
+            "messages": result.get("messages", []),
+            "ended": result.get("ended", False),
+            "ending": result.get("ending", ""),
+            "round": result.get("round", 0),
         }
         yield f"data: {json.dumps(done, ensure_ascii=False)}\n\n"
 

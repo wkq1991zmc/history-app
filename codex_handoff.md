@@ -215,3 +215,97 @@ GitHub 仓库：`https://github.com/wkq1991zmc/history-app`
 “我会继续把这两个公开课案例当作独立课堂演示页处理，不把它们混进时空印证系统主项目。”
 
 这句话很重要，因为用户已经明确担心“公开课案例”和“时空印证系统”被混在一起。
+
+## 2026-06-08 公开课“礼法断案”继续更新
+
+本轮用户明确：公开课案例仍然是独立课堂演示页，目标是 2026-06-11 高中历史公开课使用。重点围绕教材《第 8 课 中国古代的法治与教化》，尤其是“德治与法治”“礼法结合”“以礼入法”“德礼为本，刑罚为用”等概念。
+
+### 本轮已经完成的功能
+
+- 公开课案例从旧文档中的两个案例扩展为当前数据中的五个案例：
+  - `law_han_qinqin_xiangyin` 亲亲相隐：法与亲情之间
+  - `law_tang_liuyang_chengsi` 留养承祀：孝道与国法的边界
+  - `law_wuzhou_xuyuanqing_revenge` 徐元庆复仇案：国法与天理之间
+  - `law_jin_wufu_zhizui` 五服断罪：亲属之间的法与礼
+  - `law_tang_xiaoqin_daoji` 孝亲盗鸡：德礼为本，刑罚为用
+- 五个案例都改成统一的课堂思辨流程：
+  - 听完案中人陈说
+  - 先写“初判思路”
+  - 再选择 A/B/C/D
+  - 根据选择触发一个反向追问
+  - 学生提交回应后再进入推演结果
+- 以前只有“孝亲盗鸡”有特殊互动，现在通过 `reflection_config` 做成所有公开课案例通用配置。
+- 另外四个案例都补了更“烧脑”的课堂追问：
+  - 不再只是让学生选边，而是追问制度边界、事实依据、赏罚一致、尊卑方向、监管条件等问题。
+- 初判前问已经改成开放式表达：
+  - 不再使用“你更看重 A 还是 B”“你是要先……”这类预设立场的问法。
+  - 每个案例都有独立问句，只抛出案情张力，让学生自己组织判断。
+- 推演结果页的“我想补充”改为“史官问答”。
+  - 结果页左侧保留裁断卷宗。
+  - 右侧新增史官对话栏。
+  - 学生可以问本案，也可以发散问相关制度、思想、人物、时代背景。
+  - 史官不能续写剧情，不能替学生改判，不能脱离本课教材主题。
+- 新增公开课专用 AI 接口：
+  - `POST /classroom/talk`
+  - `POST /classroom/talk_stream`
+  - 复用流式输出，但不走主线“入局玩法”的自由剧情 prompt。
+- 修正网页端模型 API key 优先级：
+  - 现在是 `WEB_API_KEY -> DASHSCOPE_API_KEY -> GEMINI_API_KEY`
+  - 用户当前只需要配置 `DASHSCOPE_API_KEY` 即可调用阿里百炼。
+  - 公开课史官接口使用 `TIME_TRAVEL_FAST_MODEL`，默认 `qwen3.6-flash`。
+
+### 本轮修改的主要文件
+
+- `api.py`
+  - 修复公开课 mission 默认文案的嵌套 f-string 问题，避免服务无法启动。
+  - 公开课 payload 返回 `reflection_config`。
+  - 新增 `ClassroomHistorianTalkRequest`。
+  - 新增 `_classroom_historian_context`、`_classroom_historian_fallback`。
+  - 新增 `/classroom/talk` 和 `/classroom/talk_stream`。
+  - 史官 prompt 明确限制不能编剧情、不能脱离教材、不能替学生判案。
+  - 调整模型 key 优先级为百炼优先。
+- `data/intrigue_scenes_law_classroom.json`
+  - 五个案例都新增 `reflection_config`：
+    - `initial_prompt`
+    - `ack`
+    - `counter_prompts`
+  - 四个新“烧脑”案例补充/强化 `classroom_question`。
+  - 四个案例的 `stakes` 增加更明确的课堂思辨张力。
+  - 五个案例的初判问句改为开放式。
+- `static/js/app.js`
+  - 移除只针对 `law_tang_xiaoqin_daoji` 的特殊判断。
+  - `isClassroomThoughtScene()` 改为所有公开课案例通用。
+  - 初判和追问从 `payload.reflection_config` 读取。
+  - 结果页按钮从“我想补充”改成“史官问答”。
+  - 新增史官问答面板渲染、流式提问、状态刷新与焦点定位。
+  - 返回首页/重新选择/重新入局时清理史官问答状态。
+- `static/css/styles.css`
+  - 结果页改为左侧裁断卷宗、右侧史官问答栏。
+  - 新增 `.classroom-historian-*` 样式。
+  - 移动端结果页自动上下排列。
+
+### 本轮验证记录
+
+本地常用地址：
+
+- `http://127.0.0.1:8000/?x=lawvisual#time-travel-dev`
+
+已验证：
+
+- `python -m py_compile api.py` 通过
+- `node --check static/js/app.js` 通过
+- `data/intrigue_scenes_law_classroom.json` 可正常 JSON 解析
+- 五个公开课案例启动接口都能返回：
+  - `reflection_config.initial_prompt`
+  - 4 个 `counter_prompts`
+  - 4 个选项
+- `/classroom/reflection` 可保存初判和追问回应
+- `/time_travel/choose` 可返回公开课结果页 payload
+- `/classroom/talk` 能调用真实 `qwen3.6-flash` 返回史官回答
+- 直接用 `DASHSCOPE_API_KEY` + `qwen3.6-flash` 测试模型调用已成功
+
+### 当前注意事项
+
+- `.env` 里如果还保留 `GEMINI_API_KEY` 没关系，当前代码会优先使用 `DASHSCOPE_API_KEY`。
+- 如果后续直接在 PowerShell 里写中文测试模型，可能因终端编码导致中文被发成问号。验证模型中文能力时可用浏览器页面，或在脚本里用 UTF-8/Unicode 转义。
+- 公开课史官问答应继续保持“史官/课堂助教”定位，不要改回主线“入局玩法”的自由历史分支。

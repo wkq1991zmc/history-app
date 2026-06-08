@@ -331,7 +331,9 @@ const state = {
         classroomInitialPrompted: false,
         classroomInitialSubmitted: false,
         classroomCounterSubmitted: false,
-        classroomPendingChoice: null
+        classroomPendingChoice: null,
+        classroomHistorianMessages: [],
+        classroomHistorianBusy: false
     },
     isLoading: false
 };
@@ -646,12 +648,11 @@ async function submitClassroomReflection() {
     setTimeout(closeClassroomReflectionModal, 1100);
 }
 
-const CLASSROOM_THOUGHT_SCENE_ID = "law_tang_xiaoqin_daoji";
 const CLASSROOM_REFLECTION_PHASE_COPY = {
     initial: {
         kicker: "初判思路",
         title: "先写下你的裁断思路",
-        copy: "案情虽小，礼法两难。请先写下你更看重盗律、孝亲，还是二者之间的调和。",
+        copy: "案情已陈，疑难未决。请先写下你对此案的理解和裁断理由。",
         thoughtLabel: "裁断思路",
         placeholder: "我认为本案应当……理由是……",
         submitText: "提交思路",
@@ -667,18 +668,23 @@ const CLASSROOM_REFLECTION_PHASE_COPY = {
         requireName: false
     },
     supplement: {
-        kicker: "我想补充",
-        title: "我想补充",
-        copy: "看完推演结果后，如果你有新的想法或不同判断，可以继续补充。",
-        thoughtLabel: "补充想法",
-        placeholder: "我还想补充……",
-        submitText: "提交补充",
+        kicker: "继续思考",
+        title: "继续思考",
+        copy: "看完推演结果后，如果你有新的想法或不同判断，可以继续写下。",
+        thoughtLabel: "你的想法",
+        placeholder: "我还想到……",
+        submitText: "提交想法",
         requireName: false
     }
 };
 
+function classroomReflectionConfig(payload = state.timeTravel.payload) {
+    const config = payload?.reflection_config;
+    return config && typeof config === "object" ? config : {};
+}
+
 function isClassroomThoughtScene(payload = state.timeTravel.payload) {
-    return Boolean(payload?.classroom_mode && payload?.scene_id === CLASSROOM_THOUGHT_SCENE_ID);
+    return Boolean(payload?.classroom_mode);
 }
 
 function resetClassroomThoughtState() {
@@ -691,10 +697,12 @@ function resetClassroomThoughtState() {
 }
 
 function classroomInitialPromptItem() {
-    const text = "案情虽小，礼法两难。请大人先写下裁断思路：你更看重盗律、孝亲，还是二者之间的调和？";
+    const config = classroomReflectionConfig();
+    const prompt = config.initial_prompt || {};
+    const text = prompt.text || "案情已陈，礼与法的疑难也摆在堂前。请先写下你的初判思路：你将如何理解本案的关键，并说明自己的裁断理由？";
     return {
-        speaker: "律学博士",
-        role: "裁断前问",
+        speaker: prompt.speaker || "史官",
+        role: prompt.role || "裁断前问",
         text,
         kind: "ai",
         thoughtGate: "initial",
@@ -703,23 +711,19 @@ function classroomInitialPromptItem() {
 }
 
 function classroomInitialAckItem() {
+    const ack = classroomReflectionConfig().ack || {};
     return {
-        speaker: "案吏",
-        role: "承命",
-        text: "下官明白，已将大人的裁断思路记入案卷。请大人据此作出裁定。",
+        speaker: ack.speaker || "案吏",
+        role: ack.role || "承命",
+        text: ack.text || "已将你的初判思路记入案卷。请据此继续作出裁断。",
         kind: "ai"
     };
 }
 
 function classroomCounterPromptForChoice(choice = {}) {
     const id = String(choice?.id || "");
-    const prompts = {
-        A: { speaker: "里正", role: "德礼追问", text: "若只依法笞责，张母病困仍在，所谓德礼为本将落在何处？" },
-        B: { speaker: "邻人", role: "邻里追问", text: "若人人皆以孝亲为名取人财物，乡里财产之安又该如何维护？" },
-        C: { speaker: "律学博士", role: "制度追问", text: "轻罚与救济并行看似周全，但若张某仍受刑，孝心在裁断中究竟改变了什么？" },
-        D: { speaker: "案吏", role: "程序追问", text: "若一只鸡的小案也上请等待，病母之急与邻里之安又该如何及时处理？" }
-    };
-    const prompt = prompts[id] || { speaker: "律学博士", role: "裁断追问", text: "此断看似可行，但它会不会留下新的礼法疑难？" };
+    const prompts = classroomReflectionConfig().counter_prompts || {};
+    const prompt = prompts[id] || { speaker: "史官", role: "裁断追问", text: "此断看似可行，但它会不会留下新的礼法疑难？" };
     return {
         ...prompt,
         kind: "ai",
@@ -1389,6 +1393,12 @@ async function init() {
         if (!isLawClassroomDemo()) return;
         startTimeTravel({ sceneId: button.dataset.classroomScene });
     });
+    elements.timeTravelContent?.addEventListener('submit', (e) => {
+        const form = e.target.closest('[data-classroom-historian-form]');
+        if (!form) return;
+        e.preventDefault();
+        submitClassroomHistorianQuestion(form);
+    });
     elements.travelTalkBtn?.addEventListener('click', talkTimeTravel);
     elements.travelDecideBtn?.addEventListener('click', openTravelDecisionModal);
     elements.travelDecisionClose?.addEventListener('click', closeTravelDecisionModal);
@@ -1951,6 +1961,7 @@ function visualAvatarClass(name = "") {
     if (/案吏/.test(name)) return "avatar-clerk";
     if (/张三/.test(name)) return "avatar-zhangsan";
     if (/^甲$|养父甲/.test(name)) return "avatar-jia";
+    if (/史官/.test(name)) return "avatar-scholar";
     if (/礼官/.test(name)) return "avatar-ritual-official";
     if (/被害者|家属/.test(name)) return "avatar-victim-family";
     if (/乡里|代表/.test(name)) return "avatar-lusu";
@@ -2478,6 +2489,71 @@ function parseClassroomVerdict(text = "") {
     return { title, main, analysis, textbook, sourceReview, question };
 }
 
+function classroomHistorianSeedMessage() {
+    const payload = state.timeTravel.payload || {};
+    const title = payload.title || "本案";
+    return {
+        role: "ai",
+        speaker: "史官",
+        speakerRole: "课堂问答",
+        text: `你可以继续追问「${title}」中的制度、思想与时代背景。我会把回答扣回本课的德治与法治、礼法结合、以礼入法，不续写剧情，也不替你重新判案。`
+    };
+}
+
+function classroomHistorianMessages() {
+    return state.timeTravel.classroomHistorianMessages?.length
+        ? state.timeTravel.classroomHistorianMessages
+        : [classroomHistorianSeedMessage()];
+}
+
+function renderClassroomHistorianLog() {
+    return classroomHistorianMessages().map(item => `
+        <div class="classroom-historian-msg ${escapeAttr(item.role || 'ai')}">
+            <div>
+                <b>${escapeHtml(item.speaker || (item.role === 'user' ? '你' : '史官'))}</b>
+                ${item.speakerRole ? `<span>${escapeHtml(item.speakerRole)}</span>` : ''}
+            </div>
+            <p>${escapeHtml(item.text || '')}</p>
+        </div>
+    `).join('');
+}
+
+function renderClassroomHistorianPanel() {
+    const busy = Boolean(state.timeTravel.classroomHistorianBusy);
+    return `
+        <aside class="classroom-historian-panel" aria-label="史官问答">
+            <div class="classroom-historian-head">
+                <span>史官问答</span>
+                <b>问制度、问思想、问时代</b>
+            </div>
+            <div class="classroom-historian-log" data-classroom-historian-log>
+                ${renderClassroomHistorianLog()}
+            </div>
+            <form class="classroom-historian-form" data-classroom-historian-form>
+                <textarea name="question" maxlength="1200" rows="3" placeholder="可以问：这个案子和礼法结合有什么关系？也可以问相关历史背景。"${busy ? ' disabled' : ''}></textarea>
+                <button type="submit"${busy ? ' disabled' : ''}>${busy ? '史官思考中' : '提问'}</button>
+            </form>
+        </aside>
+    `;
+}
+
+function refreshClassroomHistorianPanel() {
+    const panel = elements.travelVisualStage?.querySelector('.classroom-historian-panel');
+    if (!panel) return;
+    const replacement = document.createElement('div');
+    replacement.innerHTML = renderClassroomHistorianPanel().trim();
+    panel.replaceWith(replacement.firstElementChild);
+    const log = elements.travelVisualStage?.querySelector('[data-classroom-historian-log]');
+    if (log) log.scrollTop = log.scrollHeight;
+}
+
+function focusClassroomHistorian() {
+    const panel = elements.travelVisualStage?.querySelector('.classroom-historian-panel');
+    panel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const input = panel?.querySelector('textarea[name="question"]');
+    setTimeout(() => input?.focus(), 160);
+}
+
 function renderClassroomVerdict(text = "") {
     const verdict = parseClassroomVerdict(text);
     const sideCards = [
@@ -2495,23 +2571,28 @@ function renderClassroomVerdict(text = "") {
                 <span>裁断卷宗</span>
                 <h2>${escapeHtml(verdict.title)}</h2>
             </header>
-            <section class="ruju-verdict-main">
-                <b>推演结果</b>
-                <p>${renderClassroomGlossaryHtml(verdict.main || text, { lineBreaks: true })}</p>
-            </section>
-            <div class="ruju-verdict-side">
-                ${sideCards.map(card => `
-                    <section>
-                        <b>${escapeHtml(card.title)}</b>
-                        <p>${renderClassroomGlossaryHtml(card.text, { lineBreaks: true })}</p>
+            <div class="ruju-verdict-layout">
+                <div class="ruju-verdict-result-column">
+                    <section class="ruju-verdict-main">
+                        <b>推演结果</b>
+                        <p>${renderClassroomGlossaryHtml(verdict.main || text, { lineBreaks: true })}</p>
                     </section>
-                `).join('')}
-            </div>
-            <div class="ruju-verdict-actions">
-                ${historyButton}
-                <button type="button" data-verdict-action="reflection">我想补充</button>
-                <button type="button" data-verdict-action="rechoose">重新选择</button>
-                <button type="button" data-verdict-action="home">返回首页</button>
+                    <div class="ruju-verdict-side">
+                        ${sideCards.map(card => `
+                            <section>
+                                <b>${escapeHtml(card.title)}</b>
+                                <p>${renderClassroomGlossaryHtml(card.text, { lineBreaks: true })}</p>
+                            </section>
+                        `).join('')}
+                    </div>
+                    <div class="ruju-verdict-actions">
+                        ${historyButton}
+                        <button type="button" data-verdict-action="historian">史官问答</button>
+                        <button type="button" data-verdict-action="rechoose">重新选择</button>
+                        <button type="button" data-verdict-action="home">返回首页</button>
+                    </div>
+                </div>
+                ${renderClassroomHistorianPanel()}
             </div>
         </article>
     `;
@@ -2671,6 +2752,8 @@ function returnToClassroomChoices() {
     if (!choices.length) return;
     state.timeTravel.classroomCounterSubmitted = false;
     state.timeTravel.classroomPendingChoice = null;
+    state.timeTravel.classroomHistorianMessages = [];
+    state.timeTravel.classroomHistorianBusy = false;
     setClassroomResultReadingMode(false);
     renderVisualChoiceButtons(payload);
     state.timeTravel.visualClassroomChoicesRevealed = true;
@@ -2689,6 +2772,8 @@ function returnToClassroomHome() {
     state.timeTravel.visualIndex = -1;
     state.timeTravel.visualMaxSeenIndex = -1;
     state.timeTravel.visualClassroomChoicesRevealed = false;
+    state.timeTravel.classroomHistorianMessages = [];
+    state.timeTravel.classroomHistorianBusy = false;
     resetClassroomThoughtState();
     state.timeTravel.sessionId = null;
     elements.timeTravelContent?.classList.remove('ruju-playing');
@@ -2702,13 +2787,73 @@ function returnToClassroomHome() {
 function handleVerdictAction(action = "") {
     if (action === "history") {
         openClassroomHistory();
-    } else if (action === "reflection") {
-        openClassroomReflectionModal();
+    } else if (action === "historian") {
+        focusClassroomHistorian();
     } else if (action === "rechoose") {
         returnToClassroomChoices();
     } else if (action === "home") {
         returnToClassroomHome();
     }
+}
+
+async function submitClassroomHistorianQuestion(form) {
+    if (!form || state.timeTravel.classroomHistorianBusy || !state.timeTravel.sessionId) return;
+    const input = form.querySelector('textarea[name="question"]');
+    const message = input?.value.trim() || "";
+    if (!message) {
+        input?.focus();
+        return;
+    }
+    state.timeTravel.classroomHistorianMessages = [
+        ...(state.timeTravel.classroomHistorianMessages || []),
+        { role: "user", speaker: "你", speakerRole: "学生追问", text: message },
+        { role: "ai", speaker: "史官", speakerRole: "课堂问答", text: "" }
+    ];
+    state.timeTravel.classroomHistorianBusy = true;
+    if (input) input.value = "";
+    refreshClassroomHistorianPanel();
+
+    const aiIndex = state.timeTravel.classroomHistorianMessages.length - 1;
+    let streamText = "";
+    let res = null;
+    try {
+        await apiStreamPost('/classroom/talk_stream', {
+            session_id: state.timeTravel.sessionId,
+            message
+        }, (delta, payload) => {
+            if (payload?.type !== 'delta') return;
+            streamText += delta;
+            const aiItem = state.timeTravel.classroomHistorianMessages[aiIndex];
+            if (aiItem) aiItem.text = streamText;
+            const log = elements.travelVisualStage?.querySelector('[data-classroom-historian-log]');
+            const lastText = log?.querySelector('.classroom-historian-msg:last-child p');
+            if (lastText) lastText.textContent = streamText;
+            if (log) log.scrollTop = log.scrollHeight;
+        }, (payload) => {
+            if (payload.type === 'message_start') {
+                const aiItem = state.timeTravel.classroomHistorianMessages[aiIndex];
+                if (aiItem) {
+                    aiItem.speaker = payload.speaker || "史官";
+                    aiItem.speakerRole = payload.role || "课堂问答";
+                }
+            } else if (payload.type === 'done') {
+                res = payload;
+            }
+        });
+        const answer = res?.messages?.[0]?.text || streamText || "史官暂时没有给出回答，请换个问法再试。";
+        const aiItem = state.timeTravel.classroomHistorianMessages[aiIndex];
+        if (aiItem) aiItem.text = answer;
+    } catch (err) {
+        const aiItem = state.timeTravel.classroomHistorianMessages[aiIndex];
+        if (aiItem) {
+            aiItem.speaker = "旁白";
+            aiItem.speakerRole = "连线提示";
+            aiItem.text = err?.message || "史官暂时没有回应，请稍后再试。";
+        }
+    }
+    state.timeTravel.classroomHistorianBusy = false;
+    refreshClassroomHistorianPanel();
+    focusClassroomHistorian();
 }
 
 function startVisualDialogue() {
@@ -2965,6 +3110,8 @@ async function startTimeTravel(options = {}) {
     const sceneId = options.sceneId || VISUAL_NOVEL_SCENE_ID;
     const isVisualScene = sceneId === VISUAL_NOVEL_SCENE_ID || sceneId.startsWith('law_');
     state.timeTravel.activeSceneId = sceneId;
+    state.timeTravel.classroomHistorianMessages = [];
+    state.timeTravel.classroomHistorianBusy = false;
     showTimeTravel({ privateEntry: isPrivateEntry });
     if (isVisualScene) {
         prepareVisualLoading(sceneId);
@@ -3011,6 +3158,8 @@ async function chooseTravelChoice(choiceId) {
         return;
     }
     state.timeTravel.classroomPendingChoice = null;
+    state.timeTravel.classroomHistorianMessages = [];
+    state.timeTravel.classroomHistorianBusy = false;
     renderTravel(res);
     trackAnalytics('time_travel', { detail: 'choose' });
 }
