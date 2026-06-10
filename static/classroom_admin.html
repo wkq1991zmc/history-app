@@ -64,7 +64,20 @@
       padding: 0 18px;
       font-weight: 800;
     }
+    .danger {
+      min-height: 42px;
+      border: 1px solid #8d1f1f;
+      background: #b8322c;
+      color: #fff8ed;
+      padding: 0 18px;
+      font-weight: 900;
+    }
+    .danger:disabled, .primary:disabled {
+      cursor: wait;
+      opacity: 0.62;
+    }
     .error { min-height: 22px; margin-top: 10px; color: #a42323; }
+    .status { min-height: 22px; color: #256a6d; font-size: 13px; font-weight: 800; }
     .hidden { display: none !important; }
     .dashboard { padding: 22px; }
     .dashboard-head {
@@ -187,8 +200,10 @@
         <div class="toolbar">
           <input id="search-input" type="search" placeholder="搜索姓名、案例、选择或想法">
           <button id="refresh-btn" class="primary" type="button">刷新</button>
+          <button id="clear-btn" class="danger" type="button">清理数据</button>
         </div>
       </div>
+      <div id="dashboard-status" class="status"></div>
 
       <div id="stats" class="stats"></div>
 
@@ -214,8 +229,10 @@
     const keyInput = document.getElementById('admin-key');
     const loadBtn = document.getElementById('load-btn');
     const refreshBtn = document.getElementById('refresh-btn');
+    const clearBtn = document.getElementById('clear-btn');
     const searchInput = document.getElementById('search-input');
     const errorBox = document.getElementById('error');
+    const dashboardStatus = document.getElementById('dashboard-status');
     const login = document.getElementById('login');
     const dashboard = document.getElementById('dashboard');
     let classroomData = null;
@@ -284,6 +301,7 @@
 
     async function loadClassroomData() {
       errorBox.textContent = '';
+      dashboardStatus.textContent = '';
       const key = keyInput.value.trim();
       if (!key) {
         errorBox.textContent = '请输入管理员密码。';
@@ -302,8 +320,50 @@
       }
     }
 
+    async function clearClassroomData() {
+      const key = keyInput.value.trim();
+      if (!key) {
+        dashboardStatus.textContent = '请先输入管理员密码。';
+        return;
+      }
+      const total = classroomData?.totals?.reflections || 0;
+      if (!window.confirm(`确定清理公开课后台里的 ${total} 条学生想法记录吗？此操作不会删除主站数据，但清理后不可恢复。`)) {
+        return;
+      }
+      dashboardStatus.textContent = '正在清理公开课数据……';
+      clearBtn.disabled = true;
+      refreshBtn.disabled = true;
+      try {
+        const response = await fetch('/admin/classroom/clear', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-ADMIN-KEY': key
+          },
+          body: JSON.stringify({ confirm: 'CLEAR_CLASSROOM_DATA' })
+        });
+        if (!response.ok) {
+          let message = '清理失败，请稍后再试。';
+          try {
+            const errorData = await response.json();
+            message = errorData.detail || message;
+          } catch (parseError) {}
+          throw new Error(message);
+        }
+        const data = await response.json();
+        render(data);
+        dashboardStatus.textContent = `已清理 ${data.deleted_count || 0} 条公开课学生想法记录。`;
+      } catch (error) {
+        dashboardStatus.textContent = error.message;
+      } finally {
+        clearBtn.disabled = false;
+        refreshBtn.disabled = false;
+      }
+    }
+
     loadBtn.addEventListener('click', loadClassroomData);
     refreshBtn.addEventListener('click', loadClassroomData);
+    clearBtn.addEventListener('click', clearClassroomData);
     searchInput.addEventListener('input', renderReflections);
     keyInput.addEventListener('keydown', event => {
       if (event.key === 'Enter') loadClassroomData();

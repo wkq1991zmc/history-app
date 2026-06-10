@@ -176,6 +176,9 @@ class ClassroomReflectionRequest(BaseModel):
     phase: Optional[str] = "supplement"
     prompt: Optional[str] = ""
 
+class ClassroomClearRequest(BaseModel):
+    confirm: str
+
 class EmailCodeRequest(BaseModel):
     email: str
 
@@ -963,6 +966,16 @@ def _classroom_admin_payload() -> Dict:
         "reflections": reflections,
     }
 
+def _clear_classroom_reflections() -> int:
+    _init_analytics_db()
+    with _connect_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) AS count FROM classroom_reflections")
+        deleted_count = int(cur.fetchone()[0])
+        cur.execute("DELETE FROM classroom_reflections")
+        conn.commit()
+    return deleted_count
+
 @app.post("/analytics/visit")
 async def analytics_visit(req: AnalyticsVisitRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
     recorded = _safe_record_analytics("visit", x_client_id or "anonymous", detail=req.path or "/")
@@ -1112,6 +1125,21 @@ async def classroom_admin_data(key: Optional[str] = None, x_admin_key: Optional[
     except Exception as exc:
         _log_analytics_failure("classroom_admin_payload", exc)
         raise HTTPException(status_code=503, detail="公开课数据暂时不可用，请检查统计数据库配置")
+
+@app.post("/admin/classroom/clear")
+async def clear_classroom_data(req: ClassroomClearRequest, key: Optional[str] = None, x_admin_key: Optional[str] = Header(None, alias="X-ADMIN-KEY")):
+    _require_admin_key(key, x_admin_key)
+    if req.confirm != "CLEAR_CLASSROOM_DATA":
+        raise HTTPException(status_code=400, detail="缺少清理确认标记")
+    try:
+        deleted_count = _clear_classroom_reflections()
+        _safe_record_analytics("classroom_clear", x_admin_key or key or "admin", "公开课后台", detail=f"deleted:{deleted_count}")
+        payload = _classroom_admin_payload()
+        payload["deleted_count"] = deleted_count
+        return payload
+    except Exception as exc:
+        _log_analytics_failure("classroom_clear", exc)
+        raise HTTPException(status_code=503, detail="公开课数据清理失败，请检查统计数据库配置")
 
 def check_rate_limit(player_id: str) -> bool:
     now = time.time()
