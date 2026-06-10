@@ -6943,7 +6943,28 @@ body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playin
     width: 100vw !important;
 }
 
+body.law-classroom-demo:has(#time-travel-content.law-classroom-demo:not(.ruju-playing)) {
+    overflow-y: auto !important;
+}
+
+body.law-classroom-demo:has(#time-travel-content.law-classroom-demo:not(.ruju-playing)) .app-shell:not(.hidden) {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
+}
+
+body.law-classroom-demo:has(#time-travel-content.law-classroom-demo:not(.ruju-playing)) .app-shell > main,
+body.law-classroom-demo:has(#time-travel-content.law-classroom-demo:not(.ruju-playing)) #story-section,
+body.law-classroom-demo:has(#time-travel-content.law-classroom-demo:not(.ruju-playing)) #story-container,
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing),
 body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .travel-start-panel.ruju-entry-panel {
+    height: auto !important;
+    overflow: visible !important;
+}
+
+body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .travel-start-panel.ruju-entry-panel {
+    position: relative !important;
+    inset: auto !important;
     display: grid !important;
     place-items: stretch !important;
     min-height: calc(100vh - 72px) !important;
@@ -6964,11 +6985,12 @@ body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playin
 }
 
 body.law-classroom-demo #time-travel-content.law-classroom-demo:not(.ruju-playing) .ruju-entry-card {
-    position: absolute !important;
-    top: clamp(7rem, 21vh, 12rem) !important;
-    right: clamp(4rem, 12vw, 14rem) !important;
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
     width: min(38rem, 38vw) !important;
     min-height: auto !important;
+    margin: clamp(7rem, 21vh, 12rem) clamp(4rem, 12vw, 14rem) clamp(4rem, 8vh, 6rem) auto !important;
     padding: clamp(2.5rem, 4vw, 3.5rem) !important;
 }
 
