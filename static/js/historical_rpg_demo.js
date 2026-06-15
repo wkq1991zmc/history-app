@@ -11,6 +11,8 @@ const DEMO_ASSETS = {
     sunPing: "/static/images/ruju-demo/sun-ping-cutout.png",
 };
 
+const DEMO_BGM = "/static/audio/ruju-demo/bgm/lingao-winter-road.wav";
+
 const TIME_LABELS = ["黄昏", "入夜", "一更", "二更", "将晓"];
 const SCENE_LIMITS = { funeral: 3, post: 3 };
 const TESTIMONY_LINES = {
@@ -66,7 +68,7 @@ const LOCATIONS = {
         name: "临皋官道",
         eyebrow: "序章",
         image: DEMO_ASSETS.road,
-        description: "一名驿卒失踪后的第二日，你与沈砚沿驿路抵达临皋。",
+        description: "你以为这只是一件找人找文书的小差事。临皋的官道却把你带进了天宝十四载的第一道裂缝。",
     },
     funeral: {
         name: "河滩葬礼",
@@ -143,7 +145,7 @@ function initialState() {
             voiceOn: true,
             unlocked: false,
         },
-        objective: "弄清孙平为何带走点名簿",
+        objective: "找到孙平，弄清点名簿为何不能回到县衙",
         notice: "",
         ending: null,
     };
@@ -160,6 +162,7 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
     let bgmMaster = null;
     let bgmNodes = [];
     let bgmPulseTimer = null;
+    let bgmAudio = null;
     let preferredVoice = null;
     let voiceAudio = null;
 
@@ -261,10 +264,32 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
     }
 
     function startBgm() {
+        if (!state.audio.bgmOn || bgmMaster || bgmAudio) return;
+        state.audio.unlocked = true;
+        if (document.createElement) {
+            bgmAudio = document.createElement("audio");
+            bgmAudio.preload = "auto";
+            bgmAudio.loop = true;
+            bgmAudio.src = DEMO_BGM;
+            bgmAudio.volume = 0.34;
+            bgmAudio.style.display = "none";
+            document.body.appendChild(bgmAudio);
+            const playback = bgmAudio.play?.();
+            if (!playback?.catch) return;
+            playback.catch(() => {
+                if (bgmAudio?.parentNode) bgmAudio.parentNode.removeChild(bgmAudio);
+                bgmAudio = null;
+                startSynthBgm();
+            });
+            return;
+        }
+        startSynthBgm();
+    }
+
+    function startSynthBgm() {
         if (!state.audio.bgmOn || bgmMaster) return;
         const ctx = ensureAudioContext();
         if (!ctx) return;
-        state.audio.unlocked = true;
         bgmMaster = ctx.createGain();
         bgmMaster.gain.setValueAtTime(0.045, ctx.currentTime);
         bgmMaster.connect(ctx.destination);
@@ -290,6 +315,16 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
     }
 
     function stopBgm() {
+        if (bgmAudio) {
+            try {
+                bgmAudio.pause();
+                bgmAudio.currentTime = 0;
+            } catch (_) {
+                // Ignore media cleanup races.
+            }
+            if (bgmAudio.parentNode) bgmAudio.parentNode.removeChild(bgmAudio);
+            bgmAudio = null;
+        }
         if (bgmPulseTimer) window.clearInterval(bgmPulseTimer);
         bgmPulseTimer = null;
         bgmNodes.forEach(node => {
@@ -581,11 +616,14 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
         state.active = true;
         state.mode = "briefing";
         render();
+        unlockAudioForStory();
     }
 
     function beginOpeningDialogue() {
         unlockAudioForStory();
         playDialogue([
+            { speaker: "旁白", text: "很久以后，我才明白，许多大事最初都不像大事。" },
+            { speaker: "旁白", text: "那天夜里，我只是奉命到临皋找一个失踪驿卒，顺手带回一页点名簿。" },
             { speaker: "旁白", text: "泥水漫过靴底。临皋县外的驿舍点着灯，灯下的人却没有一个敢先开口。" },
             { speaker: "旁白", text: "袖里的临时差牒被汗浸软。我摸了摸那枚印，忽然不确定它在这里到底能吓住谁。" },
             { speaker: "旁白", text: "吴崇站在半步之后。每当我的目光落到驿舍账柜上，他都会先一步移开视线。" },
@@ -599,7 +637,8 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
             { speaker: "吴崇", text: "不是军报正本，只是一页点名簿。可县里催得比丢了官印还急。" },
             { speaker: "沈砚", text: "一页名簿能值几条命？" },
             { speaker: "吴崇", text: "这话最好别在县衙门口问。临皋这几年账面很干净，干净得像从没饿死过人。" },
-            { speaker: "旁白", text: "我把差牒重新塞回袖中。差遣仍然简单：找到孙平，找回点名簿。可这一路上，每个知道名字的人都在躲闪。" },
+            { speaker: "旁白", text: "我把差牒重新塞回袖中。差遣仍然简单：找到孙平，找回点名簿。" },
+            { speaker: "旁白", text: "只是从这一刻起，点名簿不再像一页纸。它像一扇门，门后有人不肯开口，也有人已经来不及开口。" },
         ], "map");
     }
 

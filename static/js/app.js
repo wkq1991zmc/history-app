@@ -1,4 +1,4 @@
-import { createHistoricalRpgDemo } from './historical_rpg_demo.js?v=story-demo-20260615i';
+import { createHistoricalRpgDemo } from './historical_rpg_demo.js?v=story-demo-20260616a';
 
 const DEFAULT_EVENT_ID = "\u79e6\u671d\u00b7\u4e00\u7edf\u516d\u56fd";
 const AUTH_REMEMBER_KEY = "historyAppRememberLogin";

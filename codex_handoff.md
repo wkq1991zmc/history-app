@@ -982,3 +982,125 @@ GitHub 仓库：`https://github.com/wkq1991zmc/history-app`
 - 本节交接记录
 
 然后再继续做剧情和玩法迭代。
+
+---
+
+## 2026-06-16 入局 Demo 字幕化、BGM 与交接补充
+
+本节继续追加在前文之后，不删除任何旧交接内容。公开课“礼法断案”仍然保持隔离；本节只记录主项目正式“入局”Demo `驿路无名` 的最近改动。
+
+### 本轮用户反馈与处理
+
+用户指出上一版对白仍然像有一个黑色对话框，而且流式文字因为居中排版，看起来像“从中间生成出来再往两边扩”。这是沉浸感问题，已经调整：
+
+- 去掉正式入局对白区的独立黑色底框、边框、阴影和毛玻璃效果。
+- 对白改为贴画面底部的字幕式呈现，只保留文字阴影保证可读性。
+- 对白容器改为左对齐，流式输出从固定左侧起笔，避免文字从中间向两边扩。
+- 角色名不再放在框内标签里，而是作为轻量文字标识显示在对白上方。
+- “继续”按钮弱化为小型透明文本提示。
+- 移动端同步调整，不再铺满成一条笨重字幕栏。
+
+### 重要事故与修复
+
+本轮曾出现一次页面整体中文乱码。原因是使用 PowerShell 直接 `Get-Content | Set-Content` 修改缓存版本号，导致 `static/index.html` 和 `static/js/app.js` 被重新编码污染。
+
+已修复：
+
+- 使用 `git restore -- static/index.html static/js/app.js` 恢复入口文件。
+- 再用 `apply_patch` 只修改缓存版本号。
+- 当前 `static/index.html` 只剩 3 行版本号变化，`static/js/app.js` 只剩 1 行 import 版本号变化，未再出现整文件乱码污染。
+
+后续接手时请注意：
+
+> 不要用 PowerShell 的 `Set-Content` 直接重写包含中文的前端文件。改中文或缓存版本号时优先用 `apply_patch`，避免编码污染。
+
+### BGM 接入状态
+
+用户希望试一点背景音乐。本轮新增了一个本地生成的氛围 BGM 文件：
+
+- `static/audio/ruju-demo/bgm/lingao-winter-road.wav`
+
+当前接入方式：
+
+- `static/js/historical_rpg_demo.js` 新增 `DEMO_BGM`。
+- `startBgm()` 优先创建隐藏 `<audio>` 标签播放真实 wav 文件，循环播放，音量约 `0.34`。
+- 如果浏览器阻止或无法播放真实音频，则回退到之前的程序化合成氛围音。
+- `stopBgm()` 会同时清理真实 `<audio>` 和合成音节点。
+- 点击“进入第一章”后会尝试解锁音频，因此开场页也能开始播放 BGM。
+
+注意：
+
+- 这个 BGM 只是当前 Demo 用的氛围验证，不代表最终商业音乐。
+- 后续仍应优先做环境音、BGM、关键音效；角色全配音暂时不要当核心玩法。
+
+### 第一章文案微调
+
+第一章开场继续往“长篇历史互动剧”方向靠近：
+
+- 临皋官道描述改为：玩家以为只是找人找文书的小差事，但被带进天宝十四载的第一道裂缝。
+- 初始目标改为：`找到孙平，弄清点名簿为何不能回到县衙`。
+- 开场旁白新增两句：
+  - “很久以后，我才明白，许多大事最初都不像大事。”
+  - “那天夜里，我只是奉命到临皋找一个失踪驿卒，顺手带回一页点名簿。”
+- 开场末尾拆成两句，强调“点名簿不再像一页纸”，它背后有人沉默，也有人已经来不及开口。
+
+### 当前修改文件
+
+本轮应该随提交进入 GitHub 的文件：
+
+- `static/css/historical-rpg-demo.css`
+  - 字幕式对白样式、左对齐流式输出、去掉黑色对话框。
+- `static/js/historical_rpg_demo.js`
+  - BGM 播放逻辑、开场文案和初始目标调整。
+- `static/audio/ruju-demo/bgm/lingao-winter-road.wav`
+  - 当前 Demo 的临皋官道氛围 BGM。
+- `static/index.html`
+  - 缓存版本号更新到 `story-demo-20260616a`。
+- `static/js/app.js`
+  - `historical_rpg_demo.js` import 缓存版本号更新到 `story-demo-20260616a`。
+- `codex_handoff.md`
+  - 本节交接记录。
+
+不要默认提交的临时文件：
+
+- `artifacts/`
+- `static/audio/ruju-demo/voice/wu-chong-cosy-v35-plus-line-test.json`
+- `static/audio/ruju-demo/voice/wu-chong-cosy-v35-plus-line-test.wav`
+- `static/audio/ruju-demo/voice/wu-chong-cosy-v35-plus-preview.wav`
+- `static/audio/ruju-demo/voice/wu-chong-cosy-v35-plus.meta.json`
+
+这些是早前 TTS/生成过程留下的临时或试听产物，不属于本轮正式主线提交。
+
+### 本轮验证
+
+已执行：
+
+- `node --check static/js/app.js`
+- `node --check static/js/historical_rpg_demo.js`
+- `git diff --check`
+- Codex 内置浏览器刷新 `http://127.0.0.1:8000/#time-travel`
+
+浏览器验证结果：
+
+- 页面中文恢复正常，`document.characterSet` 为 `UTF-8`。
+- 页面标题为“时空印证系统”。
+- `#time-travel` 可进入正式入局页。
+- 点击“进入第一章”后进入“序章 · 天宝十四载冬 / 临皋”章节封面。
+- 再点击章节封面进入对白，实际 DOM 样式显示：
+  - `.story-dialogue-box` 背景为透明。
+  - 边框为 `0px`。
+  - 阴影为 `none`。
+  - `text-align: left`。
+  - `::before` 暗色底层已 `display: none`。
+- 流式文字从左侧固定起点输出，不再居中扩散。
+- 控制台未见相关 error/warn。
+
+### 后续建议
+
+下一步建议不要继续大改系统，而是先试玩这版字幕化呈现，再判断：
+
+1. 字幕是否足够清楚，是否需要给文字加更细的描边或局部暗影。
+2. 字幕位置是偏左更好，还是参考《燕云十六声》放在画面下方中偏左。
+3. 是否需要把“继续”提示再弱化，避免抢戏。
+4. 是否开始重写第一章更长的故事结构：每章 30-45 分钟，一章接一章推进，后续慢慢让玩家遇到熟知历史人物。
+5. AI 元素可以放在“案后追问 / 线索解释 / 人物侧写 / 自由调查意图映射”上，而不是让 AI 随机改剧情主线。
