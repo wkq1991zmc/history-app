@@ -1,0 +1,523 @@
+[
+  {
+    "prototype_id": "tang_county_entry",
+    "title": "唐代县衙入仕测评",
+    "era": "唐代",
+    "year": "开元二十一年",
+    "location": "河南府洛阳县属邑",
+    "summary": "第一版正式入局原型：通过治理取向测评形成能力画像，再授予一个县衙初始职位。",
+    "exam_intro": "这不是一场只有标准答案的考试。每个选择都代表一种治理倾向：你更重秩序、账目、民生，还是协调执行。系统会根据你的取向形成能力画像，并暂时在县尉、主簿、县丞三个初始职位中为你授官。后续可以继续扩展更多官职。",
+    "dimensions": [
+      {
+        "key": "law",
+        "label": "法律与治安",
+        "description": "重视秩序、证据、边界和执行力度。"
+      },
+      {
+        "key": "finance",
+        "label": "钱粮与行政",
+        "description": "重视账目、资源、流程和长期承受力。"
+      },
+      {
+        "key": "people",
+        "label": "民生与教化",
+        "description": "重视百姓处境、礼俗教化和地方稳定。"
+      },
+      {
+        "key": "coordination",
+        "label": "协调与执行",
+        "description": "重视沟通、调度、上行下达和多方平衡。"
+      }
+    ],
+    "questions": [
+      {
+        "id": "q1",
+        "type": "治理取向",
+        "prompt": "你初到县衙，案吏提醒：本县盗案、欠税和邻里纠纷都压着。你最想先看哪一类材料？",
+        "options": [
+          {
+            "id": "A",
+            "text": "近半年盗案与缉捕记录，先判断治安压力从哪里来",
+            "scores": { "law": 3, "coordination": 1 }
+          },
+          {
+            "id": "B",
+            "text": "户籍、田亩、仓储和赋税账册，先摸清县里的底数",
+            "scores": { "finance": 3, "coordination": 1 }
+          },
+          {
+            "id": "C",
+            "text": "灾伤、逃户、贫弱户和乡里诉状，先理解百姓为何不安",
+            "scores": { "people": 3, "finance": 1 }
+          },
+          {
+            "id": "D",
+            "text": "县令、属吏、里正和豪强的关系图，先知道事情该怎么推动",
+            "scores": { "coordination": 3, "people": 1 }
+          }
+        ]
+      },
+      {
+        "id": "q2",
+        "type": "治理取向",
+        "prompt": "有百姓报案说夜间失盗，但证据零散、众人议论纷纷。你最自然的第一反应是？",
+        "options": [
+          {
+            "id": "A",
+            "text": "先固定证词和物证，避免舆论把案子带偏",
+            "scores": { "law": 3, "coordination": 1 }
+          },
+          {
+            "id": "B",
+            "text": "先查失物、销赃和巡夜记录，看是否牵出一条线",
+            "scores": { "law": 2, "finance": 2 }
+          },
+          {
+            "id": "C",
+            "text": "先安抚受害户和邻里，让大家愿意继续作证",
+            "scores": { "people": 3, "coordination": 1 }
+          },
+          {
+            "id": "D",
+            "text": "先召里正、坊正和巡丁分头排查，尽快把网撒开",
+            "scores": { "coordination": 3, "law": 1 }
+          }
+        ]
+      },
+      {
+        "id": "q3",
+        "type": "治理取向",
+        "prompt": "上官催办赋税，县中却有歉收。你写给上官的呈文最想突出什么？",
+        "options": [
+          {
+            "id": "A",
+            "text": "欠额、期限和追征步骤，说明可以怎样按章推进",
+            "scores": { "finance": 3, "law": 1 }
+          },
+          {
+            "id": "B",
+            "text": "灾情、户口流动和缓征理由，争取给地方留一口气",
+            "scores": { "people": 3, "finance": 1 }
+          },
+          {
+            "id": "C",
+            "text": "分户核查、分期补缴和责任分派，给出可执行方案",
+            "scores": { "coordination": 3, "finance": 2 }
+          },
+          {
+            "id": "D",
+            "text": "是否有人隐匿田亩人口，先把不公平之处查清",
+            "scores": { "law": 2, "finance": 2 }
+          }
+        ]
+      },
+      {
+        "id": "q4",
+        "type": "治理取向",
+        "prompt": "两个村因水渠争执，旧契、今年旱情和宗族面子都搅在一起。你更愿意从哪里切入？",
+        "options": [
+          {
+            "id": "A",
+            "text": "先核验旧契和水程，厘清谁原本有什么权利",
+            "scores": { "law": 3, "finance": 1 }
+          },
+          {
+            "id": "B",
+            "text": "先估算水量和农时损失，设计临时分水办法",
+            "scores": { "finance": 2, "people": 2 }
+          },
+          {
+            "id": "C",
+            "text": "先让双方族老和里正坐下来，避免冲突升级",
+            "scores": { "coordination": 3, "people": 1 }
+          },
+          {
+            "id": "D",
+            "text": "先问谁家最可能断炊，把救急放在前面",
+            "scores": { "people": 3, "coordination": 1 }
+          }
+        ]
+      },
+      {
+        "id": "q5",
+        "type": "治理取向",
+        "prompt": "县里粮仓账目和实存对不上，但灾民又在等赈济。你最能接受的处理顺序是？",
+        "options": [
+          {
+            "id": "A",
+            "text": "封存账册、盘点实仓，先查明亏空从何而来",
+            "scores": { "finance": 3, "law": 1 }
+          },
+          {
+            "id": "B",
+            "text": "先划出救急粮，再同步核账，不能让灾民空等",
+            "scores": { "people": 3, "finance": 1 }
+          },
+          {
+            "id": "C",
+            "text": "请县令定夺，同时安排仓吏、里正分工核验",
+            "scores": { "coordination": 3, "finance": 1 }
+          },
+          {
+            "id": "D",
+            "text": "先查仓吏责任和出入手续，避免以后继续失控",
+            "scores": { "law": 2, "finance": 2 }
+          }
+        ]
+      },
+      {
+        "id": "q6",
+        "type": "治理取向",
+        "prompt": "豪强愿意出钱修桥，但希望县衙以后少查他家的部曲和佃户。你心里最警惕什么？",
+        "options": [
+          {
+            "id": "A",
+            "text": "警惕公权被私恩牵走，县衙不能失去法度边界",
+            "scores": { "law": 3, "coordination": 1 }
+          },
+          {
+            "id": "B",
+            "text": "警惕账目不清，修桥的钱、工、料都要有凭据",
+            "scores": { "finance": 3, "law": 1 }
+          },
+          {
+            "id": "C",
+            "text": "警惕百姓觉得官府偏向豪强，民心会慢慢散掉",
+            "scores": { "people": 3, "law": 1 }
+          },
+          {
+            "id": "D",
+            "text": "警惕把关系彻底弄僵，导致政令在地方推不动",
+            "scores": { "coordination": 3, "people": 1 }
+          }
+        ]
+      },
+      {
+        "id": "q7",
+        "type": "治理取向",
+        "prompt": "属吏告诉你：“旧例一直这么办，最好不要细问。”你更像会怎么做？",
+        "options": [
+          {
+            "id": "A",
+            "text": "先看旧例是否合律，不能因为久了就默认正确",
+            "scores": { "law": 3, "coordination": 1 }
+          },
+          {
+            "id": "B",
+            "text": "先看旧例对账目和差役有没有影响，再决定改不改",
+            "scores": { "finance": 3, "coordination": 1 }
+          },
+          {
+            "id": "C",
+            "text": "先问百姓和里正旧例实际伤不伤人，再判断轻重",
+            "scores": { "people": 3, "law": 1 }
+          },
+          {
+            "id": "D",
+            "text": "先弄清哪些人支持、哪些人反对，避免一改就乱",
+            "scores": { "coordination": 3, "people": 1 }
+          }
+        ]
+      },
+      {
+        "id": "q8",
+        "type": "治理取向",
+        "prompt": "如果只能用一句话形容你理想中的基层治理，你更接近哪一句？",
+        "options": [
+          {
+            "id": "A",
+            "text": "先让规矩立起来，百姓才知道什么可为、什么不可为",
+            "scores": { "law": 4 }
+          },
+          {
+            "id": "B",
+            "text": "先把账和事理顺，县里才有余力谈长治久安",
+            "scores": { "finance": 4 }
+          },
+          {
+            "id": "C",
+            "text": "先让人活得下去、愿意相信官府，治理才有根",
+            "scores": { "people": 4 }
+          },
+          {
+            "id": "D",
+            "text": "先把各方力量调动起来，再难的事也能慢慢推进",
+            "scores": { "coordination": 4 }
+          }
+        ]
+      }
+    ],
+    "offices": [
+      {
+        "office_id": "county_wei",
+        "title": "县尉",
+        "rank": "从九品下左右的低阶县官",
+        "duty": "主治安、缉盗、追捕、械斗处置和部分案件执行。",
+        "primary_dimensions": ["law", "coordination"],
+        "threshold": 8,
+        "grant_text": "你的取向更重法度、秩序和现场执行，适合从县尉做起。这个职位权力不大，却最贴近街巷盗案、豪强部曲和乡里冲突，是第一版政务循环最适合展开的岗位。"
+      },
+      {
+        "office_id": "registrar",
+        "title": "主簿",
+        "rank": "县衙文书与账籍属官",
+        "duty": "主文书、户籍、赋税记录、仓储账目和行政校核。",
+        "primary_dimensions": ["finance", "coordination"],
+        "threshold": 8,
+        "grant_text": "你的取向更重账目、资源和流程，适合授为主簿。主簿不直接冲在缉盗一线，却能决定账册是否清楚、赋役是否失衡、仓储是否被侵吞。"
+      },
+      {
+        "office_id": "county_assistant",
+        "title": "县丞",
+        "rank": "县令佐贰",
+        "duty": "协助县令综理县政，在民生、教化、协调和跨事务处置中承担辅助职责。",
+        "primary_dimensions": ["people", "coordination"],
+        "threshold": 8,
+        "grant_text": "你的取向更重民生、教化和多方协调，适合授为县丞。县丞不能替代县令独断一县，但适合处理牵涉百姓、属吏与上官文书的综合政务。"
+      }
+    ],
+    "fallback_office": "county_wei",
+    "initial_state": {
+      "day": 1,
+      "reign_year": "开元二十一年",
+      "place": "河南府洛阳县属邑",
+      "stats": {
+        "popular_support": 50,
+        "bureaucracy": 50,
+        "treasury": 50,
+        "superior_rating": 50
+      }
+    },
+    "appointment_intro": {
+      "title": "赴任第一日",
+      "speaker": "案吏",
+      "text": "晨鼓未歇，你已持告身入县衙。案吏引你过仪门，低声说：新官到任，县令要看你如何处第一件事。近来城南坊夜盗频发，百姓不安，巡丁也互相推诿。"
+    },
+    "stat_labels": {
+      "popular_support": "民望",
+      "bureaucracy": "吏治",
+      "treasury": "财政",
+      "superior_rating": "上官评价"
+    },
+    "first_affair": {
+      "affair_id": "day1_night_theft",
+      "title": "城南夜盗",
+      "day": 1,
+      "category": "治安",
+      "background_image": "/static/images/career-tang-yamen-theft-bg.png",
+      "portraits": {
+        "default": "/static/images/law-clerk-avatar.png",
+        "案吏": "/static/images/law-clerk-avatar.png",
+        "小商户": "/static/images/law-tang-victim-family-avatar.png",
+        "贫弱妇人": "/static/images/law-tang-victim-family-avatar.png",
+        "坊正": "/static/images/law-tang-ritual-official-avatar.png",
+        "巡丁": "/static/images/law-clerk-avatar.png"
+      },
+      "brief": "城南坊连续三夜失盗。失主多是小商户和贫弱人家，坊正称巡丁人手不足，巡丁又说坊内有人给盗贼通风报信。县令让你先拿出一个处置方向。",
+      "speaker": "案吏",
+      "prompt": "新官第一件事，不必求一步到位，但要让百姓、属吏和上官都看见你的治理取向。你准备先怎么处置？",
+      "opening_dialogue": [
+        {
+          "speaker": "案吏",
+          "role": "县衙属吏",
+          "text": "大人，城南坊这几夜不太平。卖绢的小商户丢了钱柜，贫弱户也丢了过冬布匹。坊正、巡丁、失主都在堂下候着。"
+        },
+        {
+          "speaker": "小商户",
+          "role": "失主",
+          "text": "小人夜里闭铺，第二日钱柜空了。坊里都说是外来盗贼，可贼怎知我柜中藏钱？"
+        },
+        {
+          "speaker": "贫弱妇人",
+          "role": "失主",
+          "text": "我家只剩几匹粗布，也被偷去。若官府不管，冬日真不知如何过。"
+        },
+        {
+          "speaker": "坊正",
+          "role": "地方里正",
+          "text": "非是小人推脱，巡丁人少，坊门又多。若只责坊中，怕也难服众。"
+        }
+      ],
+      "story_steps": [
+        {
+          "step_id": "listen",
+          "title": "堂下陈情",
+          "prompt": "你刚升堂，堂下众人各执一词。你决定先听谁把话说清楚？",
+          "choices": [
+            {
+              "id": "merchant",
+              "text": "先问小商户",
+              "hint": "钱柜失窃可能藏着线索",
+              "response": {
+                "speaker": "小商户",
+                "role": "失主",
+                "text": "小人柜中钱数，只有伙计和常来送货的脚夫知道。昨夜坊门未破，铺门却被撬得极轻，像是熟人带路。"
+              }
+            },
+            {
+              "id": "poor_household",
+              "text": "先问贫弱妇人",
+              "hint": "贫户被盗说明盗贼未必只求重财",
+              "response": {
+                "speaker": "贫弱妇人",
+                "role": "失主",
+                "text": "我家不值钱，贼却连粗布都拿。邻舍说夜里见过两个背袋的人从巷尾走，但不敢出声。"
+              }
+            },
+            {
+              "id": "ward_head",
+              "text": "先问坊正",
+              "hint": "地方巡守可能有漏洞",
+              "response": {
+                "speaker": "坊正",
+                "role": "地方里正",
+                "text": "坊门按时落锁，可西侧墙根年久有缺。小人报修过，县里说钱粮紧，迟迟未补。"
+              }
+            },
+            {
+              "id": "watchman",
+              "text": "先问巡丁",
+              "hint": "执行松散可能是案发原因",
+              "response": {
+                "speaker": "巡丁",
+                "role": "县衙差役",
+                "text": "小人并非偷懒。只是城南坊巷多，夜里灯火少。若无坊民协助，巡到东头，西头便空了。"
+              }
+            }
+          ]
+        },
+        {
+          "step_id": "clue",
+          "title": "线索取舍",
+          "prompt": "几方说法都有道理，但你第一日人手有限。你准备先抓哪条线？",
+          "choices": [
+            {
+              "id": "inside",
+              "text": "查熟人内应",
+              "hint": "从知道钱柜和路线的人查起",
+              "response": {
+                "speaker": "案吏",
+                "role": "县衙属吏",
+                "text": "若查内应，需列出伙计、脚夫、近邻和近来出入店铺者。此法细，但不容易立刻见效。"
+              }
+            },
+            {
+              "id": "wall",
+              "text": "查坊墙缺口",
+              "hint": "从进入路径查起",
+              "response": {
+                "speaker": "坊正",
+                "role": "地方里正",
+                "text": "若大人肯查墙根，小人愿带路。只是修补坊墙要钱，也要调人。"
+              }
+            },
+            {
+              "id": "patrol",
+              "text": "查巡夜名册",
+              "hint": "从执行责任查起",
+              "response": {
+                "speaker": "巡丁",
+                "role": "县衙差役",
+                "text": "若查名册，小人愿受查。但也请大人明察：有些夜巡缺口，是上面临时抽人办差留下的。"
+              }
+            },
+            {
+              "id": "market",
+              "text": "查销赃去处",
+              "hint": "从赃物流向查起",
+              "response": {
+                "speaker": "小商户",
+                "role": "失主",
+                "text": "若是布匹和钱柜铜锁，坊市里总会有人收。小人识得几个旧货牙人，可以辨认。"
+              }
+            }
+          ]
+        },
+        {
+          "step_id": "decision",
+          "title": "第一道处置",
+          "prompt": "案情尚未全明，但县令在等你的第一道安排。你准备如何处置这件夜盗政务？",
+          "final": true,
+          "choices": [
+            {
+              "id": "A",
+              "text": "加派夜巡，严查销赃",
+              "hint": "先把治安压力压下去"
+            },
+            {
+              "id": "B",
+              "text": "先访失主，安抚坊民",
+              "hint": "先稳住民心与证词"
+            },
+            {
+              "id": "C",
+              "text": "整顿巡丁，追究推诿",
+              "hint": "先治内部执行松散"
+            },
+            {
+              "id": "D",
+              "text": "调坊正、商户共设联防",
+              "hint": "先调动地方力量"
+            }
+          ]
+        }
+      ],
+      "choices": [
+        {
+          "id": "A",
+          "text": "加派夜巡，严查销赃",
+          "hint": "先把治安压力压下去",
+          "deltas": {
+            "popular_support": 4,
+            "bureaucracy": 3,
+            "treasury": -2,
+            "superior_rating": 3
+          },
+          "result": "你命巡丁分段守夜，又让坊正暗查近来可疑销赃。三日内虽未尽获盗贼，夜间鼓噪明显少了。百姓觉得县衙终于动了起来，但加派巡逻也让钱粮和差役压力上升。"
+        },
+        {
+          "id": "B",
+          "text": "先访失主，安抚坊民",
+          "hint": "先稳住民心与证词",
+          "deltas": {
+            "popular_support": 6,
+            "bureaucracy": 1,
+            "treasury": -1,
+            "superior_rating": 1
+          },
+          "result": "你先访失主，记录失物、时辰和邻里所见，又让坊正公开说明县衙会继续追查。坊民怨气稍缓，愿意补充线索的人变多了。但属吏私下提醒：若迟迟没有缉获，上官未必满意。"
+        },
+        {
+          "id": "C",
+          "text": "整顿巡丁，追究推诿",
+          "hint": "先治内部执行松散",
+          "deltas": {
+            "popular_support": 2,
+            "bureaucracy": 6,
+            "treasury": 0,
+            "superior_rating": 3
+          },
+          "result": "你先查巡丁值宿名册，责令缺巡者补役，并让案吏每日点验。县衙内部顿时紧了几分，县令也看出你重视执行。但坊民仍在等盗案本身的结果，民心改善有限。"
+        },
+        {
+          "id": "D",
+          "text": "调坊正、商户共设联防",
+          "hint": "先调动地方力量",
+          "deltas": {
+            "popular_support": 3,
+            "bureaucracy": 3,
+            "treasury": 1,
+            "superior_rating": 2
+          },
+          "result": "你召坊正、商户和巡丁议定联防时段，由商户自备灯火，县衙负责缉捕和问责。此法花费不大，也让地方愿意配合；只是若豪强商户借机支使贫户，后续还要盯紧。"
+        }
+      ]
+    },
+    "next_loop_preview": [
+      "赴任日：领取告身与官印，确认任地、上官和属吏。",
+      "每日政务：处理盗案、逃户、欠税、粮仓、豪强与灾情。",
+      "四项指标：民望、吏治、财政、上官评价。",
+      "十日原型目标：先跑通短循环，再扩展为三十日考课。"
+    ]
+  }
+]

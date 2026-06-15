@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>公开课角色配音试听</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #0d0b09;
+      color: #f4dfb7;
+      font-family: "Microsoft YaHei", sans-serif;
+    }
+    main {
+      width: min(760px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 42px 0 60px;
+    }
+    h1 { margin: 0 0 8px; color: #ffd48a; }
+    .intro { margin: 0 0 28px; color: #bda987; line-height: 1.7; }
+    section {
+      margin-bottom: 14px;
+      border: 1px solid #6d5940;
+      border-radius: 6px;
+      background: #17130f;
+      padding: 18px;
+    }
+    h2 { margin: 0 0 6px; font-size: 19px; color: #f4d59b; }
+    p { margin: 0 0 14px; color: #bda987; line-height: 1.6; }
+    audio { width: 100%; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>公开课角色配音试听</h1>
+    <p class="intro">第五轮声线测试。最上方三条全部使用 cosyvoice-v3.5-plus，并按照人物身份设计专属音色。</p>
+
+    <section>
+      <h2>v3.5-plus 旁白</h2>
+      <p>三十五岁左右，沉稳克制的历史叙事声音。</p>
+      <audio controls preload="metadata" src="./v35-narrator.wav"></audio>
+    </section>
+
+    <section>
+      <h2>v3.5-plus 年轻律令官</h2>
+      <p>三十岁左右，清朗、沉着、有威严的廷尉属官。</p>
+      <audio controls preload="metadata" src="./v35-official.wav"></audio>
+    </section>
+
+    <section>
+      <h2>v3.5-plus 甲</h2>
+      <p>朴实、疲惫、带有委屈但努力克制的普通百姓。</p>
+      <audio controls preload="metadata" src="./v35-jia.wav"></audio>
+    </section>
+
+    <section>
+      <h2>对照：旁白 D</h2>
+      <p>沉稳克制，偏历史纪录片叙述。</p>
+      <audio controls preload="metadata" src="./narrator-d.mp3"></audio>
+    </section>
+
+    <section>
+      <h2>对照：律令官 Y1</h2>
+      <p>年轻但已有历练，低调、坚定，接近 Q3 的表达逻辑。</p>
+      <audio controls preload="metadata" src="./official-y1.wav"></audio>
+    </section>
+
+    <section>
+      <h2>对照：律令官 Q3</h2>
+      <p>上一轮中表演感较好的老成版本，仅用于对比。</p>
+      <audio controls preload="metadata" src="./official-q3.wav"></audio>
+    </section>
+
+    <section>
+      <h2>对照：甲的保留版本</h2>
+      <p>上一轮中表现较好的朴实、申辩人物声线。</p>
+      <audio controls preload="metadata" src="./jia.mp3"></audio>
+    </section>
+  </main>
+</body>
+</html>

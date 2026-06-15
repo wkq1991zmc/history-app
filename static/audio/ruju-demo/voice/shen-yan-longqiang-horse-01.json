@@ -1,0 +1,12 @@
+{
+  "model": "cosyvoice-v3-flash",
+  "speaker": "沈砚",
+  "voice": "longqiang_v3",
+  "text": "怀远驿到临皋，顺路不过三十里。一个老驿卒若真想逃，不会让马自己回来。",
+  "created_at": "2026-06-15 21:04:30",
+  "request_id": "ca21de1a-8efa-92fc-adf4-ad2fe5facd3e",
+  "usage": {
+    "characters": 64
+  },
+  "file": "static/audio/ruju-demo/voice/shen-yan-longqiang-horse-01.wav"
+}

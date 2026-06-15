@@ -1,3 +1,5 @@
+import { createHistoricalRpgDemo } from './historical_rpg_demo.js?v=story-demo-20260615i';
+
 const DEFAULT_EVENT_ID = "\u79e6\u671d\u00b7\u4e00\u7edf\u516d\u56fd";
 const AUTH_REMEMBER_KEY = "historyAppRememberLogin";
 const AUTH_TOKEN_KEY = "historyAppAuthToken";
@@ -335,6 +337,27 @@ const state = {
         classroomHistorianMessages: [],
         classroomHistorianBusy: false
     },
+    career: {
+        sessionId: "",
+        identity: null,
+        office: null,
+        opening: null,
+        currentCase: null,
+        gameState: null,
+        ending: null,
+        phase: "identity",
+        prototype: null,
+        result: null,
+        answers: {},
+        currentQuestionIndex: 0,
+        appointment: null,
+        affairResult: null,
+        affairStepIndex: 0,
+        affairDialogue: [],
+        affairDialogueIndex: 0,
+        affairMode: "dialogue",
+        affairStoryChoices: []
+    },
     isLoading: false
 };
 
@@ -351,7 +374,31 @@ function updateClassroomDemoVisibility() {
     document.body?.classList.toggle('law-classroom-demo', visible);
     elements.appShell?.classList.toggle('law-classroom-page', visible);
     elements.classroomCases?.classList.toggle('hidden', !visible);
+    elements.careerEntry?.classList.toggle('hidden', visible);
     elements.timeTravelContent?.classList.toggle('law-classroom-demo', visible);
+    if (elements.rujuHeroTitle) {
+        elements.rujuHeroTitle.textContent = visible ? "礼法断案，做出你的裁断" : "人在局中，亲历历史";
+    }
+    if (elements.rujuHeroCopy) {
+        elements.rujuHeroCopy.textContent = visible
+            ? "进入古代司法现场，听取律令、亲情与教化的不同声音。"
+            : "沿着一条明确主线自由调查、结识人物。天下大势不会改变，但普通人的命运会留下余波。";
+    }
+    if (elements.rujuEntryCardTitle) {
+        elements.rujuEntryCardTitle.textContent = visible ? "选择断案卷宗" : "驿路无名";
+    }
+    if (elements.rujuEntryCardCopy) {
+        elements.rujuEntryCardCopy.textContent = visible ? "课堂体验模式 · 请根据老师指引进入" : "追查一名失踪驿卒，在官道、葬礼和废渡口之间拼出被隐瞒的名字。";
+    }
+    if (elements.rujuEventChipText) {
+        elements.rujuEventChipText.textContent = visible ? "东汉末年 · 赤壁战前的江东朝议" : "唐 · 天宝十四载 · 安史之乱前夜";
+    }
+    if (elements.travelStartBtn) {
+        elements.travelStartBtn.textContent = visible ? "开始入局" : "进入第一章";
+    }
+    if (elements.rujuEntryActionLabel) {
+        elements.rujuEntryActionLabel.textContent = visible ? "随机入局" : "剧情探索 · 单人历史跑团 Demo";
+    }
 }
 
 // DOM 元素引用
@@ -445,6 +492,15 @@ Object.assign(elements, {
 
 Object.assign(elements, {
     travelStartPanel: document.getElementById('travel-start-panel'),
+    careerPrototypePanel: document.getElementById('career-prototype-panel'),
+    careerStartBtn: document.getElementById('career-start-btn'),
+    careerEntry: document.querySelector('.ruju-career-entry'),
+    rujuHeroTitle: document.getElementById('ruju-hero-title'),
+    rujuHeroCopy: document.getElementById('ruju-hero-copy'),
+    rujuEntryCardTitle: document.querySelector('.ruju-entry-card h2'),
+    rujuEntryCardCopy: document.querySelector('.ruju-entry-card > p'),
+    rujuEventChipText: document.querySelector('.ruju-event-chip b'),
+    rujuEntryActionLabel: document.querySelector('.ruju-entry-actions span'),
     travelPlayPanel: document.getElementById('travel-play-panel'),
     travelStartBtn: document.getElementById('travel-start-btn'),
     classroomCases: document.querySelector('.ruju-classroom-cases'),
@@ -510,6 +566,17 @@ Object.assign(elements, {
     chibiMapModal: document.getElementById('chibi-map-modal'),
     chibiMapClose: document.getElementById('chibi-map-close')
 });
+
+let historicalRpgDemo = null;
+
+function ensureHistoricalRpgDemo() {
+    historicalRpgDemo ||= createHistoricalRpgDemo({
+        panel: elements.careerPrototypePanel,
+        onExit: exitHistoricalRpgDemo,
+        onTrack: detail => trackAnalytics('time_travel', { detail }),
+    });
+    return historicalRpgDemo;
+}
 
 // ================= API 请求 =================
 async function apiGet(endpoint, options = {}) {
@@ -1190,6 +1257,38 @@ function setRujuMode(enabled) {
     elements.appShell?.classList.toggle('ruju-mode', Boolean(enabled));
 }
 
+function setCareerMode(enabled) {
+    elements.appShell?.classList.toggle('career-mode', Boolean(enabled));
+}
+
+function exitHistoricalRpgDemo() {
+    setCareerMode(false);
+    elements.timeTravelContent?.classList.remove('ruju-playing');
+    elements.careerPrototypePanel?.classList.add('hidden');
+    elements.travelStartPanel?.classList.remove('hidden');
+}
+
+function startHistoricalRpgDemo() {
+    showTimeTravel();
+    setCareerMode(true);
+    elements.timeTravelContent?.classList.add('ruju-playing');
+    elements.travelStartPanel?.classList.add('hidden');
+    elements.travelPlayPanel?.classList.add('hidden');
+    elements.travelVisualPanel?.classList.add('hidden');
+    elements.careerPrototypePanel?.classList.remove('hidden');
+    ensureHistoricalRpgDemo()?.start();
+}
+
+function bindHistoricalRpgEntry() {
+    const button = elements.travelStartBtn;
+    if (!button || button.dataset.storyDemoBound === 'true') return;
+    button.dataset.storyDemoBound = 'true';
+    button.addEventListener('click', () => {
+        if (isLawClassroomDemo()) startTimeTravel();
+        else startHistoricalRpgDemo();
+    });
+}
+
 function showHome() {
     if (isLawClassroomDemo()) {
         showTimeTravel({ privateEntry: true });
@@ -1197,6 +1296,7 @@ function showHome() {
     }
     state.currentMode = "home";
     setRujuMode(false);
+    setCareerMode(false);
     window.history.pushState(null, "", window.location.pathname + window.location.search);
     elements.homeScreen?.classList.remove('hidden');
     elements.appShell?.classList.add('hidden');
@@ -1204,6 +1304,7 @@ function showHome() {
     elements.storyContent.classList.add('hidden');
     elements.guessGameContent.classList.add('hidden');
     elements.timeTravelContent?.classList.add('hidden');
+    elements.careerPrototypePanel?.classList.add('hidden');
     elements.chatSection?.classList?.remove('hidden');
     document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.remove('bg-[#c62828]/10', 'text-[#c62828]', 'border-[#c62828]', 'font-bold');
@@ -1252,6 +1353,9 @@ async function loadTravelScenes() {
 
 async function init() {
     trackAnalytics('visit');
+    ensureHistoricalRpgDemo();
+    bindHistoricalRpgEntry();
+    elements.careerStartBtn?.addEventListener('click', startHistoricalRpgDemo);
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
     updateClassroomDemoVisibility();
     loadTravelScenes();
@@ -1267,8 +1371,7 @@ async function init() {
         } else if(hash === PRIVATE_TIME_TRAVEL_HASH) {
             showTimeTravel({ privateEntry: true });
         } else if(hash === "time-travel") {
-            showHome();
-            setTimeout(() => showFeatureNotice("入局玩法正在开发中，暂未开放试玩。"), 80);
+            showTimeTravel();
         } else if(hash) {
             loadEvent(hash);
         } else {
@@ -1323,7 +1426,7 @@ async function init() {
                 if (isLawClassroomDemo()) {
                     showTimeTravel({ privateEntry: true });
                 } else {
-                    showFeatureNotice("入局玩法正在开发中，暂未开放试玩。");
+                    showTimeTravel();
                 }
             } else {
                 document.querySelectorAll('[data-top-action]').forEach(item => item.classList.toggle('active', item === button));
@@ -1371,7 +1474,8 @@ async function init() {
     elements.guessAskBtn.addEventListener('click', askGuessGameQuestion);
     elements.guessGuessBtn.addEventListener('click', guessAiPerson);
     elements.guessUserAnswer.addEventListener('click', handleUserYesNoAnswer);
-    elements.travelStartBtn?.addEventListener('click', startTimeTravel);
+    elements.careerPrototypePanel?.addEventListener('submit', handleCareerPanelSubmit);
+    elements.careerPrototypePanel?.addEventListener('click', handleCareerPanelClick);
     elements.travelRestartBtn?.addEventListener('click', () => startTimeTravel({ sceneId: state.timeTravel.activeSceneId || VISUAL_NOVEL_SCENE_ID }));
     elements.travelChoiceList?.addEventListener('click', handleTravelChoice);
     elements.visualChoiceList?.addEventListener('click', handleTravelChoice);
@@ -1808,6 +1912,7 @@ function renderChatControls() {
 function showGuessGame() {
     hideHome();
     setRujuMode(false);
+    setCareerMode(false);
     state.currentMode = "guess";
     window.location.hash = "guess-game";
     document.querySelectorAll('.nav-item').forEach(el => {
@@ -1820,6 +1925,7 @@ function showGuessGame() {
     elements.storyContainer?.classList.remove('story-container-skeleton');
     elements.guessGameContent.classList.remove('hidden');
     elements.timeTravelContent?.classList.add('hidden');
+    elements.careerPrototypePanel?.classList.add('hidden');
     elements.chatSection.classList.add('hidden');
 }
 
@@ -1827,6 +1933,7 @@ function showTimeTravel(options = {}) {
     hideHome();
     updateClassroomDemoVisibility();
     setRujuMode(true);
+    setCareerMode(false);
     state.currentMode = "time-travel";
     window.location.hash = options.privateEntry ? PRIVATE_TIME_TRAVEL_HASH : "time-travel";
     elements.timeTravelContent?.classList.toggle('ruju-playing', Boolean(state.timeTravel.payload));
@@ -1846,7 +1953,501 @@ function showTimeTravel(options = {}) {
     elements.chatSection.classList.add('hidden');
     if (!state.timeTravel.payload) {
         elements.travelStartPanel?.classList.remove('hidden');
+        elements.careerPrototypePanel?.classList.add('hidden');
         elements.travelPlayPanel?.classList.add('hidden');
+    }
+}
+
+function careerQuestionTypeLabel(type = "") {
+    return type || "治理取向";
+}
+
+function renderCareerExam(prototype = {}, questionIndex = state.career.currentQuestionIndex || 0) {
+    const questions = Array.isArray(prototype.questions) ? prototype.questions : [];
+    const safeIndex = Math.max(0, Math.min(questionIndex, Math.max(questions.length - 1, 0)));
+    state.career.currentQuestionIndex = safeIndex;
+    const question = questions[safeIndex] || {};
+    const selectedValue = state.career.answers?.[question.id] || "";
+    const progressPercent = questions.length ? Math.round(((safeIndex + 1) / questions.length) * 100) : 0;
+    const meta = [prototype.era, prototype.year, prototype.location].filter(Boolean).join(" · ");
+    elements.careerPrototypePanel.innerHTML = `
+        <div class="career-shell">
+            <header class="career-head">
+                <button type="button" class="career-back-btn" data-career-action="back">返回入口</button>
+                <span>正式入局原型</span>
+                <h2>${escapeHtml(prototype.title || "唐代县衙入仕考选")}</h2>
+                <p>${escapeHtml(meta)}</p>
+            </header>
+            <section class="career-intro">
+                <b>测评说明</b>
+                <p>${escapeHtml(prototype.exam_intro || "")}</p>
+            </section>
+            <div class="career-progress" aria-label="测评进度">
+                <div>
+                    <b>第 ${safeIndex + 1} 题 / 共 ${questions.length} 题</b>
+                    <span>${progressPercent}%</span>
+                </div>
+                <i><em style="width:${progressPercent}%"></em></i>
+            </div>
+            <form class="career-exam-form" data-career-exam-form>
+                <fieldset class="career-question">
+                    <legend>
+                        <span>${String(safeIndex + 1).padStart(2, "0")}</span>
+                        <em>${escapeHtml(careerQuestionTypeLabel(question.type))}</em>
+                    </legend>
+                    <h3>${escapeHtml(question.prompt || "")}</h3>
+                    <div class="career-options">
+                        ${(question.options || []).map(option => `
+                            <label>
+                                <input type="radio" name="${escapeAttr(question.id || "")}" value="${escapeAttr(option.id || "")}"${selectedValue === option.id ? " checked" : ""} required>
+                                <span>${escapeHtml(option.id || "")}</span>
+                                <b>${escapeHtml(option.text || "")}</b>
+                            </label>
+                        `).join("")}
+                    </div>
+                </fieldset>
+                <div class="career-submit-row">
+                    ${safeIndex > 0 ? '<button type="button" data-career-action="prev" class="career-secondary-btn">上一题</button>' : ''}
+                    <button type="submit">${safeIndex >= questions.length - 1 ? "完成测评，等待授官" : "继续"}</button>
+                    <p>没有绝对正确答案，每个选择都会形成不同治理画像。</p>
+                </div>
+            </form>
+        </div>
+    `;
+}
+
+function renderCareerResult(prototype = {}, result = {}) {
+    const office = result.office || {};
+    const scores = Array.isArray(result.scores) ? result.scores : [];
+    const preview = Array.isArray(prototype.next_loop_preview) ? prototype.next_loop_preview : [];
+    elements.careerPrototypePanel.innerHTML = `
+        <div class="career-shell career-result-shell">
+            <header class="career-head">
+                <button type="button" class="career-back-btn" data-career-action="restart">重新考选</button>
+                <span>铨选结果</span>
+                <h2>授 ${escapeHtml(office.title || "县尉")}</h2>
+                <p>${escapeHtml(office.rank || "")}</p>
+            </header>
+            <section class="career-result-card">
+                <b>治理画像</b>
+                <p>${escapeHtml(result.profile || "")}</p>
+                <p>${escapeHtml(office.grant_text || "")}</p>
+            </section>
+            <section class="career-office-card">
+                <b>当前职责</b>
+                <p>${escapeHtml(office.duty || "")}</p>
+            </section>
+            <section class="career-score-grid">
+                ${scores.map(item => `
+                    <article>
+                        <div>
+                            <b>${escapeHtml(item.label || "")}</b>
+                            <span>${Number(item.value || 0)}</span>
+                        </div>
+                        <p>${escapeHtml(item.description || "")}</p>
+                    </article>
+                `).join("")}
+            </section>
+            <section class="career-next-card">
+                <b>下一步要接的政务循环</b>
+                <ul>
+                    ${preview.map(item => `<li>${escapeHtml(item)}</li>`).join("")}
+                </ul>
+            </section>
+            <div class="career-submit-row">
+                <button type="button" data-career-action="appoint">领告身，赴任县衙</button>
+                <button type="button" data-career-action="restart">重新考选</button>
+                <button type="button" data-career-action="back" class="career-secondary-btn">返回入口</button>
+            </div>
+        </div>
+    `;
+}
+
+function careerStatClass(value) {
+    const number = Number(value || 0);
+    if (number >= 60) return "is-high";
+    if (number <= 40) return "is-low";
+    return "";
+}
+
+function renderCareerStats(stats = {}, labels = {}) {
+    return `
+        <section class="career-stat-grid">
+            ${Object.entries(stats).map(([key, value]) => `
+                <article class="${careerStatClass(value)}">
+                    <span>${escapeHtml(labels[key] || key)}</span>
+                    <b>${Number(value || 0)}</b>
+                </article>
+            `).join("")}
+        </section>
+    `;
+}
+
+function renderCareerStatsCompact(stats = {}, labels = {}) {
+    return `
+        <div class="career-vn-stats">
+            ${Object.entries(stats).map(([key, value]) => `
+                <span class="${careerStatClass(value)}">
+                    ${escapeHtml(labels[key] || key)}
+                    <b>${Number(value || 0)}</b>
+                </span>
+            `).join("")}
+        </div>
+    `;
+}
+
+function normalizeCareerDialogue(items = []) {
+    const rawItems = Array.isArray(items) ? items : items && typeof items === "object" ? [items] : [];
+    return rawItems
+        .filter(item => item && item.text)
+        .map(item => ({
+            speaker: String(item.speaker || "案吏"),
+            role: String(item.role || ""),
+            text: String(item.text || "")
+        }));
+}
+
+function careerSpeakerPortrait(affair = {}, speaker = "") {
+    const portraits = affair.portraits || {};
+    const key = String(speaker || "");
+    const fallbackPortraits = {
+        default: "/static/images/law-clerk-avatar.png",
+        "案吏": "/static/images/law-clerk-avatar.png",
+        "巡丁": "/static/images/law-clerk-avatar.png",
+        "小商户": "/static/images/law-tang-victim-family-avatar.png",
+        "贫弱妇人": "/static/images/law-tang-victim-family-avatar.png",
+        "坊正": "/static/images/law-tang-ritual-official-avatar.png"
+    };
+    return portraits[key] || fallbackPortraits[key] || portraits.default || fallbackPortraits.default;
+}
+
+function renderCareerStoryChoices(step = {}) {
+    const choices = Array.isArray(step.choices) ? step.choices : [];
+    if (!choices.length) return "";
+    return `
+        <div class="career-story-choices">
+            ${choices.map((choice, index) => `
+                <button type="button" data-career-story-choice="${escapeAttr(choice.id || "")}">
+                    <span>${escapeHtml(choice.id && choice.id.length <= 2 ? choice.id : String(index + 1))}</span>
+                    <b>${escapeHtml(choice.text || "")}</b>
+                    <em>${escapeHtml(choice.hint || "")}</em>
+                </button>
+            `).join("")}
+        </div>
+    `;
+}
+
+function renderCareerList(items = []) {
+    return `<ul>${(items || []).map(item => `<li>${escapeHtml(item || "")}</li>`).join("")}</ul>`;
+}
+
+function renderCareerIdentity(payload = {}) {
+    const identity = payload.identity || {};
+    const office = payload.office || {};
+    const stateData = payload.state || {};
+    elements.careerPrototypePanel.innerHTML = `
+        <div class="career-shell career-identity-shell">
+            <header class="career-head">
+                <button type="button" class="career-back-btn" data-career-action="back">返回入口</button>
+                <span>随机身份已生成</span>
+                <h2>${escapeHtml(identity.dynasty || "唐")}代 ${escapeHtml(office.title || "县尉")}</h2>
+                <p>${escapeHtml([identity.reign_year, identity.place, `${identity.age || 0}岁`].filter(Boolean).join(" · "))}</p>
+            </header>
+            <section class="career-identity-grid">
+                <article><span>当前任地</span><b>${escapeHtml(identity.current_post || identity.place || "")}</b><p>${escapeHtml(identity.local_note || "")}</p></article>
+                <article><span>家庭情况</span><b>${escapeHtml(identity.family || "")}</b><p>${escapeHtml(identity.origin || "")}</p></article>
+                <article><span>时代背景</span><b>${escapeHtml(identity.era_background || "")}</b><p>${escapeHtml(identity.social_conflict || "")}</p></article>
+                <article><span>初始状态</span><b>${escapeHtml(identity.initial_status || "")}</b><p>任期共 ${Number(stateData.campaign_days || 15)} 日，案件结果由规则结算。</p></article>
+            </section>
+            <section class="career-office-guide" role="dialog" aria-modal="true" aria-label="官职说明">
+                <div class="career-office-guide-head"><span>官职说明</span><h3>你现在是什么官？</h3><p>${escapeHtml(office.summary || "")}</p></div>
+                <div class="career-guide-columns">
+                    <article><b>大概相当于什么位置</b><p>${escapeHtml(office.plain_position || office.rank || "")}</p><b>直属上级</b><p>${escapeHtml(office.superior || "")}</p></article>
+                    <article><b>你能管</b>${renderCareerList(office.can_manage || [])}</article>
+                    <article><b>你不能管</b>${renderCareerList(office.cannot_manage || [])}</article>
+                    <article><b>日常会面对</b>${renderCareerList(office.daily_contacts || [])}</article>
+                </div>
+                <div class="career-guide-risk"><b>这份官职真正的风险</b>${renderCareerList(office.risks || [])}</div>
+                <div class="career-submit-row"><button type="button" data-career-action="begin-opening">明白了，进入开局</button></div>
+            </section>
+        </div>
+    `;
+}
+
+function startCareerOpening() {
+    const opening = state.career.opening || {};
+    state.career.phase = "opening";
+    state.career.affairDialogue = normalizeCareerDialogue(opening.dialogue || []);
+    state.career.affairDialogueIndex = 0;
+    state.career.affairMode = state.career.affairDialogue.length ? "dialogue" : "choice";
+    renderCareerAffairScene();
+}
+
+function startCareerCase(caseData = state.career.currentCase) {
+    if (!caseData) return;
+    state.career.currentCase = caseData;
+    state.career.phase = "case";
+    state.career.affairResult = null;
+    state.career.affairStepIndex = 0;
+    state.career.affairDialogue = normalizeCareerDialogue(caseData.opening_dialogue || []);
+    state.career.affairDialogueIndex = 0;
+    state.career.affairMode = state.career.affairDialogue.length ? "dialogue" : "choice";
+    state.career.affairStoryChoices = [];
+    renderCareerAffairScene();
+}
+
+function careerActiveScene() {
+    if (state.career.phase === "opening" || state.career.phase === "opening-ready") {
+        return {
+            title: state.career.opening?.title || "一觉入唐",
+            category: "穿越开场",
+            background_image: state.career.opening?.background_image || "",
+            portraits: {},
+            brief: "你必须先弄清自己的身份，再走进县衙。"
+        };
+    }
+    return state.career.currentCase || {};
+}
+
+function careerAffairSteps(affair = {}) {
+    const investigationSteps = Array.isArray(affair.investigation_steps) ? affair.investigation_steps : [];
+    if (investigationSteps.length || Array.isArray(affair.choices)) {
+        return [
+            ...investigationSteps,
+            {
+                step_id: "decision",
+                prompt: affair.decision_prompt || "你准备如何处置？",
+                final: true,
+                choices: affair.choices || []
+            }
+        ];
+    }
+    if (Array.isArray(affair.story_steps) && affair.story_steps.length) return affair.story_steps;
+    return [];
+}
+
+function renderCareerAffairScene() {
+    const affair = careerActiveScene();
+    const stateData = state.career.gameState || {};
+    const office = state.career.office || {};
+    const labels = stateData.stat_labels || office.stat_labels || {};
+    const steps = careerAffairSteps(affair);
+    const stepIndex = Math.min(Math.max(Number(state.career.affairStepIndex || 0), 0), Math.max(steps.length - 1, 0));
+    const step = steps[stepIndex] || {};
+    const dialogue = state.career.affairDialogue || [];
+    const dialogueIndex = Math.min(Math.max(Number(state.career.affairDialogueIndex || 0), 0), Math.max(dialogue.length - 1, 0));
+    const currentLine = dialogue[dialogueIndex] || null;
+    const openingReady = state.career.phase === "opening-ready";
+    const isChoiceMode = openingReady || state.career.affairMode === "choice" || !currentLine;
+    const speakerPortrait = currentLine ? careerSpeakerPortrait(affair, currentLine.speaker) : "";
+    const bgStyle = affair.background_image ? ` style="--career-bg: url('${escapeAttr(affair.background_image)}')"` : "";
+    const phaseLabel = state.career.phase.startsWith("opening") ? "穿越开场" : `${escapeHtml(affair.category || "政务")} · 第 ${stepIndex + 1}/${steps.length || 1} 幕`;
+    elements.careerPrototypePanel.innerHTML = `
+        <div class="career-shell career-appointment-shell career-vn-shell">
+            <section class="career-affair-stage ${isChoiceMode ? "is-choice" : "is-dialogue"}"${bgStyle}>
+                <div class="career-affair-bg" aria-hidden="true"></div><div class="career-affair-shade" aria-hidden="true"></div>
+                <div class="career-vn-topbar">
+                    <button type="button" class="career-back-btn career-vn-back" data-career-action="back">退出本局</button>
+                    <div><span>${phaseLabel}</span><b>${escapeHtml(affair.title || "今日政务")}</b><em>${escapeHtml([office.title || "县尉", state.career.identity?.reign_year, `任职第 ${stateData.day || 1} 日`].filter(Boolean).join(" · "))}</em></div>
+                    ${renderCareerStatsCompact(stateData.stats || {}, labels)}
+                </div>
+                ${isChoiceMode ? `
+                    <div class="career-choice-screen">
+                        <div class="career-choice-question">${escapeHtml(openingReady ? "衙门的门已经打开。你的第一件政务正在堂下等候。" : (step.prompt || affair.decision_prompt || ""))}</div>
+                        ${openingReady ? '<button type="button" class="career-opening-enter" data-career-action="start-case">走进县衙</button>' : renderCareerStoryChoices(step)}
+                        ${step.final ? `
+                            <form class="career-free-form" data-career-free-form>
+                                <label for="career-free-input">或者写下你自己的处理办法</label>
+                                <div><input id="career-free-input" name="free_text" type="text" maxlength="180" placeholder="例如：先封存现场，再分别询问证人并呈报县令" autocomplete="off"><button type="submit">按此处置</button></div>
+                                <p>系统会先识别处理意图，再按现有规则标签结算，不会让一句话直接改写结果。</p>
+                            </form>
+                        ` : ""}
+                    </div>
+                ` : `
+                    <button type="button" class="career-dialogue-hotzone" data-career-action="next-dialogue" aria-label="继续对话">
+                        <div class="career-vn-character" aria-hidden="true"><img src="${escapeAttr(speakerPortrait)}" alt=""></div>
+                        <div class="career-dialogue-box"><div class="career-dialogue-name"><b>${escapeHtml(currentLine.speaker || "案吏")}</b>${currentLine.role ? `<span>${escapeHtml(currentLine.role)}</span>` : ""}</div><p>${escapeHtml(currentLine.text || "")}</p><em>继续</em></div>
+                    </button>
+                `}
+            </section>
+        </div>
+    `;
+}
+
+function handleCareerStoryChoice(choiceId = "") {
+    const affair = state.career.currentCase || {};
+    const steps = careerAffairSteps(affair);
+    const step = steps[state.career.affairStepIndex || 0] || {};
+    const selected = (step.choices || []).find(choice => String(choice.id || "") === String(choiceId));
+    if (!selected) return;
+    if (step.final) {
+        chooseCareerAffair(selected.id || "");
+        return;
+    }
+    state.career.affairStoryChoices = [...(state.career.affairStoryChoices || []), {step_id: step.step_id || "", choice_id: selected.id || "", text: selected.text || ""}];
+    state.career.affairStepIndex = Math.min(Number(state.career.affairStepIndex || 0) + 1, Math.max(steps.length - 1, 0));
+    const response = normalizeCareerDialogue(selected.response || []);
+    state.career.affairDialogue = response;
+    state.career.affairDialogueIndex = 0;
+    state.career.affairMode = response.length ? "dialogue" : "choice";
+    renderCareerAffairScene();
+}
+
+function advanceCareerDialogue() {
+    const dialogue = state.career.affairDialogue || [];
+    if (Number(state.career.affairDialogueIndex || 0) < dialogue.length - 1) {
+        state.career.affairDialogueIndex = Number(state.career.affairDialogueIndex || 0) + 1;
+    } else if (state.career.phase === "opening") {
+        state.career.phase = "opening-ready";
+        state.career.affairMode = "choice";
+    } else {
+        state.career.affairMode = "choice";
+    }
+    renderCareerAffairScene();
+}
+
+function renderCareerAffairResult(payload = {}) {
+    const labels = payload.state?.stat_labels || state.career.office?.stat_labels || {};
+    const stateData = payload.state || {};
+    const choice = payload.choice || {};
+    const deltas = payload.deltas || {};
+    const interpretation = payload.interpretation || {};
+    state.career.affairResult = payload;
+    state.career.gameState = stateData;
+    state.career.currentCase = payload.next_case || null;
+    state.career.ending = payload.ending || null;
+    if (payload.ending) {
+        renderCareerEnding(payload.ending, payload);
+        return;
+    }
+    elements.careerPrototypePanel.innerHTML = `
+        <div class="career-shell career-appointment-shell career-resolution-shell">
+            <header class="career-head"><span>案件收束</span><h2>${escapeHtml(choice.text || "政务结果")}</h2><p>${escapeHtml(`任职第 ${stateData.day || 1} 日 · ${interpretation.label ? `识别为“${interpretation.label}”` : "规则结算"}`)}</p></header>
+            <section class="career-result-card career-scene-card"><b>短期结果</b><p>${escapeHtml(payload.result || "")}</p></section>
+            <section class="career-result-card"><b>后续影响</b><p>${escapeHtml(payload.aftermath || "")}</p></section>
+            <section class="career-delta-card"><b>属性变化</b><div>${Object.entries(deltas).map(([key, value]) => `<span class="${Number(value) >= 0 ? "is-up" : "is-down"}">${escapeHtml(labels[key] || key)} ${Number(value) >= 0 ? "+" : ""}${Number(value || 0)}</span>`).join("")}</div></section>
+            ${renderCareerStats(stateData.stats || {}, labels)}
+            ${(payload.archive_unlocks || []).length ? `<section class="career-archive-card"><b>历史互动档案已解锁</b>${renderCareerList(payload.archive_unlocks)}</section>` : ""}
+            <section class="career-next-card"><b>下一件事务</b><p>${escapeHtml(payload.next_case ? `${payload.next_case.title}：${payload.next_case.brief}` : "等待考课")}</p></section>
+            <div class="career-submit-row"><button type="button" data-career-action="next-case">继续任职</button><button type="button" data-career-action="back" class="career-secondary-btn">结束本局</button></div>
+        </div>
+    `;
+}
+
+function renderCareerEnding(ending = {}, payload = {}) {
+    const labels = payload.state?.stat_labels || state.career.office?.stat_labels || {};
+    elements.careerPrototypePanel.innerHTML = `
+        <div class="career-shell career-ending-shell">
+            <header class="career-head"><span>十五日考课</span><h2>${escapeHtml(ending.title || "阶段结算")}</h2><p>${escapeHtml(`${state.career.identity?.place || "任地"} · 共处置 ${ending.history_count || 0} 件事务`)}</p></header>
+            <section class="career-ending-verdict"><b>县令考语</b><p>${escapeHtml(ending.text || "")}</p></section>
+            ${renderCareerStats(ending.stats || {}, labels)}
+            <section class="career-archive-card"><b>本局解锁档案</b>${renderCareerList(ending.unlocked_archives || [])}</section>
+            <div class="career-submit-row"><button type="button" data-career-action="restart">再次入仕</button><button type="button" data-career-action="back" class="career-secondary-btn">返回入口</button></div>
+        </div>
+    `;
+}
+
+async function startCareerPrototype() {
+    if (state.isLoading) return;
+    state.isLoading = true;
+    try {
+        showTimeTravel();
+        setCareerMode(true);
+        elements.timeTravelContent?.classList.add('ruju-playing');
+        elements.travelStartPanel?.classList.add('hidden');
+        elements.travelPlayPanel?.classList.add('hidden');
+        elements.travelVisualPanel?.classList.add('hidden');
+        elements.careerPrototypePanel?.classList.remove('hidden');
+        elements.careerPrototypePanel.innerHTML = '<div class="career-shell"><section class="career-intro"><b>正在生成你的身份……</b><p>官职、年代、任地和家庭都将遵守唐代制度边界。</p></section></div>';
+        const res = await apiPost('/career/session/start', {seed: `${Date.now()}-${Math.random()}`, office_id: 'tang_county_wei'});
+        if (!res?.success || !res.session_id) throw new Error(res?.detail || "身份生成失败");
+        Object.assign(state.career, {
+            sessionId: res.session_id,
+            identity: res.identity || null,
+            office: res.office || null,
+            opening: res.opening || null,
+            currentCase: res.case || null,
+            gameState: res.state || null,
+            ending: null,
+            phase: "identity",
+            affairResult: null,
+            affairStepIndex: 0,
+            affairDialogue: [],
+            affairDialogueIndex: 0,
+            affairMode: "dialogue",
+            affairStoryChoices: []
+        });
+        renderCareerIdentity(res);
+        trackAnalytics('time_travel', {detail: 'career_direct_appointment_start'});
+    } catch (error) {
+        alert(error?.message || "正式入局暂时无法开启，请稍后重试。");
+        setCareerMode(false);
+        elements.travelStartPanel?.classList.remove('hidden');
+        elements.careerPrototypePanel?.classList.add('hidden');
+    } finally {
+        state.isLoading = false;
+    }
+}
+
+async function handleCareerPanelSubmit(event) {
+    const form = event.target.closest('[data-career-free-form]');
+    if (!form || state.isLoading) return;
+    event.preventDefault();
+    const freeText = String(new FormData(form).get('free_text') || '').trim();
+    if (!freeText) {
+        showToast("请写下你的处理办法。");
+        return;
+    }
+    await chooseCareerAffair("", freeText);
+}
+
+function handleCareerPanelClick(event) {
+    const button = event.target.closest('[data-career-action]');
+    const storyChoice = event.target.closest('[data-career-story-choice]');
+    if (storyChoice) {
+        handleCareerStoryChoice(storyChoice.dataset.careerStoryChoice || "");
+        return;
+    }
+    if (!button) return;
+    const action = button.dataset.careerAction;
+    if (action === "back") {
+        setCareerMode(false);
+        elements.timeTravelContent?.classList.remove('ruju-playing');
+        elements.careerPrototypePanel?.classList.add('hidden');
+        elements.travelStartPanel?.classList.remove('hidden');
+    } else if (action === "next-dialogue") {
+        advanceCareerDialogue();
+    } else if (action === "restart") {
+        startCareerPrototype();
+    } else if (action === "begin-opening") {
+        startCareerOpening();
+    } else if (action === "start-case") {
+        startCareerCase();
+    } else if (action === "next-case") {
+        startCareerCase(state.career.currentCase);
+    }
+}
+
+async function chooseCareerAffair(choiceId = "", freeText = "") {
+    const affair = state.career.currentCase;
+    if (!state.career.sessionId || !affair?.case_id || (!choiceId && !freeText) || state.isLoading) return;
+    state.isLoading = true;
+    try {
+        elements.careerPrototypePanel.innerHTML = '<div class="career-shell"><section class="career-intro"><b>规则正在结算……</b><p>系统先识别处置标签，再计算时间、属性和后续影响。</p></section></div>';
+        const res = await apiPost('/career/session/action', {
+            session_id: state.career.sessionId,
+            case_id: affair.case_id,
+            choice_id: choiceId || "",
+            free_text: freeText || ""
+        });
+        if (!res?.success) throw new Error(res?.detail || "政务结算失败");
+        renderCareerAffairResult(res);
+        trackAnalytics('time_travel', {detail: `career_case_${affair.case_id}_${res.interpretation?.action_tag || choiceId}`});
+    } catch (error) {
+        alert(error?.message || "政务处置失败，请稍后重试。");
+        renderCareerAffairScene();
+    } finally {
+        state.isLoading = false;
     }
 }
 
@@ -4022,6 +4623,7 @@ function initMobile() {
 }
 
 function startApp() {
+    bindHistoricalRpgEntry();
     init();
     initMobile();
 }

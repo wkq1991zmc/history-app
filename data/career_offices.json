@@ -1,0 +1,19 @@
+[
+  {
+    "office_id": "tang_county_wei",
+    "dynasty": "唐",
+    "title": "县尉",
+    "rank": "县衙低阶属官",
+    "plain_position": "你不是县令，更像负责一县治安、缉捕和案件初查的执行官。",
+    "summary": "你现在是唐代某县的县尉。你不能决定全县所有政务，但要负责治安、缉盗、追捕、械斗、夜禁和部分案件调查。",
+    "responsibilities": ["维持县城与乡里的治安", "追查盗窃、斗殴和逃犯", "组织巡丁、差役与坊里协查", "对命案进行现场初查并向县令呈报"],
+    "can_manage": ["盗窃与销赃线索", "斗殴、械斗与夜禁", "豪强包庇中的治安问题", "逃户与可疑人员的初步查验", "差役失职与缉捕执行"],
+    "cannot_manage": ["独自裁定重大死刑案件", "越过县令决定全县赋税与赈济", "调动军队或改变朝廷政策", "仅凭口供直接定重罪"],
+    "daily_contacts": ["县令与县丞", "案吏、巡丁和差役", "坊正、里正与乡老", "报案百姓、商户与豪强部曲"],
+    "likely_affairs": ["夜盗", "市井斗殴", "命案初查", "豪强包庇", "巡丁贪腐", "逃户与盗匪线索"],
+    "superior": "本县县令",
+    "risks": ["急于破案造成冤案", "治下盗案频发被上官问责", "得罪豪强后执行受阻", "纵容差役导致民怨和吏治败坏"],
+    "initial_stats": {"popular_support": 50, "bureaucracy": 50, "treasury": 50, "superior_rating": 50, "security": 50},
+    "stat_labels": {"popular_support": "民望", "bureaucracy": "吏治", "treasury": "财政", "superior_rating": "上官评价", "security": "治安"}
+  }
+]

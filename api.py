@@ -34,6 +34,9 @@ except Exception:
 load_dotenv()
 
 from load_data import EVENTS_DB 
+from career_engine import get_session as get_career_session
+from career_engine import start_session as start_career_session
+from career_engine import submit_action as submit_career_action
 
 app = FastAPI()
 
@@ -1205,6 +1208,31 @@ class ClassroomHistorianTalkRequest(BaseModel):
     session_id: str
     message: str
 
+class CareerExamSubmitRequest(BaseModel):
+    prototype_id: str = "tang_county_entry"
+    answers: Dict[str, str]
+
+class CareerAppointmentRequest(BaseModel):
+    prototype_id: str = "tang_county_entry"
+    office_id: str
+
+class CareerAffairChoiceRequest(BaseModel):
+    prototype_id: str = "tang_county_entry"
+    office_id: str
+    affair_id: str
+    choice_id: str
+    state: Optional[Dict] = None
+
+class CareerSessionStartRequest(BaseModel):
+    seed: Optional[str] = ""
+    office_id: str = "tang_county_wei"
+
+class CareerSessionActionRequest(BaseModel):
+    session_id: str
+    case_id: str
+    choice_id: Optional[str] = ""
+    free_text: Optional[str] = ""
+
 def _normalize_person_name(name: str) -> str:
     return re.sub(r"[\s·・，。！？、,.!?《》〈〉“”\"'’‘]", "", name or "").lower()
 
@@ -1385,7 +1413,9 @@ def _extract_json_object(raw_text: str) -> Dict:
         clean = brace_match.group(0)
     return json.loads(clean)
 
-INTRIGUE_SCENES_PATH = Path(__file__).with_name("data") / "intrigue_scenes.json"
+DATA_DIR = Path(__file__).with_name("data")
+INTRIGUE_SCENES_PATH = DATA_DIR / "intrigue_scenes.json"
+CAREER_PROTOTYPES_PATH = DATA_DIR / "career_prototypes.json"
 
 
 def _load_intrigue_scenes() -> List[Dict]:
@@ -1414,6 +1444,22 @@ def _load_intrigue_scenes() -> List[Dict]:
 
 
 INTRIGUE_SCENES = _load_intrigue_scenes()
+
+
+def _load_career_prototypes() -> List[Dict]:
+    if not CAREER_PROTOTYPES_PATH.exists():
+        return []
+    try:
+        with CAREER_PROTOTYPES_PATH.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Invalid career prototype JSON in {CAREER_PROTOTYPES_PATH}: {exc}") from exc
+    if not isinstance(data, list):
+        raise RuntimeError(f"Career prototype file must contain a list: {CAREER_PROTOTYPES_PATH}")
+    return data
+
+
+CAREER_PROTOTYPES = _load_career_prototypes()
 
 INTRIGUE_DECISION_MAKERS = {
     "qin_shaqiu_edict": "扶苏",
@@ -2833,6 +2879,360 @@ async def _classify_intrigue_turn(current: Dict, message: str) -> Dict:
         "confidence": confidence,
         "reason": str(data.get("reason") or "")[:160],
     }
+
+
+def _career_prototype_by_id(prototype_id: str) -> Dict:
+    prototypes = _load_career_prototypes() or CAREER_PROTOTYPES
+    for item in prototypes:
+        if str(item.get("prototype_id") or "") == prototype_id:
+            return item
+    raise HTTPException(status_code=404, detail="未找到入仕原型")
+
+
+def _career_public_payload(prototype: Dict) -> Dict:
+    questions = []
+    for question in prototype.get("questions") or []:
+        options = []
+        for option in question.get("options") or []:
+            options.append({
+                "id": str(option.get("id") or ""),
+                "text": str(option.get("text") or ""),
+            })
+        questions.append({
+            "id": str(question.get("id") or ""),
+            "type": str(question.get("type") or ""),
+            "prompt": str(question.get("prompt") or ""),
+            "options": options,
+        })
+    return {
+        "prototype_id": str(prototype.get("prototype_id") or ""),
+        "title": str(prototype.get("title") or ""),
+        "era": str(prototype.get("era") or ""),
+        "year": str(prototype.get("year") or ""),
+        "location": str(prototype.get("location") or ""),
+        "summary": str(prototype.get("summary") or ""),
+        "exam_intro": str(prototype.get("exam_intro") or ""),
+        "dimensions": prototype.get("dimensions") or [],
+        "questions": questions,
+        "next_loop_preview": prototype.get("next_loop_preview") or [],
+    }
+
+
+def _career_score_exam(prototype: Dict, answers: Dict[str, str]) -> Dict:
+    dimensions = prototype.get("dimensions") or []
+    dimension_keys = [str(item.get("key") or "") for item in dimensions if item.get("key")]
+    scores = {key: 0 for key in dimension_keys}
+    normalized_answers: Dict[str, str] = {}
+    question_feedback = []
+
+    for question in prototype.get("questions") or []:
+        question_id = str(question.get("id") or "")
+        selected_id = str(answers.get(question_id) or "").strip().upper()
+        options = question.get("options") or []
+        selected = next((option for option in options if str(option.get("id") or "").upper() == selected_id), None)
+        if not selected:
+            raise HTTPException(status_code=400, detail=f"请完成题目 {question_id}")
+        normalized_answers[question_id] = selected_id
+        for key, value in (selected.get("scores") or {}).items():
+            if key in scores:
+                scores[key] += int(value or 0)
+        question_feedback.append({
+            "question_id": question_id,
+            "selected_id": selected_id,
+            "selected_text": str(selected.get("text") or ""),
+        })
+
+    offices = prototype.get("offices") or []
+    fallback_id = str(prototype.get("fallback_office") or "")
+    fallback_office = next((office for office in offices if str(office.get("office_id") or "") == fallback_id), None)
+    best_office = fallback_office or (offices[0] if offices else {})
+    best_value = -10**9
+
+    for office in offices:
+        primary_dimensions = [str(item) for item in office.get("primary_dimensions") or []]
+        value = sum(scores.get(key, 0) for key in primary_dimensions)
+        if value > best_value:
+            best_value = value
+            best_office = office
+
+    score_rows = []
+    for dimension in dimensions:
+        key = str(dimension.get("key") or "")
+        score_rows.append({
+            "key": key,
+            "label": str(dimension.get("label") or key),
+            "description": str(dimension.get("description") or ""),
+            "value": int(scores.get(key, 0)),
+        })
+
+    top_scores = sorted(score_rows, key=lambda item: item["value"], reverse=True)
+    strengths = "、".join(item["label"] for item in top_scores[:2] if item["value"] > 0) or "谨慎守成"
+    weak = next((item["label"] for item in reversed(top_scores) if item["value"] < 0), "")
+    profile = f"你的治理画像偏向：{strengths}。"
+    if weak:
+        profile += f" 后续赴任时要留意：{weak}仍有短板。"
+
+    return {
+        "answers": normalized_answers,
+        "question_feedback": question_feedback,
+        "scores": score_rows,
+        "office": {
+            "office_id": str(best_office.get("office_id") or ""),
+            "title": str(best_office.get("title") or "县尉"),
+            "rank": str(best_office.get("rank") or ""),
+            "duty": str(best_office.get("duty") or ""),
+            "grant_text": str(best_office.get("grant_text") or ""),
+        },
+        "profile": profile,
+    }
+
+
+def _career_office_by_id(prototype: Dict, office_id: str) -> Dict:
+    offices = prototype.get("offices") or []
+    office = next((item for item in offices if str(item.get("office_id") or "") == office_id), None)
+    if office:
+        return office
+    fallback_id = str(prototype.get("fallback_office") or "")
+    return next((item for item in offices if str(item.get("office_id") or "") == fallback_id), None) or (offices[0] if offices else {})
+
+
+def _career_clamp_stat(value) -> int:
+    try:
+        number = int(value)
+    except Exception:
+        number = 50
+    return max(0, min(100, number))
+
+
+def _career_initial_state(prototype: Dict, office: Dict) -> Dict:
+    initial = prototype.get("initial_state") or {}
+    raw_stats = initial.get("stats") or {}
+    stats = {key: _career_clamp_stat(value) for key, value in raw_stats.items()}
+    return {
+        "day": int(initial.get("day") or 1),
+        "reign_year": str(initial.get("reign_year") or prototype.get("year") or ""),
+        "place": str(initial.get("place") or prototype.get("location") or ""),
+        "office": {
+            "office_id": str(office.get("office_id") or ""),
+            "title": str(office.get("title") or ""),
+            "rank": str(office.get("rank") or ""),
+            "duty": str(office.get("duty") or ""),
+        },
+        "stats": stats,
+    }
+
+
+def _career_dialogue_public_payload(items) -> List[Dict[str, str]]:
+    raw_items = items if isinstance(items, list) else [items] if isinstance(items, dict) else []
+    return [
+        {
+            "speaker": str(item.get("speaker") or ""),
+            "role": str(item.get("role") or ""),
+            "text": str(item.get("text") or ""),
+        }
+        for item in raw_items
+        if isinstance(item, dict) and str(item.get("text") or "").strip()
+    ]
+
+
+def _career_story_steps_public_payload(affair: Dict) -> List[Dict]:
+    steps = affair.get("story_steps") if isinstance(affair.get("story_steps"), list) else []
+    return [
+        {
+            "step_id": str(step.get("step_id") or ""),
+            "title": str(step.get("title") or ""),
+            "prompt": str(step.get("prompt") or ""),
+            "final": bool(step.get("final")),
+            "choices": [
+                {
+                    "id": str(choice.get("id") or ""),
+                    "text": str(choice.get("text") or ""),
+                    "hint": str(choice.get("hint") or ""),
+                    "response": _career_dialogue_public_payload(choice.get("response")),
+                }
+                for choice in step.get("choices") or []
+                if isinstance(choice, dict)
+            ],
+        }
+        for step in steps
+        if isinstance(step, dict)
+    ]
+
+
+def _career_affair_public_payload(prototype: Dict) -> Dict:
+    affair = prototype.get("first_affair") or {}
+    return {
+        "affair_id": str(affair.get("affair_id") or ""),
+        "title": str(affair.get("title") or ""),
+        "day": int(affair.get("day") or 1),
+        "category": str(affair.get("category") or ""),
+        "background_image": str(affair.get("background_image") or ""),
+        "portraits": {
+            str(key): str(value)
+            for key, value in (affair.get("portraits") or {}).items()
+        },
+        "brief": str(affair.get("brief") or ""),
+        "speaker": str(affair.get("speaker") or ""),
+        "prompt": str(affair.get("prompt") or ""),
+        "opening_dialogue": _career_dialogue_public_payload(affair.get("opening_dialogue")),
+        "story_steps": _career_story_steps_public_payload(affair),
+        "choices": [
+            {
+                "id": str(choice.get("id") or ""),
+                "text": str(choice.get("text") or ""),
+                "hint": str(choice.get("hint") or ""),
+            }
+            for choice in affair.get("choices") or []
+        ],
+    }
+
+
+def _career_apply_affair_choice(prototype: Dict, req: CareerAffairChoiceRequest) -> Dict:
+    affair = prototype.get("first_affair") or {}
+    if str(affair.get("affair_id") or "") != req.affair_id:
+        raise HTTPException(status_code=404, detail="未找到这件政务")
+    selected = next((choice for choice in affair.get("choices") or [] if str(choice.get("id") or "") == req.choice_id), None)
+    if not selected:
+        raise HTTPException(status_code=400, detail="未知的处置选择")
+    office = _career_office_by_id(prototype, req.office_id)
+    current_state = req.state if isinstance(req.state, dict) else {}
+    current_stats = current_state.get("stats") if isinstance(current_state.get("stats"), dict) else {}
+    if not current_stats:
+        current_stats = _career_initial_state(prototype, office).get("stats", {})
+    deltas = {str(key): int(value or 0) for key, value in (selected.get("deltas") or {}).items()}
+    next_stats = {}
+    for key, value in current_stats.items():
+        next_stats[key] = _career_clamp_stat(int(value or 0) + int(deltas.get(key, 0)))
+    for key, value in deltas.items():
+        if key not in next_stats:
+            next_stats[key] = _career_clamp_stat(50 + value)
+    next_state = {
+        "day": int(current_state.get("day") or 1) + 1,
+        "reign_year": str(current_state.get("reign_year") or prototype.get("initial_state", {}).get("reign_year") or prototype.get("year") or ""),
+        "place": str(current_state.get("place") or prototype.get("initial_state", {}).get("place") or prototype.get("location") or ""),
+        "office": {
+            "office_id": str(office.get("office_id") or ""),
+            "title": str(office.get("title") or ""),
+            "rank": str(office.get("rank") or ""),
+            "duty": str(office.get("duty") or ""),
+        },
+        "stats": next_stats,
+    }
+    return {
+        "choice": {
+            "id": str(selected.get("id") or ""),
+            "text": str(selected.get("text") or ""),
+            "hint": str(selected.get("hint") or ""),
+        },
+        "deltas": deltas,
+        "result": str(selected.get("result") or ""),
+        "state": next_state,
+        "next_preview": "任职第 2 日：县衙会根据你的第一日处置，继续递来新的政务。下一步可接入每日政务池。",
+    }
+
+
+@app.post("/career/session/start")
+async def career_session_start(req: CareerSessionStartRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    player_id = x_client_id if x_client_id else "unknown_player"
+    if not check_rate_limit(f"career-session-start-{player_id}"):
+        raise HTTPException(status_code=429, detail="入仕太快了，请稍等一下。")
+    try:
+        payload = start_career_session(player_id=player_id, seed=req.seed or "", office_id=req.office_id)
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _safe_record_analytics("career_session", player_id, payload.get("identity", {}).get("place", ""), payload.get("office", {}).get("title", ""), "start")
+    return {"success": True, **payload}
+
+
+@app.get("/career/session/{session_id}")
+async def career_session_state(session_id: str):
+    try:
+        payload = get_career_session(session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"success": True, **payload}
+
+
+@app.post("/career/session/action")
+async def career_session_action(req: CareerSessionActionRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    player_id = x_client_id if x_client_id else "unknown_player"
+    if not (req.choice_id or "").strip() and not (req.free_text or "").strip():
+        raise HTTPException(status_code=400, detail="请选择一种处置，或写下你的处理办法。")
+    try:
+        payload = submit_career_action(
+            session_id=req.session_id,
+            case_id=req.case_id,
+            choice_id=req.choice_id or "",
+            free_text=req.free_text or "",
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _safe_record_analytics(
+        "career_case",
+        player_id,
+        req.case_id,
+        payload.get("interpretation", {}).get("action_tag", ""),
+        "free" if (req.free_text or "").strip() else "choice",
+    )
+    return {"success": True, **payload}
+
+
+@app.get("/career/prototype")
+async def career_prototype(prototype_id: str = "tang_county_entry"):
+    prototype = _career_prototype_by_id(prototype_id)
+    return {"success": True, "prototype": _career_public_payload(prototype)}
+
+
+@app.post("/career/exam/submit")
+async def submit_career_exam(req: CareerExamSubmitRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    player_id = x_client_id if x_client_id else "unknown_player"
+    if not check_rate_limit(f"career-exam-{player_id}"):
+        raise HTTPException(status_code=429, detail="提交太快了，请稍等一下。")
+    prototype = _career_prototype_by_id(req.prototype_id)
+    result = _career_score_exam(prototype, req.answers or {})
+    _safe_record_analytics("career_exam", player_id, prototype.get("title", "入仕考选"), result["office"].get("title", ""), "")
+    return {
+        "success": True,
+        "prototype": _career_public_payload(prototype),
+        "result": result,
+    }
+
+
+@app.post("/career/appointment/start")
+async def start_career_appointment(req: CareerAppointmentRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    player_id = x_client_id if x_client_id else "unknown_player"
+    prototype = _career_prototype_by_id(req.prototype_id)
+    office = _career_office_by_id(prototype, req.office_id)
+    state = _career_initial_state(prototype, office)
+    _safe_record_analytics("career_appointment", player_id, prototype.get("title", "入仕考选"), office.get("title", ""), "start")
+    return {
+        "success": True,
+        "prototype": {
+            "prototype_id": str(prototype.get("prototype_id") or ""),
+            "title": str(prototype.get("title") or ""),
+            "era": str(prototype.get("era") or ""),
+            "stat_labels": prototype.get("stat_labels") or {},
+        },
+        "intro": prototype.get("appointment_intro") or {},
+        "state": state,
+        "affair": _career_affair_public_payload(prototype),
+    }
+
+
+@app.post("/career/affair/choose")
+async def choose_career_affair(req: CareerAffairChoiceRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):
+    player_id = x_client_id if x_client_id else "unknown_player"
+    prototype = _career_prototype_by_id(req.prototype_id)
+    result = _career_apply_affair_choice(prototype, req)
+    _safe_record_analytics("career_affair", player_id, prototype.get("title", "入仕考选"), req.affair_id, req.choice_id)
+    return {
+        "success": True,
+        "stat_labels": prototype.get("stat_labels") or {},
+        **result,
+    }
+
 
 @app.post("/time_travel/start")
 async def time_travel_start(req: TimeTravelStartRequest, x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID")):

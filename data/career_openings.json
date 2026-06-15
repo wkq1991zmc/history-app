@@ -1,0 +1,13 @@
+{
+  "tang_county_wei": {
+    "title": "一觉入唐",
+    "background_image": "/static/images/career-tang-yamen-theft-bg.png",
+    "dialogue": [
+      {"speaker": "我", "role": "初醒", "text": "我睁开眼，先看见陌生的木梁和半卷竹帘。案几上没有手机，只有一方官印、几卷文书和叠好的深色官服。"},
+      {"speaker": "{home_character}", "role": "家中人", "text": "{home_line}"},
+      {"speaker": "我", "role": "县尉", "text": "门外有人称我为县尉。我摸到官印冰凉的边角，才意识到这里不是片场，也不是一场容易醒来的梦。"},
+      {"speaker": "案吏", "role": "县衙属吏", "text": "大人，您任的是{place}县尉。县令已升堂，城南坊几户百姓正在堂下候告，等您先问一桩夜盗。"},
+      {"speaker": "我", "role": "任职第1日", "text": "我还不知道自己能否像一个真正的古代官吏那样办事，但门外的脚步声越来越近。第一件案子已经找上门了。"}
+    ]
+  }
+}

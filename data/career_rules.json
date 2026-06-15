@@ -1,0 +1,25 @@
+{
+  "campaign_days": 15,
+  "stat_min": 0,
+  "stat_max": 100,
+  "default_action_tag": "continue_investigation",
+  "action_tags": {
+    "strict_enforcement": {"label": "严办", "keywords": ["严办", "重罚", "抓起来", "先拘", "用刑", "严惩", "立刻拿下"]},
+    "mercy": {"label": "从宽", "keywords": ["从宽", "宽恕", "轻判", "放过", "给机会", "酌情"]},
+    "mediation": {"label": "调解", "keywords": ["调解", "和解", "协商", "各退一步", "劝和", "协调"]},
+    "continue_investigation": {"label": "继续调查", "keywords": ["调查", "查证", "证据", "勘验", "询问", "卷宗", "核实", "再查"]},
+    "report_superior": {"label": "上报县令", "keywords": ["上报", "县令", "请示", "呈报", "交给上级"]},
+    "appease_people": {"label": "安抚百姓", "keywords": ["安抚", "救济", "补偿", "照顾百姓", "先稳住", "慰问"]},
+    "pursue": {"label": "追捕", "keywords": ["追捕", "缉拿", "设卡", "搜捕", "追踪", "围捕"]},
+    "discipline_runners": {"label": "整顿差役", "keywords": ["整顿", "差役", "巡丁", "问责", "纪律", "查内鬼"]},
+    "resist_elite": {"label": "拒绝豪强干预", "keywords": ["豪强", "不徇私", "拒绝包庇", "依法查办", "顶住压力"]},
+    "cooperate_elite": {"label": "借助地方势力", "keywords": ["借助豪强", "合作", "请乡绅", "宗族协助", "地方势力"]},
+    "overreach": {"label": "违背权限", "keywords": ["直接处死", "斩首", "抄家", "调兵", "免税全县", "开仓全部"]}
+  },
+  "endings": [
+    {"ending_id": "commended", "title": "考课上等，获荐升任", "min_total": 320, "text": "十五日虽短，你已让县衙看见一套能执行、肯担责的治理方法。县令在考课簿上给了上等评语，准备向州府荐举。"},
+    {"ending_id": "trusted", "title": "治安渐稳，留任重用", "min_total": 270, "text": "你的政绩没有传奇般耀眼，却让百姓愿意报案、差役开始守规矩。县令决定让你留任，并把更棘手的治安事务交给你。"},
+    {"ending_id": "observed", "title": "功过相抵，留任观察", "min_total": 220, "text": "你处理了一些问题，也留下新的隐患。县令没有处分你，但在考课簿上写下“尚需历练”，下一阶段每一步都会更难。"},
+    {"ending_id": "impeached", "title": "失察受责，等待处分", "min_total": 0, "text": "民怨、失序或财政压力已经无法被几句解释掩盖。县令将你的处置记录呈报州府，你需要面对问责。"}
+  ]
+}

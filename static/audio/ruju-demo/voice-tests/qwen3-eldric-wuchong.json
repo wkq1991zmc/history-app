@@ -1,0 +1,13 @@
+{
+  "model": "qwen3-tts-instruct-flash",
+  "voice": "Eldric Sage",
+  "voice_name": "???",
+  "text": "外来的差牒好用，也不好用。能吓住小吏，吓不住真正写账的人。账不是写给百姓看的，是写给能查账的人看的。",
+  "instructions": "你是唐代县衙的老练书吏。说话低声、克制、带防备感，像在密室提醒人，不要播音腔，不要夸张。",
+  "created_at": "2026-06-15 19:28:15",
+  "request_id": "ee3a8f1c-821c-93db-9ff6-f22092c2044d",
+  "usage": {
+    "characters": 94
+  },
+  "file": "static/audio/ruju-demo/voice-tests/qwen3-eldric-wuchong.wav"
+}

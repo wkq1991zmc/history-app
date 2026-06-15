@@ -1,0 +1,20 @@
+[
+  {
+    "key": "wcmale1",
+    "voice_id": "cosyvoice-v3.5-plus-vd-wcmale1-4646cad66fa046ea8310fb4dd8ca4d35",
+    "file": "static\\audio\\ruju-demo\\voice-tests\\wcmale1-preview.wav",
+    "bytes": 335560
+  },
+  {
+    "key": "wcmale2",
+    "voice_id": "cosyvoice-v3.5-plus-vd-wcmale2-a3ab231926b840198b22ac50d19c3937",
+    "file": "static\\audio\\ruju-demo\\voice-tests\\wcmale2-preview.wav",
+    "bytes": 335560
+  },
+  {
+    "key": "wcmale3",
+    "voice_id": "cosyvoice-v3.5-plus-vd-wcmale3-bd6cb3f2b84e498e88cf4e63398c2209",
+    "file": "static\\audio\\ruju-demo\\voice-tests\\wcmale3-preview.wav",
+    "bytes": 335560
+  }
+]

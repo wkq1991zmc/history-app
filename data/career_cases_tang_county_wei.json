@@ -1,0 +1,274 @@
+[
+  {
+    "case_id": "day1_night_theft",
+    "order": 1,
+    "time_cost": 1,
+    "title": "城南夜盗",
+    "category": "盗窃",
+    "background_image": "/static/images/career-tang-yamen-theft-bg.png",
+    "brief": "城南坊连续三夜失盗，失主既有商户也有贫弱人家。坊门无破损，巡丁却互相推诿。",
+    "portraits": {"default": "/static/images/law-clerk-avatar.png", "小商户": "/static/images/law-tang-victim-family-avatar.png", "贫弱妇人": "/static/images/law-tang-victim-family-avatar.png", "坊正": "/static/images/law-tang-ritual-official-avatar.png"},
+    "opening_dialogue": [
+      {"speaker": "案吏", "role": "县衙属吏", "text": "大人，卖绢的钱柜和贫户过冬的粗布都被盗了。坊门没有被撞开，像是有人熟悉巡夜空当。"},
+      {"speaker": "小商户", "role": "失主", "text": "柜中钱数只有伙计和送货脚夫知道。若只是外贼，怎会摸得这样准？"},
+      {"speaker": "坊正", "role": "地方坊正", "text": "西侧坊墙早有缺口，我报修过两次。巡丁人少，县里也一直没拨钱。"}
+    ],
+    "investigation_steps": [
+      {"step_id": "question", "prompt": "你先追问哪一条矛盾？", "choices": [
+        {"id": "merchant", "text": "细问商户与伙计", "hint": "寻找熟人内应", "response": {"speaker": "小商户", "role": "失主", "text": "一个脚夫三日前突然不再来送货，他知道铺后小门的旧锁不好。"}},
+        {"id": "wall", "text": "让坊正带看墙缺", "hint": "确认盗贼进出路径", "response": {"speaker": "坊正", "role": "坊正", "text": "墙根有新脚印，还沾着染坊常用的靛泥。缺口确实有人夜里走过。"}},
+        {"id": "roster", "text": "核对巡夜名册", "hint": "检查差役是否失职", "response": {"speaker": "案吏", "role": "县衙属吏", "text": "名册上夜夜满员，可两名巡丁承认曾替人签押，值宿记录并不可信。"}}
+      ]},
+      {"step_id": "clue", "prompt": "线索指向脚夫、墙缺和虚假值宿。人手有限，你准备把力量放在哪里？", "choices": [
+        {"id": "stolen_goods", "text": "暗查旧货牙人与染坊", "hint": "顺着赃物流向追查", "response": {"speaker": "案吏", "role": "县衙属吏", "text": "旧货牙人认得被盗粗布的织纹，愿意暗中留意。"}},
+        {"id": "watch", "text": "夜里在墙缺设伏", "hint": "争取当场拿人", "response": {"speaker": "巡丁", "role": "巡丁", "text": "若设伏需抽六人，今夜别处巡段便会空一些。"}},
+        {"id": "internal", "text": "先查虚签名册", "hint": "防止衙门内部继续漏风", "response": {"speaker": "案吏", "role": "县衙属吏", "text": "虚签背后可能只是偷懒，也可能有人收钱替盗贼留路。"}}
+      ]}
+    ],
+    "decision_prompt": "第一轮查问结束。你要下达怎样的处置？",
+    "choices": [
+      {"id": "A", "text": "墙缺设伏，同时暗查销赃", "hint": "加快缉捕，但占用人手钱粮", "action_tag": "pursue", "deltas": {"popular_support": 3, "bureaucracy": 1, "treasury": -2, "superior_rating": 3, "security": 5}, "result": "两夜后，巡丁在墙缺抓到一名背布脚夫，并从牙人处追回部分赃物。主犯尚未落网，但坊民终于敢继续提供线索。", "aftermath": "夜巡压力增加，其他坊段暂时变得薄弱。", "archive_unlocks": ["县尉", "古代缉捕制度"]},
+      {"id": "B", "text": "先清查巡丁虚签和通风者", "hint": "整顿内部，破案速度会变慢", "action_tag": "discipline_runners", "deltas": {"popular_support": 1, "bureaucracy": 6, "treasury": 0, "superior_rating": 2, "security": 2}, "result": "两名巡丁被停役查问，其中一人承认收过脚夫酒钱。衙门纪律骤然收紧，但失主仍在等追回财物。", "aftermath": "属吏开始畏惧你，也有人认为你先查自己人会伤士气。", "archive_unlocks": ["差役"]},
+      {"id": "C", "text": "登记损失并组织坊民联防", "hint": "稳住民心，短期难以抓贼", "action_tag": "appease_people", "deltas": {"popular_support": 6, "bureaucracy": 1, "treasury": -1, "superior_rating": 0, "security": 2}, "result": "失主得到明确回告，商户也愿意轮流出灯照巷。报案和证词变多了，但县令提醒你不能只安抚而没有缉获。", "aftermath": "坊民信任上升，破案期限却仍在逼近。", "archive_unlocks": ["唐代坊市"]},
+      {"id": "D", "text": "将疑点和修墙费用一并呈报县令", "hint": "降低越权风险，也可能显得迟缓", "action_tag": "report_superior", "deltas": {"popular_support": 0, "bureaucracy": 2, "treasury": 1, "superior_rating": -1, "security": 1}, "result": "县令同意拨少量材料补墙，却要求你三日内给出缉捕进展。你避免擅自动用钱粮，也把更紧的期限领了回来。", "aftermath": "权责清楚了，但上官开始直接盯着这桩案子。", "archive_unlocks": ["唐代地方官制"]}
+    ]
+  },
+  {
+    "case_id": "day2_market_brawl",
+    "order": 2,
+    "time_cost": 2,
+    "title": "西市械斗",
+    "category": "市井治安",
+    "background_image": "/static/images/career/tang-market-night.png",
+    "brief": "两家脚店因争夺商旅货源发生械斗，一方背后是本地大姓，另一方聚集了外来脚夫。",
+    "portraits": {"default": "/static/images/law-clerk-avatar.png", "脚店掌柜": "/static/images/law-tang-ritual-official-avatar.png", "外来脚夫": "/static/images/law-tang-zhangsan-avatar.png", "豪强管事": "/static/images/law-wuzhou-chenziang-avatar.png"},
+    "opening_dialogue": [
+      {"speaker": "巡丁", "role": "巡丁", "text": "双方动了木棍和短刀，伤了五人。我们拿了外来脚夫，本地脚店的人却被陈家管事领走。"},
+      {"speaker": "外来脚夫", "role": "被拘者", "text": "是他们先堵路抢活！为何只锁我们，不锁陈家的人？"},
+      {"speaker": "豪强管事", "role": "陈家管事", "text": "都是年轻人一时冲动。陈家愿出医药钱，大人何必把小事闹到县令面前？"}
+    ],
+    "investigation_steps": [
+      {"step_id": "witness", "prompt": "双方各说各话，你先核实什么？", "choices": [
+        {"id": "stalls", "text": "问周边摊贩", "hint": "寻找中立目击者", "response": {"speaker": "茶摊老妇", "role": "目击者", "text": "陈家伙计先掀了脚夫的货筐，脚夫后来才拔刀。两边都不是全无过错。"}},
+        {"id": "injury", "text": "验看伤势和兵器", "hint": "判断冲突升级过程", "response": {"speaker": "案吏", "role": "县衙属吏", "text": "重伤者是被木棍击中，并无刀伤。短刀拔出，却没有见血。"}},
+        {"id": "patrol", "text": "追问巡丁为何放人", "hint": "查看是否受豪强干预", "response": {"speaker": "巡丁", "role": "巡丁", "text": "陈家管事说县丞与他家相熟，小人怕把事情办僵。"}}
+      ]},
+      {"step_id": "pressure", "prompt": "陈家愿赔钱，脚夫要求同罪同拘。你如何回应眼前压力？", "choices": [
+        {"id": "separate", "text": "先分开关押再逐一录供", "hint": "避免串供", "response": {"speaker": "案吏", "role": "县衙属吏", "text": "此法稳妥，但陈家必会继续托人说情。"}},
+        {"id": "compensation", "text": "先核定医药与毁损", "hint": "为调解准备底数", "response": {"speaker": "脚店掌柜", "role": "当事人", "text": "只要脚夫认错，我愿赔钱；若说我家先动手，我不能认。"}},
+        {"id": "summon", "text": "传陈家动手者到衙", "hint": "坚持同案同查", "response": {"speaker": "豪强管事", "role": "陈家管事", "text": "大人真要为几个外乡人伤本地体面？"}}
+      ]}
+    ],
+    "decision_prompt": "县衙门外已聚起围观者。你准备如何收束械斗？",
+    "choices": [
+      {"id": "A", "text": "两方主事者同拘同查", "hint": "维护公平，但会得罪陈家", "action_tag": "resist_elite", "deltas": {"popular_support": 5, "bureaucracy": 4, "treasury": -1, "superior_rating": 2, "security": 4}, "result": "陈家动手者最终被传到衙，与脚夫一同录供。围观者看见豪强也要受查，市面很快安静下来。", "aftermath": "陈家没有公开对抗，却开始拖延配合县衙征用车马。", "archive_unlocks": ["豪强与地方治理"]},
+      {"id": "B", "text": "责令赔偿并由行会调解", "hint": "快速复市，可能掩盖不公", "action_tag": "mediation", "deltas": {"popular_support": 2, "bureaucracy": 1, "treasury": 1, "superior_rating": 2, "security": 1}, "result": "双方赔付医药和货损，西市次日恢复营业。冲突表面平息，外来脚夫却觉得县衙仍偏向本地大姓。", "aftermath": "商业秩序恢复，积怨并未真正消失。", "archive_unlocks": ["唐代市井"]},
+      {"id": "C", "text": "严惩拔刀者，其他人从宽", "hint": "抓住危险行为，但忽略起因", "action_tag": "strict_enforcement", "deltas": {"popular_support": -1, "bureaucracy": 3, "treasury": 0, "superior_rating": 3, "security": 3}, "result": "拔刀脚夫被重责，其他人赔偿后释放。县令认可你迅速压住械斗，但市井议论县衙只罚了势弱一方。", "aftermath": "短期威慑明显，公平质疑开始累积。", "archive_unlocks": ["唐律中的斗殴"]},
+      {"id": "D", "text": "接受陈家担保，先放其家人", "hint": "减少执行阻力，损害公信", "action_tag": "cooperate_elite", "deltas": {"popular_support": -6, "bureaucracy": -4, "treasury": 2, "superior_rating": 1, "security": -2}, "result": "陈家出钱平事并担保自家人不再闹事。县衙省了力气，但外来商旅很快知道本县执法分人。", "aftermath": "豪强关系缓和，民望与吏治付出了代价。", "archive_unlocks": ["豪强与地方治理"]}
+    ]
+  },
+  {
+    "case_id": "day4_fugitive_households",
+    "order": 3,
+    "time_cost": 2,
+    "title": "河东逃户",
+    "category": "逃户",
+    "background_image": "/static/images/career/tang-canal-dispute.png",
+    "brief": "里正报称数户百姓夜间离村，上官怀疑逃避赋役；邻里却说这些人是被旱情和债务逼走。",
+    "portraits": {"default": "/static/images/law-clerk-avatar.png", "里正": "/static/images/law-tang-ritual-official-avatar.png", "老妇": "/static/images/law-tang-victim-family-avatar.png", "债主": "/static/images/law-wuzhou-chenziang-avatar.png"},
+    "opening_dialogue": [
+      {"speaker": "里正", "role": "里正", "text": "三户共十二口不见了，若不追还，今年赋役都要落到剩下的人头上。"},
+      {"speaker": "老妇", "role": "逃户邻人", "text": "他们不是盗贼。田里没收成，孩子又病，留下也是被债主逼死。"},
+      {"speaker": "债主", "role": "乡里富户", "text": "欠债有契，他们一走，我的钱找谁讨？官府若不追，人人都学着逃。"}
+    ],
+    "investigation_steps": [
+      {"step_id": "register", "prompt": "逃户牵涉赋役、债务和生计。你先查哪份底册？", "choices": [
+        {"id": "household", "text": "查户籍与差科", "hint": "确认是否突然加役", "response": {"speaker": "主簿", "role": "县衙主簿", "text": "这三户去年已服过役，今年又被里正补入运粮名册，负担确实偏重。"}},
+        {"id": "debt", "text": "查借契和利息", "hint": "确认债务是否逼迫过甚", "response": {"speaker": "案吏", "role": "县衙属吏", "text": "借契本钱不多，半年后却翻近一倍，另有口头利息未写在契上。"}},
+        {"id": "route", "text": "查去向与同行者", "hint": "判断是否卷入盗匪", "response": {"speaker": "巡丁", "role": "巡丁", "text": "有人见他们沿驿路往洛阳去，带着孩子和农具，不像投奔山贼。"}}
+      ]},
+      {"step_id": "scope", "prompt": "县尉不能独自免除赋役和债务，但可以决定是否立即追捕。你怎么做？", "choices": [
+        {"id": "notice", "text": "发告示劝返并承诺核查", "hint": "给逃户回头机会", "response": {"speaker": "里正", "role": "里正", "text": "若不立即追，其他户恐怕也会观望。"}},
+        {"id": "catch", "text": "派巡丁沿驿路追回", "hint": "执行直接，可能激化民怨", "response": {"speaker": "老妇", "role": "邻人", "text": "他们拖着病儿走不远，大人真要把人锁回来吗？"}},
+        {"id": "report", "text": "把差役与债契疑点呈县令", "hint": "请求有权限者处理根源", "response": {"speaker": "主簿", "role": "县衙主簿", "text": "若县令同意重核差科，才可能让人安心归籍。"}}
+      ]}
+    ],
+    "decision_prompt": "你要给巡丁、里正和县令怎样的明确安排？",
+    "choices": [
+      {"id": "A", "text": "暂缓拘捕，边劝返边呈报重核差役", "hint": "兼顾权限与民生，速度较慢", "action_tag": "report_superior", "deltas": {"popular_support": 5, "bureaucracy": 2, "treasury": -2, "superior_rating": 1, "security": 0}, "result": "县令同意暂缓三日，并命主簿重核运粮名册。两户听说后自行归来，另一户仍留在外地谋生。", "aftermath": "百姓看到官府愿意查原因，财政与赋役缺口却暂时扩大。", "archive_unlocks": ["逃户", "租庸调"]},
+      {"id": "B", "text": "立即追还全部逃户", "hint": "维护户籍执行，民怨上升", "action_tag": "pursue", "deltas": {"popular_support": -5, "bureaucracy": 4, "treasury": 4, "superior_rating": 3, "security": 1}, "result": "巡丁追回两户，补上部分赋役名额。被押回的百姓没有反抗，却有人在夜里再次离村。", "aftermath": "账面好看了，逃亡的根源没有消失。", "archive_unlocks": ["逃户"]},
+      {"id": "C", "text": "先查里正重复派役与债主高息", "hint": "追查根源，可能被认为拖延", "action_tag": "continue_investigation", "deltas": {"popular_support": 4, "bureaucracy": 5, "treasury": -1, "superior_rating": -1, "security": 0}, "result": "你查出里正为讨好富户，把几户弱民反复补入差役。县令撤换了里正，但逃户一时仍未全归。", "aftermath": "吏治改善，上官催办的压力转向了你。", "archive_unlocks": ["唐代基层户籍"]},
+      {"id": "D", "text": "让债主出资找人并保证不伤害", "hint": "借助地方资源，风险难控", "action_tag": "cooperate_elite", "deltas": {"popular_support": -3, "bureaucracy": -2, "treasury": 2, "superior_rating": 1, "security": -1}, "result": "债主很快找回一户，却私下扣走农具抵债。县衙节省了人手，也把公权的一部分交给了利益相关者。", "aftermath": "效率提高，弱民对官府更不信任。", "archive_unlocks": ["豪强与地方治理"]}
+    ]
+  },
+  {
+    "case_id": "day6_canal_dispute",
+    "order": 4,
+    "time_cost": 2,
+    "title": "两村争水",
+    "category": "乡里冲突",
+    "background_image": "/static/images/career/tang-canal-dispute.png",
+    "brief": "旱情导致上下游两村争夺水渠，已有青年携棍聚集。县尉管不了全部水政，却必须阻止械斗。",
+    "portraits": {"default": "/static/images/law-clerk-avatar.png", "上游村老": "/static/images/law-tang-ritual-official-avatar.png", "下游农妇": "/static/images/law-tang-victim-family-avatar.png", "县丞": "/static/images/law-wuzhou-chenziang-avatar.png"},
+    "opening_dialogue": [
+      {"speaker": "上游村老", "role": "上游村代表", "text": "旧渠是我们祖上修的，先灌上游本就有契。"},
+      {"speaker": "下游农妇", "role": "下游村民", "text": "他们昼夜堵水，下游秧苗都要死了。孩子们拿棍只是守田。"},
+      {"speaker": "县丞", "role": "县令佐贰", "text": "分水章程需县令裁定。你先把械斗压住，再把事实查清。"}
+    ],
+    "investigation_steps": [
+      {"step_id": "scene", "prompt": "你到渠边后先看什么？", "choices": [
+        {"id": "contract", "text": "核验旧契与界石", "hint": "确认原有用水权", "response": {"speaker": "案吏", "role": "县衙属吏", "text": "旧契只写春灌次序，没有规定大旱时如何分水。"}},
+        {"id": "sluice", "text": "查看闸口和水量", "hint": "判断是否能临时轮灌", "response": {"speaker": "老渠工", "role": "渠工", "text": "若每村轮开半日，两边都保不住全部田，却能保住一半秧苗。"}},
+        {"id": "weapons", "text": "清点聚集者与兵器", "hint": "先评估械斗风险", "response": {"speaker": "巡丁", "role": "巡丁", "text": "两边各有二十余人，多是木棍农具，已有三人饮酒壮胆。"}}
+      ]},
+      {"step_id": "boundary", "prompt": "你的核心权限是治安，不是永久分配水权。下一步如何控制局面？", "choices": [
+        {"id": "disarm", "text": "先收缴木棍并分开人群", "hint": "立即降低冲突风险", "response": {"speaker": "巡丁", "role": "巡丁", "text": "可以办，但人少，若双方都不服恐会推搡。"}},
+        {"id": "temporary", "text": "促成一日临时轮灌", "hint": "给县令裁定争取时间", "response": {"speaker": "县丞", "role": "县令佐贰", "text": "临时约束可以由你见证，永久章程仍须呈县令。"}},
+        {"id": "leaders", "text": "带双方首领回县衙", "hint": "让群体失去带头者", "response": {"speaker": "上游村老", "role": "村老", "text": "大人若只拿首领，留下的年轻人未必肯散。"}}
+      ]}
+    ],
+    "decision_prompt": "天色渐晚，双方情绪越来越急。你作何处置？",
+    "choices": [
+      {"id": "A", "text": "收缴兵器，见证轮灌，再报县令定章", "hint": "守住权限并处理眼前危险", "action_tag": "mediation", "deltas": {"popular_support": 4, "bureaucracy": 3, "treasury": -2, "superior_rating": 4, "security": 4}, "result": "双方各退一步，先按半日轮灌。你收走带来的木棍，并把水量、旧契和损失一并呈县令。", "aftermath": "冲突暂止，但任何一场新旱情都可能再次撕裂协议。", "archive_unlocks": ["古代水利纠纷"]},
+      {"id": "B", "text": "强令上游立即放水", "hint": "救下游燃眉之急，程序不足", "action_tag": "strict_enforcement", "deltas": {"popular_support": 1, "bureaucracy": -1, "treasury": 0, "superior_rating": -2, "security": 2}, "result": "下游田地得到水，上游人群却认为你越权偏袒。械斗没有发生，新的诉状第二天便送到县令案上。", "aftermath": "短期危机解决，官职权限争议留下来了。", "archive_unlocks": ["县尉权限"]},
+      {"id": "C", "text": "拘押双方带头饮酒者", "hint": "威慑直接，无法解决分水矛盾", "action_tag": "strict_enforcement", "deltas": {"popular_support": -2, "bureaucracy": 3, "treasury": -1, "superior_rating": 2, "security": 5}, "result": "聚众者见带头人被拘，很快散去。水渠仍被上游控制，冲突从明面转成夜间毁闸。", "aftermath": "治安暂稳，利益矛盾转入地下。", "archive_unlocks": ["乡里械斗"]},
+      {"id": "D", "text": "只派巡丁守渠，等待县令裁定", "hint": "程序稳妥，但消耗人手", "action_tag": "report_superior", "deltas": {"popular_support": -1, "bureaucracy": 1, "treasury": -3, "superior_rating": 2, "security": 2}, "result": "巡丁守了一夜，县令次日派县丞主持分水。你没有越权，但县衙为此抽空了其他巡段。", "aftermath": "程序清楚，城内夜巡力量变薄。", "archive_unlocks": ["唐代地方官制"]}
+    ]
+  },
+  {
+    "case_id": "day8_roadside_death",
+    "order": 5,
+    "time_cost": 2,
+    "title": "驿道晨尸",
+    "category": "命案初查",
+    "background_image": "/static/images/career/tang-roadside-crime.png",
+    "brief": "酒肆外发现一具被席覆盖的尸体。店家称死者醉倒，旅伴却说钱袋和文书不见了。",
+    "portraits": {"default": "/static/images/law-clerk-avatar.png", "酒肆主人": "/static/images/law-tang-ritual-official-avatar.png", "旅伴": "/static/images/law-tang-zhangsan-avatar.png", "仵作": "/static/images/law-wuzhou-chenziang-avatar.png"},
+    "opening_dialogue": [
+      {"speaker": "酒肆主人", "role": "店主", "text": "客人昨夜喝醉后在院中睡下，小人清早才发现他没气了。"},
+      {"speaker": "旅伴", "role": "同行商旅", "text": "他身上本有货契和钱袋，如今都没了。昨夜店里还坐着两个陌生人。"},
+      {"speaker": "仵作", "role": "县衙仵作", "text": "尸身后脑有伤，可能跌倒，也可能被钝物击打。未细验前不能断言。"}
+    ],
+    "investigation_steps": [
+      {"step_id": "preserve", "prompt": "现场围观者越来越多。你先保护什么？", "choices": [
+        {"id": "scene", "text": "封住院门，记录物件位置", "hint": "避免证据被踩乱", "response": {"speaker": "仵作", "role": "仵作", "text": "泥地上除死者脚印外，还有一双鞋底带缺口的足迹通向马厩。"}},
+        {"id": "body", "text": "先验尸伤与死亡时辰", "hint": "判断是意外还是他杀", "response": {"speaker": "仵作", "role": "仵作", "text": "伤口边缘有淤血，死前受伤的可能更大；酒气重，却不足以单独解释死亡。"}},
+        {"id": "people", "text": "立即分开店客录供", "hint": "防止串供和逃走", "response": {"speaker": "案吏", "role": "县衙属吏", "text": "两名陌生客人天亮前已离店，店中伙计对他们去向说法不一。"}}
+      ]},
+      {"step_id": "suspect", "prompt": "店主、旅伴和陌生客人都有疑点。你如何缩小范围？", "choices": [
+        {"id": "documents", "text": "查失踪货契的买卖对象", "hint": "判断谁从文书消失中获利", "response": {"speaker": "旅伴", "role": "同行商旅", "text": "货契涉及一批欠款，若死者不在，我也能主张其中一半。"}},
+        {"id": "stable", "text": "查马厩与缺口鞋印", "hint": "追踪离店者", "response": {"speaker": "巡丁", "role": "巡丁", "text": "马厩少了一匹驮马，掌马伙计的鞋底正缺了一角。"}},
+        {"id": "wine", "text": "查酒器与后厨药物", "hint": "排除下药可能", "response": {"speaker": "仵作", "role": "仵作", "text": "酒壶没有异味，后厨却有给牲口用的烈性草药，是否入酒还需再验。"}}
+      ]}
+    ],
+    "decision_prompt": "命案只能由县令正式审断。作为县尉，你如何完成初查并控制嫌疑人？",
+    "choices": [
+      {"id": "A", "text": "封存现场，拘留店主、旅伴和掌马伙计待讯", "hint": "保全证据，拘留范围较大", "action_tag": "continue_investigation", "deltas": {"popular_support": 2, "bureaucracy": 4, "treasury": -2, "superior_rating": 4, "security": 3}, "result": "证据被完整移交县令。进一步查验发现掌马伙计偷马，却不是凶手；旅伴对货契的隐瞒成为新的主线。", "aftermath": "调查稳妥，但无辜者也承受了短暂拘留。", "archive_unlocks": ["古代命案初验", "县尉"]},
+      {"id": "B", "text": "先追少马与陌生客人，只留店主具结", "hint": "集中追捕，可能遗漏身边嫌疑人", "action_tag": "pursue", "deltas": {"popular_support": 1, "bureaucracy": 1, "treasury": -3, "superior_rating": 2, "security": 4}, "result": "巡丁追回偷马伙计，却发现他只趁乱盗马。真正与死者争执的人仍可能留在酒肆里。", "aftermath": "缉捕有成果，案情却绕了远路。", "archive_unlocks": ["古代缉捕制度"]},
+      {"id": "C", "text": "认定旅伴图财，先用重讯逼问", "hint": "可能迅速得供，也有冤案风险", "action_tag": "strict_enforcement", "deltas": {"popular_support": -4, "bureaucracy": -3, "treasury": 0, "superior_rating": -2, "security": 2}, "result": "旅伴在压力下承认争执，却坚称没有杀人。供词与足迹、伤势仍对不上，县令对你的审讯方式表示不满。", "aftermath": "口供出现了，冤案风险也被写进卷宗。", "archive_unlocks": ["口供与证据"]},
+      {"id": "D", "text": "立即呈报县令，请县衙接管全部调查", "hint": "最守权限，但显得缺少担当", "action_tag": "report_superior", "deltas": {"popular_support": 0, "bureaucracy": 2, "treasury": 0, "superior_rating": -2, "security": 0}, "result": "县令接管案件，并命你继续负责现场和追捕。你没有越权，却也没有给出清晰的初查判断。", "aftermath": "个人风险较低，上官对能力的评价下降。", "archive_unlocks": ["唐代县衙审判"]}
+    ]
+  },
+  {
+    "case_id": "day10_runner_bribe",
+    "order": 6,
+    "time_cost": 2,
+    "title": "巡丁索钱",
+    "category": "差役贪腐",
+    "background_image": "/static/images/career-tang-yamen-theft-bg.png",
+    "brief": "商贩联名控告巡丁以夜禁为名索钱。被告巡丁是缉盗能手，还掌握未结盗案的重要线人。",
+    "portraits": {"default": "/static/images/law-clerk-avatar.png", "卖饼妇": "/static/images/law-tang-victim-family-avatar.png", "老巡丁": "/static/images/law-tang-zhangsan-avatar.png", "案吏": "/static/images/law-clerk-avatar.png"},
+    "opening_dialogue": [
+      {"speaker": "卖饼妇", "role": "商贩", "text": "他每逢夜禁便说我们收摊迟了，不交钱就扣锅扣车。"},
+      {"speaker": "老巡丁", "role": "被告巡丁", "text": "小人抓过多少盗贼，大人可以查。商贩违禁，我收的是代他们补灯油和巡夜的人情钱。"},
+      {"speaker": "案吏", "role": "县衙属吏", "text": "此人确实能办事，也握着城外盗匪的线人。若立刻拿下，几条线恐怕会断。"}
+    ],
+    "investigation_steps": [
+      {"step_id": "proof", "prompt": "索钱没有正式票据。你先找什么证据？", "choices": [
+        {"id": "merchants", "text": "分别询问多名商贩", "hint": "核对金额和时间是否一致", "response": {"speaker": "案吏", "role": "县衙属吏", "text": "六名商贩说出的日子和数额大体相合，不像临时串供。"}},
+        {"id": "property", "text": "查巡丁近来财物", "hint": "查看收入是否异常", "response": {"speaker": "老巡丁", "role": "巡丁", "text": "家中多出的两匹绢，他说是抓贼赏赐，却拿不出赏格文书。"}},
+        {"id": "night_log", "text": "对照夜禁扣押记录", "hint": "确认是否借执法索财", "response": {"speaker": "案吏", "role": "县衙属吏", "text": "记录上几乎没有正式扣押，说明多数人交钱后便被放走。"}}
+      ]},
+      {"step_id": "tradeoff", "prompt": "证据已足以停役查问，但盗匪线人可能因此暴露。你如何权衡？", "choices": [
+        {"id": "replace", "text": "先接管线人再停役", "hint": "兼顾案件与纪律", "response": {"speaker": "老巡丁", "role": "巡丁", "text": "线人只信小人。换人接触，他未必肯开口。"}},
+        {"id": "immediate", "text": "立即上锁查办", "hint": "表明绝不纵容", "response": {"speaker": "卖饼妇", "role": "商贩", "text": "若官府真肯查，我们愿意把每次交钱都写清。"}},
+        {"id": "secret", "text": "暂不声张，暗查其同伙", "hint": "扩大调查，继续容忍受害", "response": {"speaker": "案吏", "role": "县衙属吏", "text": "若暗查数日，可能牵出更多人，也可能让他继续索钱。"}}
+      ]}
+    ],
+    "decision_prompt": "巡丁是否还能留在差役队伍里？",
+    "choices": [
+      {"id": "A", "text": "接管线人后停役查办，退还索款", "hint": "纪律优先，也保留缉盗线索", "action_tag": "discipline_runners", "deltas": {"popular_support": 5, "bureaucracy": 6, "treasury": -2, "superior_rating": 3, "security": 1}, "result": "索款被逐笔退还，老巡丁停役候查。你另派可信差役接触线人，虽然一条线中断，衙门风气明显一紧。", "aftermath": "商贩重新信任夜禁执法，但短期缉盗效率下降。", "archive_unlocks": ["差役贪腐", "夜禁"]},
+      {"id": "B", "text": "记过罚钱，仍让他负责线人", "hint": "保住能力，纪律威慑有限", "action_tag": "mercy", "deltas": {"popular_support": -2, "bureaucracy": -3, "treasury": 2, "superior_rating": 1, "security": 3}, "result": "老巡丁交出部分钱款并继续办案，很快提供一条盗匪线索。其他差役却看见，有本事的人犯错也未必会被停役。", "aftermath": "治安获得短期收益，吏治留下坏示范。", "archive_unlocks": ["差役"]},
+      {"id": "C", "text": "暗查三日，试图揪出更多索钱者", "hint": "可能扩大成果，也延长伤害", "action_tag": "continue_investigation", "deltas": {"popular_support": -1, "bureaucracy": 4, "treasury": 0, "superior_rating": 0, "security": 1}, "result": "你查出另有两名巡丁分取索款，随后一并停役。商贩不满县衙明知后仍等了三日，但清理更彻底。", "aftermath": "结果更完整，过程中的容忍需要解释。", "archive_unlocks": ["胥吏与基层治理"]},
+      {"id": "D", "text": "让其戴罪立功，破盗案后再议", "hint": "把纪律押在未来结果上", "action_tag": "cooperate_elite", "deltas": {"popular_support": -4, "bureaucracy": -5, "treasury": 1, "superior_rating": 2, "security": 4}, "result": "老巡丁带人捣毁一处销赃窝点，上官称赞效率。商贩却发现索钱者仍穿着公服巡街。", "aftermath": "功劳掩住了问题，却没有消除问题。", "archive_unlocks": ["戴罪立功"]}
+    ]
+  },
+  {
+    "case_id": "day12_curfew_cart",
+    "order": 7,
+    "time_cost": 2,
+    "title": "夜禁车队",
+    "category": "夜禁与走私",
+    "background_image": "/static/images/career/tang-market-night.png",
+    "brief": "夜禁后，一支挂着州府名号的车队要求开坊门。车上称是急送药材，巡丁却闻到酒香并发现封条可疑。",
+    "portraits": {"default": "/static/images/law-clerk-avatar.png", "车队管事": "/static/images/law-wuzhou-chenziang-avatar.png", "巡丁": "/static/images/law-clerk-avatar.png", "病童父亲": "/static/images/law-tang-victim-family-avatar.png"},
+    "opening_dialogue": [
+      {"speaker": "车队管事", "role": "州府商队管事", "text": "车上是急送州城的药材，耽误一夜，出了人命谁担？"},
+      {"speaker": "巡丁", "role": "守门巡丁", "text": "封条像是重新贴过，后车还有酒香。可他们拿着州府采买的牌子。"},
+      {"speaker": "病童父亲", "role": "求药百姓", "text": "小儿高热，若真有药，求大人容我买一剂。"}
+    ],
+    "investigation_steps": [
+      {"step_id": "inspect", "prompt": "夜里查验既可能救人，也可能冲撞州府关系。你先查哪辆车？", "choices": [
+        {"id": "seal", "text": "核对公文、封条与车数", "hint": "从手续判断真伪", "response": {"speaker": "案吏", "role": "县衙属吏", "text": "公文写五车，眼前却有七车；多出的两车没有列入清单。"}},
+        {"id": "medicine", "text": "请医者验药材", "hint": "确认急送理由", "response": {"speaker": "医者", "role": "县中医者", "text": "前五车确有药材，后两车的箱底却垫着私酒。"}},
+        {"id": "route", "text": "问为何错过闭门时辰", "hint": "判断是否故意借夜通行", "response": {"speaker": "车夫", "role": "车夫", "text": "管事白日在城外停了两个时辰等人，似乎并不真急。"}}
+      ]},
+      {"step_id": "permission", "prompt": "真药与私酒混在一起。你怎样处理才不耽误药材？", "choices": [
+        {"id": "split", "text": "分车放行药材，扣下私酒", "hint": "兼顾急务与执法", "response": {"speaker": "车队管事", "role": "管事", "text": "拆封误时，州府追问时大人要自己解释。"}},
+        {"id": "hold", "text": "全队扣至天明请示", "hint": "程序稳妥，药材会延误", "response": {"speaker": "病童父亲", "role": "百姓", "text": "大人的手续等得起，我家孩子等不起。"}},
+        {"id": "release", "text": "登记后全部放行", "hint": "避免冲突，放过走私", "response": {"speaker": "巡丁", "role": "巡丁", "text": "今日若放，往后谁都能挂块牌子夜里过门。"}}
+      ]}
+    ],
+    "decision_prompt": "坊门前的人都在等你的命令。",
+    "choices": [
+      {"id": "A", "text": "验明分车，药材放行，私酒封存呈报", "hint": "执行复杂但边界清楚", "action_tag": "continue_investigation", "deltas": {"popular_support": 4, "bureaucracy": 4, "treasury": 1, "superior_rating": 3, "security": 3}, "result": "药车继续赶路，私酒和两辆无单车被封存。州府后来确认采买牌被管事滥用，并未追责县衙。", "aftermath": "你守住了规则，也证明基层官并非只能机械扣押。", "archive_unlocks": ["夜禁", "唐代驿路"]},
+      {"id": "B", "text": "全队扣留，天明请县令裁定", "hint": "风险最低，急务受损", "action_tag": "report_superior", "deltas": {"popular_support": -3, "bureaucracy": 3, "treasury": 0, "superior_rating": 1, "security": 2}, "result": "县令天明确认其中有私酒，但真正的药材也延误了半日。程序没有错误，百姓却只记得县衙让药车等在门外。", "aftermath": "个人责任较轻，民望为迟缓付账。", "archive_unlocks": ["夜禁"]},
+      {"id": "C", "text": "全部放行，暗中派人跟踪", "hint": "不误药材，但可能失去证据", "action_tag": "pursue", "deltas": {"popular_support": 2, "bureaucracy": -1, "treasury": -2, "superior_rating": 0, "security": 1}, "result": "药材顺利出城，巡丁跟到一处私仓，却因人手不足没能扣住全部酒货。", "aftermath": "你得到更大线索，也承担了放行走私车的风险。", "archive_unlocks": ["唐代商贸"]},
+      {"id": "D", "text": "收取保证钱后准其全部通行", "hint": "快捷获利，严重损害吏治", "action_tag": "cooperate_elite", "deltas": {"popular_support": -5, "bureaucracy": -7, "treasury": 4, "superior_rating": -3, "security": -4}, "result": "车队交钱离去。此事很快传到其他商队耳中，夜禁从规矩变成了可以议价的门槛。", "aftermath": "官库多了一点钱，县衙失去的却是执法底线。", "archive_unlocks": ["夜禁"]}
+    ]
+  },
+  {
+    "case_id": "day14_bandit_clue",
+    "order": 8,
+    "time_cost": 1,
+    "title": "山道盗匪",
+    "category": "阶段大案",
+    "background_image": "/static/images/career/tang-roadside-crime.png",
+    "brief": "此前盗案、逃户和销赃线索汇到同一处山道客栈。县令要求你在考课前给出行动方案。",
+    "portraits": {"default": "/static/images/law-clerk-avatar.png", "线人": "/static/images/law-tang-zhangsan-avatar.png", "县令": "/static/images/law-wuzhou-chenziang-avatar.png", "巡丁": "/static/images/law-clerk-avatar.png"},
+    "opening_dialogue": [
+      {"speaker": "线人", "role": "旧货牙人", "text": "城南被盗的布、驿道少的马，都在黑松店出现过。那里白日是客栈，夜里替山贼换货。"},
+      {"speaker": "巡丁", "role": "巡丁", "text": "店后通山路，若强攻，他们可能逃，也可能挟持住店商旅。"},
+      {"speaker": "县令", "role": "本县县令", "text": "州府催问盗匪。你是县尉，可以组织缉捕，但若需邻县或军兵协助，必须先报。"}
+    ],
+    "investigation_steps": [
+      {"step_id": "intelligence", "prompt": "行动前，你还缺哪一块情报？", "choices": [
+        {"id": "layout", "text": "让线人画出客栈与山路", "hint": "减少盲目强攻", "response": {"speaker": "线人", "role": "线人", "text": "后院有两条路，一条进山，一条通废窑；赃物多藏在废窑。"}},
+        {"id": "hostages", "text": "查清住店商旅人数", "hint": "避免伤及无辜", "response": {"speaker": "巡丁", "role": "巡丁", "text": "今夜约有七名商旅，其中两人带孩子，不能把所有人都当同伙。"}},
+        {"id": "support", "text": "核对可用巡丁和邻县距离", "hint": "评估是否需要上报增援", "response": {"speaker": "案吏", "role": "县衙属吏", "text": "本县能立即出动十二人，邻县援手最快也要明日午后。"}}
+      ]},
+      {"step_id": "plan", "prompt": "盗匪可能今晚转移赃物。你决定采用什么策略？", "choices": [
+        {"id": "ambush", "text": "埋伏废窑，等赃物转移时拿人", "hint": "风险较低，主犯可能留在客栈", "response": {"speaker": "巡丁", "role": "巡丁", "text": "若拿住运赃者，可顺藤摸瓜；若线人走漏风声，便会扑空。"}},
+        {"id": "raid", "text": "今夜包围客栈强行搜捕", "hint": "迅速直接，可能伤及商旅", "response": {"speaker": "县令", "role": "县令", "text": "你可组织缉捕，但须把无辜商旅的安全写进计划。"}},
+        {"id": "reinforce", "text": "封路监视，等待邻县增援", "hint": "稳妥但可能错失时机", "response": {"speaker": "线人", "role": "线人", "text": "他们若发现山口有人，天亮前就会散进山里。"}}
+      ]}
+    ],
+    "decision_prompt": "这是十五日任期内最重要的一次行动，也是县令考课前最后观察你的机会。",
+    "choices": [
+      {"id": "A", "text": "疏散商旅，封住山路后分队搜捕", "hint": "计划周全，成本和协调要求高", "action_tag": "pursue", "deltas": {"popular_support": 4, "bureaucracy": 4, "treasury": -4, "superior_rating": 6, "security": 7}, "result": "巡丁先以查验文书为名带出商旅，随后两队封路搜捕。主犯翻墙逃走，却在山口被擒，赃物也从废窑起出。", "aftermath": "行动成功建立了威信，也几乎耗尽县衙本月可调的缉捕钱粮。", "archive_unlocks": ["古代缉捕制度", "盗匪与地方治安"]},
+      {"id": "B", "text": "埋伏废窑，先拿运赃者再审主犯", "hint": "稳妥取证，主犯可能逃脱", "action_tag": "continue_investigation", "deltas": {"popular_support": 2, "bureaucracy": 5, "treasury": -2, "superior_rating": 4, "security": 4}, "result": "运赃者落网并供出客栈同伙，县衙追回大半赃物。主犯提前离店，但画像和去向已经明确。", "aftermath": "案件没有传奇式一网打尽，却形成了扎实可续的证据链。", "archive_unlocks": ["赃物与证据"]},
+      {"id": "C", "text": "立即强攻客栈，争取一举拿下", "hint": "速度最快，伤亡和冤抓风险高", "action_tag": "strict_enforcement", "deltas": {"popular_support": -2, "bureaucracy": 1, "treasury": -3, "superior_rating": 3, "security": 6}, "result": "盗匪大部被擒，但混乱中一名商旅受伤，两名无辜脚夫也被误拘。县令认可战果，同时要求你解释伤民问题。", "aftermath": "治安威慑达到最高，代价也被写进考课。", "archive_unlocks": ["缉捕与冤案风险"]},
+      {"id": "D", "text": "封路监视并等待增援", "hint": "降低个人风险，可能错失主犯", "action_tag": "report_superior", "deltas": {"popular_support": -1, "bureaucracy": 3, "treasury": -1, "superior_rating": 1, "security": 1}, "result": "增援抵达时客栈已空，只留下部分来不及转移的赃物。行动没有伤亡，主犯却进入邻县山地。", "aftermath": "你守住了程序和人员安全，也错过了最好的缉捕窗口。", "archive_unlocks": ["跨县缉捕"]}
+    ]
+  }
+]

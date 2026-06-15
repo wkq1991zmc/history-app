@@ -1,0 +1,11 @@
+{
+  "key": "wcmale2",
+  "label": "版本 B：老练疲惫官吏",
+  "prompt": "五十岁左右男性，音色厚重低哑，带疲惫感，咬字清楚，压低声音说话，像老练官吏在密室提醒对方，普通话，明确男声。",
+  "model": "cosyvoice-v3.5-plus",
+  "voice_id": "cosyvoice-v3.5-plus-vd-wcmale2-a3ab231926b840198b22ac50d19c3937",
+  "preview_text": "外来的差牒好用，也不好用。账不是写给百姓看的，是写给能查账的人看的。",
+  "created_at": "2026-06-15 19:00:17",
+  "request_id": "3349f0d3-d27e-932a-8ac3-39edbb61f983",
+  "file": "static/audio/ruju-demo/voice-tests/wcmale2-preview.wav"
+}

@@ -9,7 +9,8 @@
   <script defer src="https://cdn.tailwindcss.com"></script>
   
   <!-- 引入自定义主题覆盖 -->
-  <link rel="stylesheet" href="/static/css/styles.css?v=tang-xiaoqin-case-20260605a">
+  <link rel="stylesheet" href="/static/css/styles.css?v=story-demo-20260615i">
+  <link rel="stylesheet" href="/static/css/historical-rpg-demo.css?v=story-demo-20260615i">
   
   <!-- Google Fonts: 马山正书法体 + ZCOOL小薇体 + 思源宋体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -188,8 +189,8 @@
               <div class="ruju-hero-copy">
                 <h1>入局</h1>
                 <span class="ruju-vertical-seal">历史决策</span>
-                <h2>礼法断案，做出你的裁断</h2>
-                <p>进入古代司法现场，听取律令、亲情与教化的不同声音。</p>
+                <h2 id="ruju-hero-title">一朝入仕，亲历县政</h2>
+                <p id="ruju-hero-copy">随机成为一名符合时代的基层官员，在职责边界内处理案件、承担代价，并迎接考课。</p>
                 <div class="ruju-demo-mark"><span></span><b>PRIVATE DEMO</b><span></span></div>
               </div>
             </div>
@@ -198,16 +199,16 @@
               <div class="ruju-entry-main">
                 <div class="ruju-entry-card">
                   <div class="ruju-card-emblem">印</div>
-                  <h2>选择断案卷宗</h2>
-                  <p>课堂体验模式 · 请根据老师指引进入</p>
+                  <h2>驿路无名</h2>
+                  <p>进入一段真实历史洪流中的单人故事。追查失踪驿卒，也决定几个普通人的去向。</p>
                   <div class="ruju-event-chip">
                     <span class="ruju-chip-icon">卷</span>
-                    <b>东汉末年 · 赤壁战前的江东朝议</b>
+                    <b>唐 · 天宝十四载 · 安史之乱前夜</b>
                     <span class="ruju-chip-caret"></span>
                   </div>
                   <div class="ruju-entry-actions">
-                    <button id="travel-start-btn" type="button">开始入局</button>
-                    <span>随机入局</span>
+                    <button id="travel-start-btn" type="button">进入第一章</button>
+                    <span>剧情探索 · 单人历史跑团 Demo</span>
                   </div>
                   <div class="ruju-classroom-cases hidden" aria-label="公开课案例">
                     <p class="ruju-classroom-note">课堂体验模式 · 请根据老师指引进入</p>
@@ -243,27 +244,29 @@
                   <div class="ruju-flow-card">
                     <span class="ruju-flow-image ruju-flow-image-gate"></span>
                     <div>
-                      <b><em>01</em>进入现场</b>
-                      <p>置身历史关键时刻，了解背景与各方立场。</p>
+                      <b><em>01</em>明确目标</b>
+                      <p>始终知道主线去向，也可以暂时绕路探访途中人物。</p>
                     </div>
                   </div>
                   <div class="ruju-flow-card">
                     <span class="ruju-flow-image ruju-flow-image-scroll"></span>
                     <div>
-                      <b><em>02</em>收集观点</b>
-                      <p>聆听众人意见与情报，分析形势，权衡利弊。</p>
+                      <b><em>02</em>自由调查</b>
+                      <p>交谈、追问、查看遗物，从不同说法中拼出真相。</p>
                     </div>
                   </div>
                   <div class="ruju-flow-card">
                     <span class="ruju-flow-image ruju-flow-image-seal"></span>
                     <div>
-                      <b><em>03</em>做出抉择</b>
-                      <p>做出你的决策，影响事件走向与结局。</p>
+                      <b><em>03</em>承担余波</b>
+                      <p>天下大势不会改变，但你在意的人会记住今晚的决定。</p>
                     </div>
                   </div>
                 </div>
               </div>
             </section>
+
+            <section id="career-prototype-panel" class="career-prototype-panel hidden" aria-label="驿路无名剧情体验"></section>
 
             <section id="travel-visual-panel" class="ruju-visual-panel hidden" aria-label="赤壁视觉局">
               <div class="ruju-visual-stage" id="travel-visual-stage">
@@ -576,6 +579,6 @@
       </div>
     </div>
   </div>
-  <script type="module" src="/static/js/app.js?v=tang-xiaoqin-case-20260605a"></script>
+  <script type="module" src="/static/js/app.js?v=story-demo-20260615i"></script>
 </body>
 </html>
