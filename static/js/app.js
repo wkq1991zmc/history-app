@@ -388,16 +388,16 @@ function updateClassroomDemoVisibility() {
         elements.rujuEntryCardTitle.textContent = visible ? "选择断案卷宗" : "驿路无名";
     }
     if (elements.rujuEntryCardCopy) {
-        elements.rujuEntryCardCopy.textContent = visible ? "课堂体验模式 · 请根据老师指引进入" : "追查一名失踪驿卒，在官道、葬礼和废渡口之间拼出被隐瞒的名字。";
+        elements.rujuEntryCardCopy.textContent = visible ? "课堂体验模式 · 请根据老师指引进入" : "从临皋官道的一匹空马开始，沿着不同地方的主线一路卷入天宝末年的巨变。";
     }
     if (elements.rujuEventChipText) {
-        elements.rujuEventChipText.textContent = visible ? "东汉末年 · 赤壁战前的江东朝议" : "唐 · 天宝十四载 · 安史之乱前夜";
+        elements.rujuEventChipText.textContent = visible ? "东汉末年 · 赤壁战前的江东朝议" : "第一站 · 临皋 / 唐 · 天宝十四载";
     }
     if (elements.travelStartBtn) {
-        elements.travelStartBtn.textContent = visible ? "开始入局" : "进入第一章";
+        elements.travelStartBtn.textContent = visible ? "开始入局" : "进入第一站";
     }
     if (elements.rujuEntryActionLabel) {
-        elements.rujuEntryActionLabel.textContent = visible ? "随机入局" : "剧情探索 · 单人历史跑团 Demo";
+        elements.rujuEntryActionLabel.textContent = visible ? "随机入局" : "连续章节 · 历史悬疑互动剧 Demo";
     }
 }
 

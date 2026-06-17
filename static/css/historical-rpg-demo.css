@@ -1,20 +1,23 @@
 .story-demo-shell {
     width: 100%;
-    min-height: calc(100dvh - 72px);
+    min-height: 100dvh;
     color: #f5ead7;
 }
 
 .app-shell.ruju-mode.career-mode .career-prototype-panel {
-    min-height: calc(100dvh - 72px);
+    min-height: 100dvh;
     padding: 0;
 }
 
 @media (min-width: 901px) {
     .app-shell.ruju-mode.career-mode {
         grid-template-columns: minmax(0, 1fr) !important;
-        grid-template-areas:
-            "top"
-            "main" !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+        grid-template-areas: "main" !important;
+    }
+
+    .app-shell.ruju-mode.career-mode #app-topbar {
+        display: none !important;
     }
 
     .app-shell.ruju-mode.career-mode #main-sidebar {
@@ -26,8 +29,8 @@
 .story-map-screen,
 .story-ending-screen {
     position: relative;
-    min-height: calc(100dvh - 72px);
-    height: calc(100dvh - 72px);
+    min-height: 100dvh;
+    height: 100dvh;
     overflow: hidden;
     background: #08090a;
 }
@@ -45,27 +48,34 @@
     transform: scale(1.008);
 }
 
+.is-dialogue .story-demo-bg,
+.is-testimony .story-demo-bg {
+    background-position: center top;
+    transform: scale(1.018);
+}
+
 .story-demo-shade {
     background:
-        linear-gradient(180deg, rgba(4, 7, 9, 0.48) 0%, rgba(3, 6, 8, 0.08) 42%, rgba(3, 5, 6, 0.84) 100%),
+        linear-gradient(180deg, rgba(4, 7, 9, 0.28) 0%, rgba(3, 6, 8, 0.03) 48%, rgba(3, 5, 6, 0.18) 100%),
         linear-gradient(90deg, rgba(4, 7, 8, 0.54) 0%, transparent 34%, transparent 68%, rgba(4, 7, 8, 0.42) 100%);
 }
 
 .story-demo-topbar {
     position: absolute;
     z-index: 20;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0.85rem;
+    left: 0.9rem;
+    right: 0.9rem;
     display: grid;
-    grid-template-columns: auto minmax(10rem, 18rem) minmax(18rem, 1fr) auto auto auto auto auto;
+    grid-template-columns: auto minmax(9rem, 16rem) minmax(0, 1fr) auto auto auto auto auto;
     gap: 0.75rem;
     align-items: center;
-    min-height: 4.6rem;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(220, 184, 119, 0.16);
-    background: linear-gradient(180deg, rgba(7, 9, 10, 0.94), rgba(7, 9, 10, 0.62));
-    backdrop-filter: blur(14px);
+    min-height: 3.2rem;
+    padding: 0;
+    border-bottom: 0;
+    background: transparent;
+    backdrop-filter: none;
+    pointer-events: none;
 }
 
 .story-icon-btn {
@@ -79,6 +89,7 @@
     color: #e6c98f;
     font-size: 1.25rem;
     line-height: 1;
+    pointer-events: auto;
 }
 
 .story-icon-btn:hover {
@@ -111,6 +122,12 @@
     display: grid;
     gap: 0.12rem;
     min-width: 0;
+    padding: 0.46rem 0.72rem;
+    border: 1px solid rgba(220, 184, 119, 0.14);
+    border-radius: 4px;
+    background: rgba(5, 8, 9, 0.38);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+    pointer-events: auto;
 }
 
 .story-chapter-copy span,
@@ -132,8 +149,7 @@
 }
 
 .story-objective {
-    padding-left: 1rem;
-    border-left: 1px solid rgba(220, 184, 119, 0.2);
+    padding-left: 0.72rem;
 }
 
 .story-objective b {
@@ -149,9 +165,16 @@
     display: flex;
     gap: 0.5rem;
     align-items: center;
+    justify-self: start;
+    width: fit-content;
     color: #f0d6a1;
     font-size: 0.82rem;
     font-weight: 800;
+    padding: 0.46rem 0.66rem;
+    border: 1px solid rgba(220, 184, 119, 0.12);
+    border-radius: 4px;
+    background: rgba(5, 8, 9, 0.34);
+    pointer-events: auto;
 }
 
 .story-time i {
@@ -362,21 +385,21 @@
 .story-dialogue-layer {
     position: absolute;
     z-index: 10;
-    inset: 4.7rem 0 0;
+    inset: 0;
     display: grid;
     align-items: end;
-    justify-items: start;
-    padding: 0 clamp(1.25rem, 5.8vw, 7rem) clamp(2.3rem, 6vh, 4.8rem);
+    justify-items: center;
+    padding: 0 clamp(1.75rem, 7vw, 8.75rem) clamp(5.2rem, 12vh, 8.2rem);
     pointer-events: none;
 }
 
 .story-dialogue-box {
     position: relative;
     display: grid;
-    justify-items: start;
-    width: min(49rem, calc(100vw - 9rem));
-    min-height: 5.7rem;
-    padding: 0 0 1.25rem;
+    justify-items: center;
+    width: min(52rem, calc(100vw - 10rem));
+    min-height: 0;
+    padding: 0;
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -388,6 +411,18 @@
 
 .story-dialogue-box::before {
     display: none;
+}
+
+.is-dialogue .story-objective,
+.is-testimony .story-objective,
+.story-briefing .story-objective {
+    display: none;
+}
+
+.is-dialogue .story-demo-topbar,
+.is-testimony .story-demo-topbar,
+.story-briefing .story-demo-topbar {
+    grid-template-columns: auto minmax(9rem, 16rem) minmax(0, 1fr) auto auto auto auto;
 }
 
 .story-briefing .story-demo-shade {
@@ -445,8 +480,20 @@
     letter-spacing: 0;
 }
 
+.story-briefing-title-only em {
+    display: inline-flex;
+    width: fit-content;
+    margin-top: 1.15rem;
+    color: rgba(112, 200, 186, 0.86);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 0.78rem;
+    font-style: normal;
+    font-weight: 900;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.82);
+}
+
 .story-briefing-copy > p {
-    max-width: 26rem;
+    max-width: min(32rem, 100%);
     margin: 0;
     color: rgba(250, 242, 226, 0.84);
     font-family: 'Noto Serif SC', serif;
@@ -492,7 +539,7 @@
     display: inline-flex;
     gap: 0.55rem;
     align-items: baseline;
-    justify-content: flex-start;
+    justify-content: center;
     margin-bottom: 0.32rem;
     padding: 0;
     border: 0;
@@ -514,7 +561,8 @@
 }
 
 .story-dialogue-box p {
-    max-width: min(46rem, 100%);
+    width: min(52rem, 100%);
+    max-width: min(52rem, 100%);
     margin: 0;
     color: rgba(255, 251, 240, 0.97);
     font-family: 'Noto Serif SC', serif;
@@ -544,9 +592,9 @@
 }
 
 .story-continue-btn {
-    position: absolute;
-    right: 0;
-    bottom: 0;
+    position: relative;
+    justify-self: center;
+    margin-top: 0.45rem;
     min-width: 4.6rem;
     padding: 0.3rem 0;
     border: 0;
@@ -557,7 +605,7 @@
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0;
-    text-align: right;
+    text-align: center;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.94);
 }
 
@@ -1088,18 +1136,19 @@
 @media (max-width: 900px) {
     .story-demo-stage,
     .story-map-screen,
-    .story-ending-screen { min-height: calc(100dvh - 64px); height: calc(100dvh - 64px); }
-    .story-demo-topbar { grid-template-columns: auto minmax(0, 1fr) auto auto auto; gap: 0.45rem; }
-    .story-objective { grid-column: 1 / -1; grid-row: 2; padding: 0.5rem 0 0; border-left: 0; border-top: 1px solid rgba(220, 184, 119, 0.15); }
+    .story-ending-screen { min-height: 100dvh; height: 100dvh; }
+    .story-demo-topbar { top: 0.75rem; left: 0.75rem; right: 0.75rem; grid-template-columns: auto minmax(0, 1fr) auto auto auto; gap: 0.45rem; }
+    .story-objective { grid-column: 1 / -1; grid-row: 2; padding: 0.48rem 0.62rem; border-left: 1px solid rgba(220, 184, 119, 0.14); border-top: 0; }
     .story-time { display: none; }
     .story-audio-btn { width: 2.35rem; height: 2.35rem; }
     .story-character,
     .story-character.is-left { left: 50%; right: auto; width: min(82vw, 28rem); height: calc(100% - 12rem); bottom: 8.8rem; transform: translateX(-50%); }
     .story-character.is-testimony-witness { left: 50%; right: auto; width: min(58vw, 18rem); height: calc(100% - 17rem); bottom: 11.6rem; transform: translateX(-50%); opacity: 0.72; }
-    .story-dialogue-layer { justify-items: start; padding: 0 1.15rem 2.2rem; }
-    .story-dialogue-box { width: min(100%, 34rem); min-height: 6.6rem; padding: 0 0 1.5rem; }
+    .is-dialogue .story-demo-bg { transform: scale(1.018); }
+    .story-dialogue-layer { justify-items: center; padding: 0 1.15rem clamp(4.2rem, 10vh, 5.8rem); }
+    .story-dialogue-box { width: min(100%, 34rem); min-height: 0; padding: 0; }
     .story-dialogue-box p { font-size: 1.05rem; }
-    .story-continue-btn { right: 0; bottom: 0; }
+    .story-continue-btn { margin-top: 0.45rem; }
     .story-testimony-hud { top: 8.8rem; left: 1rem; width: calc(100% - 2rem); }
     .story-testimony-hud h2 { font-size: 2.45rem; }
     .story-testimony-witness { left: 1rem; right: 1rem; bottom: 22.8rem; }
@@ -1115,7 +1164,7 @@
     .story-map-legend { display: none; }
     .story-scene-panel { top: 8.6rem; right: 0.7rem; bottom: 0.7rem; width: calc(100% - 1.4rem); padding: 2.2rem 1rem 1rem; }
     .story-final-panel { top: 8.6rem; bottom: 0.7rem; overflow-y: auto; }
-    .story-briefing-copy { width: calc(100% - 2rem); margin-left: 1rem; padding: 8.5rem 0 2rem; overflow-y: auto; align-content: start; }
+    .story-briefing-copy { width: calc(100% - 2rem); margin-left: 1rem; padding: 7rem 0 2rem; overflow-y: auto; align-content: center; }
     .story-briefing-copy h2 { font-size: 4rem; }
     .story-briefing-title-only > span { font-size: 3rem; }
     .story-briefing-title-only h2 { font-size: 1.15rem; }

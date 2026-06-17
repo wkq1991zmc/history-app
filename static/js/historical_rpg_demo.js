@@ -66,9 +66,9 @@ const DEMO_VOICE_LINES = {
 const LOCATIONS = {
     road: {
         name: "临皋官道",
-        eyebrow: "序章",
+        eyebrow: "第一站",
         image: DEMO_ASSETS.road,
-        description: "你以为这只是一件找人找文书的小差事。临皋的官道却把你带进了天宝十四载的第一道裂缝。",
+        description: "一匹空马把你带到临皋。这里不是终点，只是天宝末年第一道裂缝。",
     },
     funeral: {
         name: "河滩葬礼",
@@ -145,7 +145,7 @@ function initialState() {
             voiceOn: true,
             unlocked: false,
         },
-        objective: "找到孙平，弄清点名簿为何不能回到县衙",
+        objective: "查清空马从何而来，找到失踪驿卒孙平",
         notice: "",
         ending: null,
     };
@@ -622,23 +622,23 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
     function beginOpeningDialogue() {
         unlockAudioForStory();
         playDialogue([
-            { speaker: "旁白", text: "很久以后，我才明白，许多大事最初都不像大事。" },
-            { speaker: "旁白", text: "那天夜里，我只是奉命到临皋找一个失踪驿卒，顺手带回一页点名簿。" },
-            { speaker: "旁白", text: "泥水漫过靴底。临皋县外的驿舍点着灯，灯下的人却没有一个敢先开口。" },
-            { speaker: "旁白", text: "袖里的临时差牒被汗浸软。我摸了摸那枚印，忽然不确定它在这里到底能吓住谁。" },
-            { speaker: "旁白", text: "吴崇站在半步之后。每当我的目光落到驿舍账柜上，他都会先一步移开视线。" },
-            { speaker: "吴崇", text: "我是吴崇，在临皋县衙写了六年账。县里让我陪你查孙平，可我知道，他们更想知道你会查到哪一步。" },
+            { speaker: "旁白", text: "雨停在黄昏前。" },
+            { speaker: "旁白", text: "临皋驿外的泥地上，站着一匹空马。鞍还在，缰绳打得很整齐，像骑马的人下马以后，还认真替它收了尾。" },
+            { speaker: "旁白", text: "吴崇说，孙平只是逃了。" },
+            { speaker: "旁白", text: "可逃走的人，通常不会把马送回来。" },
+            { speaker: "旁白", text: "袖里的临时差牒被汗浸软。县里催我找人，催得很急，却没有一个人愿意先说：孙平带走的到底是什么。" },
+            { speaker: "吴崇", text: "我是吴崇，临皋县衙书吏。县里让我陪你查孙平，也让我看着你别查过头。" },
             { speaker: "吴崇", text: "外来的差牒好用，也不好用。能吓住小吏，吓不住真正写账的人。你若只想交差，明日辰时前找到孙平就够了。" },
-            { speaker: "旁白", text: "沈砚没有看吴崇。她盯着路边那匹无人骑乘的驿马，指节攥得发白。" },
+            { speaker: "旁白", text: "路边站着一个替商队认路的女子。她没有看吴崇，只盯着那匹空马，像是怕它忽然倒下。" },
             { speaker: "沈砚", text: "我叫沈砚，常替商队认路。孙平失踪前走过哪几段驿道，我比县里那些人清楚。" },
-            { speaker: "沈砚", text: "怀远驿到临皋，顺路不过三十里。一个老驿卒若真想逃，不会让马自己回来。" },
-            { speaker: "旁白", text: "我掀开马鞍，看见一角血布。缰绳被人仔细挽好，整整齐齐，像有人临死前还记得官家的规矩。" },
+            { speaker: "沈砚", text: "一个老驿卒若真想逃，不会把马放回来。除非他想让后来的人沿着马找到什么。" },
+            { speaker: "旁白", text: "我掀开马鞍，看见一角血布。血已经发黑，布角却被压得很平，像有人故意留给查马的人看。" },
             { speaker: "你", text: "失踪者带走了什么？" },
             { speaker: "吴崇", text: "不是军报正本，只是一页点名簿。可县里催得比丢了官印还急。" },
             { speaker: "沈砚", text: "一页名簿能值几条命？" },
             { speaker: "吴崇", text: "这话最好别在县衙门口问。临皋这几年账面很干净，干净得像从没饿死过人。" },
-            { speaker: "旁白", text: "我把差牒重新塞回袖中。差遣仍然简单：找到孙平，找回点名簿。" },
-            { speaker: "旁白", text: "只是从这一刻起，点名簿不再像一页纸。它像一扇门，门后有人不肯开口，也有人已经来不及开口。" },
+            { speaker: "旁白", text: "我把差牒重新塞回袖中。这一站的差遣仍然简单：找到孙平，找回点名簿。" },
+            { speaker: "旁白", text: "只是从这一刻起，点名簿不再像一页纸。它像一扇门，门后通向临皋以外的路，也通向还没有烧起来的天下。" },
         ], "map");
     }
 
@@ -1085,7 +1085,7 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
             <header class="story-demo-topbar">
                 <button type="button" class="story-icon-btn story-exit-btn" data-story-action="exit" aria-label="退出本局" title="退出本局">×</button>
                 <div class="story-chapter-copy">
-                    <span>第一章 · 天宝十四载冬</span>
+                    <span>第一站 · 天宝十四载冬</span>
                     <b>驿路无名</b>
                 </div>
                 <div class="story-objective"><span>当前目标</span><b>${escapeHtml(state.objective)}</b></div>
@@ -1114,9 +1114,11 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
                 <section class="story-demo-stage story-briefing" style="--story-bg: url('${escapeHtml(DEMO_ASSETS.road)}')">
                     <div class="story-demo-bg"></div><div class="story-demo-shade"></div>
                     ${renderTopbar()}
-                    <div class="story-briefing-copy story-briefing-title-only" data-story-action="begin-opening" role="button" tabindex="0" aria-label="进入序章">
-                        <span>序章 · 天宝十四载冬</span>
+                    <div class="story-briefing-copy story-briefing-title-only" data-story-action="begin-opening" role="button" tabindex="0" aria-label="进入第一站">
+                        <span>第一站 · 天宝十四载冬</span>
                         <h2>临皋</h2>
+                        <p>空马归驿，失踪者带走了一页不该离开县衙的点名簿。</p>
+                        <em>点击画面开始</em>
                     </div>
                 </section>
             </div>
@@ -1245,7 +1247,7 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
                 <section class="story-map-screen">
                     ${renderTopbar()}
                     <div class="story-map-atmosphere"></div>
-                    <div class="story-map-copy"><span>临皋县北 · 官驿道</span><h2>今夜去哪里？</h2><p>主线地点会推进故事；途中见闻可能消失，也可能让你重新理解后来遇见的人。</p></div>
+                    <div class="story-map-copy"><span>第一站 · 临皋县北</span><h2>今夜去哪里？</h2><p>主线地点会推进本章；途中见闻可能消失，也可能让你重新理解后来遇见的人。</p></div>
                     <div class="story-route" aria-label="可探索地点">
                         ${knownLocations.map((id, index) => {
                             const location = LOCATIONS[id];
@@ -1375,13 +1377,13 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
                     <div class="story-demo-bg"></div><div class="story-demo-shade"></div>
                     ${renderTopbar()}
                     <div class="story-ending-copy">
-                        <span>第一章 · 终</span>
+                        <span>第一站 · 终</span>
                         <h2>${escapeHtml(ending.title)}</h2>
                         <p>${escapeHtml(ending.choice)}</p>
                         <p>${escapeHtml(ending.people)}</p>
                         <blockquote>${escapeHtml(ending.cost)}</blockquote>
                         <div class="story-history-boundary"><b>天下大势</b><p>天宝十四载十一月，安禄山起兵。叛乱仍将席卷河北与两京。你没有改变它，只改变了临皋今夜有哪些人能够离开，以及谁的名字会被记住。</p></div>
-                        <div class="story-next-hook"><span>下一章线索</span><b>赵七遗物上的铜牌，来自长安西市一家早已停业的脚店。</b></div>
+                        <div class="story-next-hook"><span>下一站线索</span><b>赵七遗物上的铜牌，来自长安西市一家早已停业的脚店。</b></div>
                         <div class="story-ending-actions"><button type="button" data-story-action="restart">重新入局</button><button type="button" data-story-action="exit">返回入口</button></div>
                     </div>
                 </section>
