@@ -1,0 +1,13 @@
+{
+  "model": "cosyvoice-v2",
+  "speaker": "吴崇",
+  "voice": "libai_v2",
+  "text": "她在撒谎。只是眼下还不知道，这个谎是为了找孙平，还是替孙平遮掩。",
+  "created_at": "2026-06-18 00:05:10",
+  "request_id": "7a827df009c94f90a21eb98f4e46f692",
+  "usage": {
+    "characters": 32
+  },
+  "file": "static/audio/ruju-demo/voice/wu-chong-libai-v2-10.wav",
+  "bytes": 409484
+}

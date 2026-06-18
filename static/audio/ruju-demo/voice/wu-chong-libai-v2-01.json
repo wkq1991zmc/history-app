@@ -1,0 +1,13 @@
+{
+  "model": "cosyvoice-v2",
+  "speaker": "吴崇",
+  "voice": "libai_v2",
+  "text": "我是吴崇，临皋县衙书吏。县里让我陪你查孙平，也让我看着你别查过头。",
+  "created_at": "2026-06-18 00:04:26",
+  "request_id": "e719241c638c4b0c8c281dcd9ae9f28c",
+  "usage": {
+    "characters": 33
+  },
+  "file": "static/audio/ruju-demo/voice/wu-chong-libai-v2-01.wav",
+  "bytes": 453644
+}

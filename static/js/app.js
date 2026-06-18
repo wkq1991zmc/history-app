@@ -1,4 +1,4 @@
-import { createHistoricalRpgDemo } from './historical_rpg_demo.js?v=story-demo-20260616a';
+import { createHistoricalRpgDemo } from './historical_rpg_demo.js?v=story-demo-20260618d';
 
 const DEFAULT_EVENT_ID = "\u79e6\u671d\u00b7\u4e00\u7edf\u516d\u56fd";
 const AUTH_REMEMBER_KEY = "historyAppRememberLogin";
@@ -382,7 +382,7 @@ function updateClassroomDemoVisibility() {
     if (elements.rujuHeroCopy) {
         elements.rujuHeroCopy.textContent = visible
             ? "进入古代司法现场，听取律令、亲情与教化的不同声音。"
-            : "沿着一条明确主线自由调查、结识人物。天下大势不会改变，但普通人的命运会留下余波。";
+            : "沿着一条明确主线做出选择、结识人物。天下大势不会改变，但普通人的命运会留下余波。";
     }
     if (elements.rujuEntryCardTitle) {
         elements.rujuEntryCardTitle.textContent = visible ? "选择断案卷宗" : "驿路无名";

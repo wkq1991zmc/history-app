@@ -14,7 +14,7 @@ const DEMO_ASSETS = {
 const DEMO_BGM = "/static/audio/ruju-demo/bgm/lingao-winter-road.wav";
 
 const TIME_LABELS = ["黄昏", "入夜", "一更", "二更", "将晓"];
-const SCENE_LIMITS = { funeral: 3, post: 3 };
+const SCENE_LIMITS = { funeral: 1, post: 1 };
 const TESTIMONY_LINES = {
     oldWoman: {
         title: "送葬老妇的证词",
@@ -35,8 +35,9 @@ const PEOPLE = {
     "送葬老妇": { role: "河畔村民", portrait: DEMO_ASSETS.oldWoman, side: "right" },
     "何六": { role: "怀远驿驿长", portrait: DEMO_ASSETS.postmaster, side: "right" },
     "孙平": { role: "失踪驿卒", portrait: DEMO_ASSETS.sunPing, side: "right" },
+    "县吏": { role: "临皋县衙", portrait: "", side: "right" },
     "旁白": { role: "", portrait: "" },
-    "你": { role: "观察使衙门随行书吏", portrait: "" },
+    "你": { role: "采访使幕府随行书吏", portrait: "" },
 };
 
 const VOICE_PROFILES = {
@@ -49,15 +50,22 @@ const VOICE_PROFILES = {
 };
 
 const DEMO_VOICE_LINES = {
-    "吴崇::我是吴崇，在临皋县衙写了六年账。县里让我陪你查孙平，可我知道，他们更想知道你会查到哪一步。": "/static/audio/ruju-demo/voice/wu-chong-longlaobo-intro-01.wav",
-    "吴崇::外来的差牒好用，也不好用。能吓住小吏，吓不住真正写账的人。你若只想交差，明日辰时前找到孙平就够了。": "/static/audio/ruju-demo/voice/wu-chong-longlaobo-warning-01.wav",
+    "吴崇::我是吴崇，临皋县衙书吏。县里让我陪你查孙平，也让我看着你别查过头。": "/static/audio/ruju-demo/voice/wu-chong-libai-v2-01.wav",
+    "吴崇::外来的差牒好用，也不好用。能吓住小吏，吓不住真正写账的人。你若只想交差，明日辰时前找到孙平就够了。": "/static/audio/ruju-demo/voice/wu-chong-libai-v2-02.wav",
+    "吴崇::不是军报正本，只是一页点名簿。可县里催得比丢了官印还急。": "/static/audio/ruju-demo/voice/wu-chong-libai-v2-03.wav",
+    "吴崇::这话最好别在县衙门口问。临皋这几年账面很干净，干净得像从没饿死过人。": "/static/audio/ruju-demo/voice/wu-chong-libai-v2-04.wav",
+    "吴崇::无主尸身自有里正处置。我们要找孙平，不是替每个死人停步。": "/static/audio/ruju-demo/voice/wu-chong-libai-v2-05.wav",
+    "吴崇::逃役的人临死也会胡言。二十三户，或许只是欠债的村户。": "/static/audio/ruju-demo/voice/wu-chong-libai-v2-06.wav",
+    "吴崇::沈姑娘，我们在官道相遇时，你只说自己替商队认路。看来每个人上路时，都只说了够用的那部分。": "/static/audio/ruju-demo/voice/wu-chong-libai-v2-07.wav",
+    "吴崇::我们奉命查孙平，不是替沿途无主尸立案。写进去，县里便要问为何误了时辰。": "/static/audio/ruju-demo/voice/wu-chong-libai-v2-08.wav",
+    "吴崇::隐瞒与案犯的亲缘，按理我现在就该让你回临皋。": "/static/audio/ruju-demo/voice/wu-chong-libai-v2-09.wav",
+    "吴崇::她在撒谎。只是眼下还不知道，这个谎是为了找孙平，还是替孙平遮掩。": "/static/audio/ruju-demo/voice/wu-chong-libai-v2-10.wav",
+    "吴崇::何驿长，我们还没问，你便把罪名和去向都说全了。": "/static/audio/ruju-demo/voice/wu-chong-libai-v2-11.wav",
+    "吴崇::锁没有被撬，说明开匣的人本就有钥匙。怀远驿能碰钥匙的，除了孙平还有你。": "/static/audio/ruju-demo/voice/wu-chong-libai-v2-12.wav",
     "沈砚::我叫沈砚，常替商队认路。孙平失踪前走过哪几段驿道，我比县里那些人清楚。": "/static/audio/ruju-demo/voice/shen-yan-longqiang-intro-01.wav",
     "沈砚::怀远驿到临皋，顺路不过三十里。一个老驿卒若真想逃，不会让马自己回来。": "/static/audio/ruju-demo/voice/shen-yan-longqiang-horse-01.wav",
     "你::失踪者带走了什么？": "/static/audio/ruju-demo/voice/player-01.wav",
-    "吴崇::不是军报正本，只是一页点名簿。可县里催得比丢了官印还急。": "/static/audio/ruju-demo/voice/wu-chong-02.wav",
     "沈砚::一页名簿能值几条命？": "/static/audio/ruju-demo/voice/shen-yan-02.wav",
-    "吴崇::这话最好别在县衙门口问。临皋这几年账面很干净，干净得像从没饿死过人。": "/static/audio/ruju-demo/voice/wu-chong-03.wav",
-    "吴崇::无主尸身自有里正处置。我们要找孙平，不是替每个死人停步。": "/static/audio/ruju-demo/voice/wu-chong-04.wav",
     "沈砚::先等等。棺绳打的是驿结，外行不会这样收尾。": "/static/audio/ruju-demo/voice/shen-yan-03.wav",
     "送葬老妇::官爷若是来认尸的，我们谁也不知道他叫什么。若是来拿人的，村里也没有人能跟你们走。": "/static/audio/ruju-demo/voice/old-woman-01.wav",
     "你::我只问四句话。问完，若与孙平无关，我不拦你合棺。": "/static/audio/ruju-demo/voice/player-02.wav",
@@ -431,10 +439,10 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
         typingTimer = window.setTimeout(step, 80);
     }
 
-    function addClue(id, title, detail) {
+    function addClue(id, title, detail, options = {}) {
         if (state.clues.some(item => item.id === id)) return;
         state.clues.push({ id, title, detail });
-        state.notice = `获得线索：${title}`;
+        if (options.notify !== false) state.notice = `获得线索：${title}`;
     }
 
     function hasClue(id) {
@@ -615,13 +623,34 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
         state = initialState();
         state.active = true;
         state.mode = "briefing";
+        state.briefingReadyAt = Date.now() + 4700;
+        state.openingQueued = false;
         render();
         unlockAudioForStory();
     }
 
     function beginOpeningDialogue() {
+        if (!state.active || state.mode !== "briefing") return;
+        const waitMs = Math.max(0, (state.briefingReadyAt || 0) - Date.now());
+        if (waitMs > 0) {
+            if (!state.openingQueued) {
+                state.openingQueued = true;
+                window.setTimeout(() => {
+                    if (!state.active || state.mode !== "briefing") return;
+                    state.openingQueued = false;
+                    beginOpeningDialogue();
+                }, waitMs);
+            }
+            return;
+        }
         unlockAudioForStory();
         playDialogue([
+            { speaker: "旁白", text: "临皋县门口的鼓刚过黄昏，门房已经催了三遍。县衙不让你进内堂，只把一纸临时差牒递到门槛外。" },
+            { speaker: "县吏", text: "孙平是怀远驿老卒，携簿潜逃。县令说，明日辰时前带人回来，别惊动街坊，也别翻旧账。" },
+            { speaker: "旁白", text: "他说“别翻旧账”时，吴崇正低头替你抄差牒。笔尖停了一瞬，又像什么都没听见。" },
+            { speaker: "吴崇", text: "县里催的是人，不是案。人找回来，簿册归库，这一页就算翻过去。" },
+            { speaker: "旁白", text: "沈砚站在县门影子外，披着商队的旧斗篷。她没有插话，只把守门人、差役和吴崇的表情都看了一遍。" },
+            { speaker: "沈砚", text: "若只是逃卒，县衙不会把门关得这么紧。若只是一页簿子，也不会让外来的差牒连夜出城。" },
             { speaker: "旁白", text: "雨停在黄昏前。" },
             { speaker: "旁白", text: "临皋驿外的泥地上，站着一匹空马。鞍还在，缰绳打得很整齐，像骑马的人下马以后，还认真替它收了尾。" },
             { speaker: "旁白", text: "吴崇说，孙平只是逃了。" },
@@ -657,9 +686,8 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
             { speaker: "吴崇", text: "无主尸身自有里正处置。我们要找孙平，不是替每个死人停步。" },
             { speaker: "沈砚", text: "先等等。棺绳打的是驿结，外行不会这样收尾。" },
             { speaker: "送葬老妇", text: "官爷若是来认尸的，我们谁也不知道他叫什么。若是来拿人的，村里也没有人能跟你们走。" },
-            { speaker: "你", text: "我只问四句话。问完，若与孙平无关，我不拦你合棺。" },
             { speaker: "旁白", text: "老妇没有退开。她的手背青筋鼓起，像是挡着的不是一口棺，而是一群还活着的人。" },
-        ], "testimony");
+        ], "scene");
     }
 
     function openTestimony(id = state.testimony.id || "oldWoman") {
@@ -671,12 +699,27 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
     }
 
     function funeralTopic(topic) {
-        markTopic("funeral", topic);
-        if (topic === "respect") {
+        if (!markTopic("funeral", topic)) return;
+        state.objective = "前往怀远驿，查清孙平为何带走名册";
+        if (topic === "close") {
+            state.memories.funeralApproach = "close";
+            changeRelation("villagers", 1);
+            addClue("last_words", "死者的遗言", "无名男子临死前反复说：别让他们点名，二十三户。", { notify: false });
+            completeInvestigation("funeral");
+            playDialogue([
+                { speaker: "你", text: "先让他们合棺。" },
+                { speaker: "旁白", text: "差役退到一旁。最后一抔湿土落下时，老妇的肩膀才从紧绷里慢慢塌下来。" },
+                { speaker: "送葬老妇", text: "官爷若真不夺死人，我便只说一句。他临死前抓着那只旧鞋，说：别让他们点名，二十三户。" },
+                { speaker: "沈砚", text: "孙平带走的是一页名册。河滩上的死人，也在护同一批名字。" },
+                { speaker: "吴崇", text: "逃役的人临死也会胡言。二十三户，或许只是欠债的村户。" },
+                { speaker: "旁白", text: "老妇没有再解释，只在离开前指了指上游。那里通向怀远驿，也通向孙平最后当值的那条路。" },
+            ], "scene");
+        } else if (topic === "respect") {
             state.memories.funeralApproach ||= "respect";
             changeRelation("villagers", 2);
             changeRelation("shen", 1);
-            addClue("last_words", "死者的遗言", "无名男子临死前反复说：别让他们点名，二十三户。");
+            addClue("last_words", "死者的遗言", "无名男子临死前反复说：别让他们点名，二十三户。", { notify: false });
+            completeInvestigation("funeral");
             playDialogue([
                 { speaker: "旁白", text: "你收起差牒，向送葬的人借来一炷残香，先在薄棺前行了一个生者对死者的礼。老妇挡在棺前的肩膀终于松了些。" },
                 { speaker: "送葬老妇", text: "官爷若真肯把他当个人，我便告诉你。他是昨日从上游漂来的，腰上有鞭伤，手里攥着一只小孩的旧鞋。临死只说了两句话。" },
@@ -688,7 +731,9 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
             state.memories.funeralApproach ||= "inspect";
             changeRelation("villagers", -1);
             changeRelation("wu", 1);
-            addClue("relay_knot", "驿卒绳结", "棺绳来自官用马缰，结法是驿卒长途换马时使用的活结。");
+            addClue("relay_knot", "驿卒绳结", "棺绳来自官用马缰，结法是驿卒长途换马时使用的活结。", { notify: false });
+            addClue("last_words", "死者的遗言", "无名男子临死前反复说：别让他们点名，二十三户。", { notify: false });
+            completeInvestigation("funeral");
             playDialogue([
                 { speaker: "你", text: "此人可能牵涉失踪公文。开棺不为夺尸，也不取财物，只验伤、验衣、验绳。吴崇，把我的话记下。" },
                 { speaker: "送葬老妇", text: "官字两张口。今日说只看一眼，明日便能把死人也写成盗贼。" },
@@ -698,52 +743,18 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
                 { speaker: "旁白", text: "她说完才意识到自己泄露了什么，手指从棺绳上慢慢松开。" },
                 { speaker: "吴崇", text: "沈姑娘，我们在官道相遇时，你只说自己替商队认路。看来每个人上路时，都只说了够用的那部分。" },
             ], "scene");
-        } else if (topic === "record") {
-            state.memories.deathRecorded = true;
-            changeRelation("wu", 1);
-            addClue("death_record", "无名死者验记", "吴崇正式记下死者伤势、遗言、旧鞋与棺绳。此人不再只是路边一具无主尸。");
-            playDialogue([
-                { speaker: "你", text: "吴崇，把这个人记入验簿。身长、伤处、发现地点、送葬人证，一项也别省。" },
-                { speaker: "吴崇", text: "我们奉命查孙平，不是替沿途无主尸立案。写进去，县里便要问为何误了时辰。" },
-                { speaker: "你", text: "若他与孙平无关，这一页只是多费墨。若有关，今日不写，明日便会有人说从未见过他。" },
-                { speaker: "旁白", text: "吴崇沉默片刻，跪在棺旁垫着膝头落笔。他先写‘无名男尸’，停了一下，又在旁边留出足够写下姓名的位置。" },
-                { speaker: "沈砚", text: "吴书吏，你怕的不是多一页卷宗。你怕的是有一天，有人拿这一页问你以前为何没写。" },
-            ], "scene");
-        } else if (topic === "shen") {
-            if (hasClue("relay_knot") || hasClue("last_words")) {
-                addClue("shen_identity", "沈砚的真实身份", "沈砚本名孙砚，是失踪驿卒孙平的妹妹。");
-                changeRelation("shen", state.memories.funeralApproach === "respect" ? 2 : 1);
-                playDialogue([
-                    { speaker: "你", text: hasClue("relay_knot") ? "你不是碰巧认得驿结。你认识孙平。" : "老妇提到二十三户时，你看的不是尸体，是那只旧鞋。你知道死者替谁送东西。" },
-                    { speaker: "沈砚", text: "……我姓孙。孙平是我兄长。若我一开始说实话，你还会让我跟来吗？" },
-                    { speaker: "沈砚", text: state.memories.funeralApproach === "respect" ? "方才你肯先给陌生死人上香，我愿意赌一次。找到兄长以后，请先听他说完，再决定把他交给谁。" : "我不能信县衙，但眼下只能信你会先查清。找到兄长以后，请先听他说完，再决定把他交给谁。" },
-                    { speaker: "吴崇", text: "隐瞒与案犯的亲缘，按理我现在就该让你回临皋。" },
-                    { speaker: "沈砚", text: "那你便动手。只是没有我，你们到了渡口也未必认得谁留下的记号。" },
-                ], "scene");
-            } else {
-                playDialogue([
-                    { speaker: "沈砚", text: "我替商队走过两年驿路，认得一些绳结并不奇怪。先找孙平吧，别让死人耽误了时辰。" },
-                    { speaker: "旁白", text: "她回答得太快，眼睛却始终没有离开那口棺材。" },
-                    { speaker: "吴崇", text: "她在撒谎。只是眼下还不知道，这个谎是为了找孙平，还是替孙平遮掩。" },
-                ], "scene");
-            }
-        } else if (topic === "token") {
-            addClue("ferry_token", "废渡铜牌", "死者鞋底藏着旧渡口的铜牌，背面刻着怀远驿的马号。");
-            state.ferryUnlocked = true;
-            playDialogue([
-                { speaker: "送葬老妇", text: state.memories.funeralApproach === "respect" ? "你肯给他留一炷香，这件东西我便交给你。它从他鞋底掉出来，旧渡口早废了，夜里只有逃役的人才敢过去。" : "既然你们已经验了尸，这东西也藏不住。它从他鞋底掉出来，旧渡口早废了，夜里只有逃役的人才敢过去。" },
-                { speaker: "沈砚", text: "怀远驿的马号。有人想让我们去那里，也可能有人正等着我们。" },
-                { speaker: "送葬老妇", text: "你们若真要去，先替他记住一件事。他死前一直护着那只旧鞋，像是答应过要把它带回谁家。" },
-                { speaker: "旁白", text: state.memories.deathRecorded ? "吴崇在验簿末尾添上‘遗铜牌一、童鞋一’，那块为姓名留下的空白仍然醒目。" : "吴崇催促上路，却悄悄把死者的身量、伤处和遗物记进了随身小册。" },
-            ], "scene");
         }
-        updateSceneProgress("funeral");
     }
 
     function startPost() {
         playDialogue([
             { speaker: "旁白", text: "怀远驿的大门半开。灶上水已烧干，廊下却拴着孙平昨日骑走的青骢马。" },
             { speaker: "旁白", text: "院里没有搏斗痕迹。两副食碗摆在桌上，一副已经洗净，另一副还留着半块干硬的胡饼。" },
+            { speaker: "旁白", text: "孙平睡的铺位靠近门口，草席卷到一半，下面压着一只补过三次的布袜。墙缝里还塞着半截给孩子削木马用的小刀。" },
+            { speaker: "沈砚", text: "他每次离驿都会把席子卷到底。这样马房进风，夜里老鼠也不敢钻进被里。" },
+            { speaker: "吴崇", text: "你连他的铺盖习惯都知道？" },
+            { speaker: "沈砚", text: "我知道他不是会丢下半块饼的人。驿卒的粮食按口算，没人会把能吃的东西留在桌上。" },
+            { speaker: "旁白", text: "那只洗净的碗被倒扣得很正，碗底却还有一道没擦掉的油痕。像有人急着抹去同席吃饭的人，又没来得及把生活本身一起抹掉。" },
             { speaker: "何六", text: "孙平偷了驿银，畏罪逃了。县里要的是人，二位只管沿河北追，莫在驿中耽搁。" },
             { speaker: "吴崇", text: "何驿长，我们还没问，你便把罪名和去向都说全了。" },
             { speaker: "沈砚", text: "马回来了，人却没有。驿长，你像是早就准备好了这套说辞。" },
@@ -752,32 +763,42 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
     }
 
     function postTopic(topic) {
-        markTopic("post", topic);
-        if (topic === "case") {
-            addClue("empty_case", "空公文匣", "匣锁没有撬痕，军报正本仍在，少的是夹层中的点名簿。");
+        if (!markTopic("post", topic)) return;
+        state.ferryUnlocked = true;
+        state.objective = "前往废渡口，找到孙平与点名簿";
+        if (topic === "listen") {
+            state.memories.postApproach = "listen";
             changeRelation("wu", 1);
+            addClue("ferry_direction", "废渡方向", "何六说辞里漏出废渡口，那里可能有人等着孙平。", { notify: false });
+            completeInvestigation("post");
             playDialogue([
-                { speaker: "旁白", text: "公文匣锁扣完整。正本封泥未动，夹层却有一圈新鲜纸屑。" },
-                { speaker: "你", text: "若孙平想卖军情，不会只拿走一页点名簿。" },
-                { speaker: "何六", text: "小人只管养马递文，哪里懂他发什么疯。" },
-                { speaker: "吴崇", text: "锁没有被撬，说明开匣的人本就有钥匙。怀远驿能碰钥匙的，除了孙平还有你。" },
-                { speaker: "何六", text: "吴书吏，替县里送过多少封不该拆的信，才练出这般好眼力？" },
+                { speaker: "你", text: "先听何六说完。" },
+                { speaker: "何六", text: "孙平昨日黄昏离驿，带走一页不该带的簿子。若各位还想追人，便沿河北去，莫在这里把驿站也拖下水。" },
+                { speaker: "旁白", text: "他说得太顺，顺得像早有人替他排过一遍。吴崇没有打断，只把每个地名都记进袖中小册。" },
+                { speaker: "吴崇", text: "何驿长，我们还没问废渡口，你便急着让我们沿河北去。" },
+                { speaker: "沈砚", text: "他不是想帮我们找孙平。他是怕我们在这里问出谁送过他。" },
+                { speaker: "旁白", text: "怀远驿的灯在风里晃了一下。你们都听见了那个被何六绕开的地方：废渡口。" },
             ], "scene");
         } else if (topic === "horse") {
-            addClue("horse_track", "回驿的青骢马", "马腹有渡河水痕，左后蹄沾着废渡口才有的黑色芦泥。");
-            state.ferryUnlocked = true;
+            state.memories.postApproach = "horse";
+            addClue("horse_track", "回驿的青骢马", "马腹有渡河水痕，左后蹄沾着废渡口才有的黑色芦泥。", { notify: false });
             changeRelation("shen", 1);
+            completeInvestigation("post");
             playDialogue([
+                { speaker: "你", text: "追问那匹空马。" },
                 { speaker: "沈砚", text: "马腹湿到鞍下，它不是自己沿官道回来的。有人从河对岸放它回来，故意留下去向。" },
                 { speaker: "何六", text: "冬日泥水都一个样，凭这个就要说我撒谎？" },
                 { speaker: "旁白", text: "沈砚从马鬃里摘出一截枯芦苇。临皋官道两侧没有芦荡，只有废渡口下游那片黑水滩有。" },
                 { speaker: "沈砚", text: "不是为了定你的罪。只是有人希望找他的人，别只听你的话。" },
+                { speaker: "旁白", text: "何六不再看那匹马。吴崇顺着他的目光看向驿门，像是第一次发现这座驿站也会害怕。" },
             ], "scene");
         } else if (topic === "ledger") {
-            addClue("cut_ledger", "被割走的驿簿", "驿簿缺页前后记录着二十三户转运人家，其中多人已死或失踪，却仍被重复点名。");
-            state.ferryUnlocked = true;
-            state.objective = "前往废渡口，找到孙平与点名簿";
+            state.memories.postApproach = "ledger";
+            addClue("cut_ledger", "被割走的驿簿", "驿簿缺页前后记录着二十三户转运人家，其中多人已死或失踪，却仍被重复点名。", { notify: false });
+            changeRelation("wu", 1);
+            completeInvestigation("post");
             playDialogue([
+                { speaker: "你", text: "直接问缺页名册。" },
                 { speaker: "吴崇", text: hasClue("last_words") ? "正好二十三户。河滩死者临终护着的不是一句胡话，是这页账。三户早已绝户，名字却仍在领粮领钱。" : "缺页前后都是转运户。二十三户里，三户早已绝户，名字却仍在领粮领钱。" },
                 { speaker: "你", text: "死人不能服役，却能替活人领钱。有人需要这张假名簿一直存在。" },
                 { speaker: "何六", text: "你们最好想清楚。临皋县里肯让这本账见光的人，未必比孙平多。" },
@@ -785,48 +806,7 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
                 { speaker: "沈砚", text: "所以县里派你来，不只是监视我们。他们也想知道，你看到这些名字以后会站在哪边。" },
                 { speaker: "旁白", text: "吴崇合上簿册。第一次，他没有立刻替县衙辩解。" },
             ], "scene");
-        } else if (topic === "postmaster") {
-            const strong = hasClue("last_words") || hasClue("empty_case") || hasClue("cut_ledger");
-            if (strong) {
-                addClue("zhao_qi", "同行者赵七", "何六承认孙平与驿卒赵七一同离驿；赵七很可能正是河滩死者。");
-                playDialogue([
-                    { speaker: "你", text: hasClue("last_words") ? "河滩死者说了二十三户。你若再说孙平独自逃银，我就把遗言、空匣、青骢马和尸体一起带回县里。" : "公文匣没有被撬，青骢马又从废渡回来。你若再说孙平独自逃银，我便把这些一项项写进验状。" },
-                    { speaker: "何六", text: "……昨夜与他同行的是赵七。赵七说要把副簿送给观察使，孙平却在渡口改了主意。之后我什么都不知道。" },
-                    { speaker: "沈砚", text: "你知道有人追他们。你只是没问追上以后会发生什么。" },
-                    { speaker: "何六", text: "问了又能怎样？驿卒一条命，抵不过县里三年的亏空。我若报上去，先死的是我这一驿的人。" },
-                    { speaker: "吴崇", text: state.memories.deathRecorded ? "赵七已经死了，而且已经入了验簿。你保住的不是驿站，是那些账还可以继续做下去。" : "赵七已经死了。你保住的不是驿站，是那些账还可以继续做下去。" },
-                ], "scene");
-            } else {
-                playDialogue([
-                    { speaker: "何六", text: "公差办案也要凭据。孙平偷银在先，我不过照实回报。" },
-                    { speaker: "旁白", text: "他把双手拢进袖中。没有证据，他并不怕你。" },
-                    { speaker: "吴崇", text: "先查匣、马或驿簿。空着手逼问一个在驿路活了半辈子的人，只会让他知道我们什么都没有。" },
-                ], "scene");
-            }
-        } else if (topic === "shen_plan") {
-            state.memories.heardShenPromise = true;
-            changeRelation("shen", 1);
-            addClue("ferry_signal", "渡口暗号", "孙平若安全，会让渡口灯明灭两次；若被胁迫，只会亮一次。");
-            playDialogue([
-                { speaker: "你", text: "你一路都在等一个能证明孙平还活着的记号。现在可以告诉我了。" },
-                { speaker: "沈砚", text: "废渡船屋里有盏破灯。若他安全，灯会亮两次再灭；若只亮一次，就是有人在逼他现身。" },
-                { speaker: "你", text: "若我们赶到时，他正在烧簿册呢？" },
-                { speaker: "沈砚", text: "那便先别夺。让他说完。你若答应这一点，我不会在背后先放走他。" },
-                { speaker: "旁白", text: "这不是信任，更像一份暂时把刀放在桌面上的约定。但她第一次让你知道，下一步该看哪里。" },
-            ], "scene");
-        } else if (topic === "wu") {
-            state.memories.wuConfessed = true;
-            changeRelation("wu", 2);
-            addClue("wu_testimony", "吴崇的证词", "吴崇承认自己曾奉命誊写假册，并愿意辨认县仓司佐的笔迹。");
-            playDialogue([
-                { speaker: "你", text: "你认得这笔迹，也知道假册不止这一年。吴崇，我要听的不是县衙会怎么说，是你做过什么。" },
-                { speaker: "吴崇", text: "三年前仓中亏空，司佐让我把已死之人重新补入转运册。我写过十二个名字。第二年是十九个。第三年，我已经不再数了。" },
-                { speaker: "沈砚", text: "所以你不是被派来查案。你是被派来确认孙平拿走了多少能牵出你们的东西。" },
-                { speaker: "吴崇", text: "是。但河滩若真是赵七，我愿在观察使面前认笔迹。不是因为我忽然成了好人，只是死人不该永远替我们背账。" },
-                { speaker: "旁白", text: "他说完，把县衙腰牌解下来压在驿簿上。那不是辞官，只是第一次承认这块牌子未必永远护得住他。" },
-            ], "scene");
         }
-        updateSceneProgress("post");
     }
 
     function startShrine() {
@@ -846,7 +826,7 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
         if (topic === "protect") {
             state.trust += 2;
             changeRelation("shen", 2);
-            addClue("companion_pact", "同行之约", "你答应先保护名单上的人，再决定如何处置证据。沈砚愿意把兄长留下的暗号全部告诉你。");
+            addClue("companion_pact", "同行之约", "你答应先保护名单上的人，再决定如何处置簿册。沈砚愿意把兄长留下的暗号全部告诉你。", { notify: false });
             playDialogue([
                 { speaker: "你", text: "先见到孙平，先听他说完。若名单上的人今夜就有危险，我们先救人，再谈簿册归谁。" },
                 { speaker: "沈砚", text: "好。我兄长若还活着，会在渡口灯下挂三次黑布。若只有一次，便是有人在逼他现身。" },
@@ -857,9 +837,9 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
         } else if (topic === "evidence") {
             changeRelation("shen", 1);
             changeRelation("wu", 1);
-            addClue("companion_pact", "同行之约", "你要求三人互相保存证据：沈砚辨认暗号，吴崇誊录账目，你负责带人证走出渡口。");
+            addClue("companion_pact", "同行之约", "你要求三人分头守住名册、账目和活口，不让真相只压在一个人身上。", { notify: false });
             playDialogue([
-                { speaker: "你", text: "谁也别先许诺交人或放人。沈砚辨暗号，吴崇抄账，我负责让孙平活着离开渡口。证据分开保管，谁被截住都不能让真相一起消失。" },
+                { speaker: "你", text: "谁也别先许诺交人或放人。沈砚辨暗号，吴崇抄账，我负责让孙平活着离开渡口。名册、账目、活人，不能全压在一个人身上。" },
                 { speaker: "吴崇", text: "这是公差办案的法子，也是盗贼分赃的法子。" },
                 { speaker: "沈砚", text: "至少比把所有人的命都装进一个公文匣里稳妥。" },
                 { speaker: "旁白", text: "吴崇抄下缺页前后的户名，沈砚把渡口暗号画在你掌心。庙外巡骑过去时，三个人第一次拥有了同一个计划。" },
@@ -868,9 +848,9 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
             state.trust -= 1;
             changeRelation("shen", -2);
             changeRelation("wu", 1);
-            addClue("companion_pact", "同行之约", "你坚持先保住完整证据并呈报观察使。吴崇同意作证，沈砚却不再透露兄长的全部暗号。");
+            addClue("companion_pact", "同行之约", "你坚持先保住完整簿册并呈报采访使。吴崇同意作证，沈砚却不再透露兄长的全部暗号。", { notify: false });
             playDialogue([
-                { speaker: "你", text: "名单上的人要救，但没有完整簿册和活口，这件事明日就会变成驿卒盗文。孙平必须跟我们去见观察使。" },
+                { speaker: "你", text: "名单上的人要救，但没有完整簿册和活口，这件事明日就会变成驿卒盗文。孙平必须跟我们去见采访使。" },
                 { speaker: "吴崇", text: "我可以作证，账上的笔迹也可以认。只要孙平别在见人前把簿册烧了。" },
                 { speaker: "沈砚", text: "你们总说先把人交进去，再从里面查清楚。可进去的人，未必都能等到你们查清。" },
                 { speaker: "旁白", text: "她起身走出破庙，没有再等你们。片刻后，她的脚印故意踏进乱石地，再也看不出通往哪条小路。" },
@@ -888,8 +868,13 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
 
     function startFerry() {
         state.objective = "听孙平说完，再决定簿册与众人的去向";
+        const knowsFerrySignal = state.companionChoice === "protect" || state.companionChoice === "evidence";
         playDialogue([
-            { speaker: "旁白", text: hasClue("ferry_signal") ? "废渡口的灯亮了两次，又熄灭。与沈砚说的一样：孙平还活着，而且暂时没有被人挟持。" : "废渡口的灯亮了两次，又熄灭。你们不知道这是求援、警告，还是有人故意引你们靠近。" },
+            { speaker: "旁白", text: "从山神庙到废渡口只隔一段芦荡。夜风把马铃声吹得忽远忽近，火把在身后连成一条红线。" },
+            { speaker: "吴崇", text: "他们走官道，我们走芦沟。若被追上，谁也别说自己只是奉命路过。" },
+            { speaker: "沈砚", text: "到了船屋先别拔刀。若里面真是我兄长，他已经被逼到只剩一盆火了。" },
+            { speaker: "旁白", text: "三个人在芦苇间停了一息。没有人说信任，但吴崇把小册递给了你，沈砚也把通向渡棚的窄路让了出来。" },
+            { speaker: "旁白", text: knowsFerrySignal ? "废渡口的灯亮了两次，又熄灭。与山神庙里说好的一样：孙平还活着，而且暂时没有被人挟持。" : "废渡口的灯亮了两次，又熄灭。你们不知道这是求援、警告，还是有人故意引你们靠近。" },
             { speaker: "旁白", text: "船屋门被推开时，一个满身血污的男人正把几页纸塞进火盆。" },
             { speaker: "沈砚", text: hasClue("shen_identity") ? "哥。是我。我带他们来，但他们答应先听你说完。" : "孙平。别烧，我是来带你走的。" },
             { speaker: "孙平", text: "砚儿？我让赵七把铜牌丢进河里，就是不想让你找到这里。" },
@@ -898,55 +883,35 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
             { speaker: "孙平", text: "那具尸体是他？……他答应过，要把孩子的鞋送回河东村。" },
             { speaker: "旁白", text: state.memories.deathRecorded ? "孙平伸向火盆的手停住了。吴崇取出验簿，在那块预留的空白里写下两个字：赵七。" : "孙平伸向火盆的手停住了。直到这一刻，河滩上那个无名死者才在他的声音里重新有了姓名。" },
             { speaker: "孙平", text: "县里把二十三户穷民重复点入转运册，朝廷的钱粮照领，差役却落在孤儿寡妇头上。如今边地调兵，他们还要把这些人记作逃户，收走田宅抵数。" },
-            { speaker: "吴崇", text: state.memories.wuConfessed ? "我已经把自己誊过的假名和县仓司佐的笔迹写下。你拿走这一页，他们还会再造一页；可若我们能让三份证词同时抵达观察使，他们便不能只杀一个驿卒了事。" : "县仓司佐做账，何六替他们截信，而我替县衙誊过三年假册。你拿走这一页，只会让他们再造一页。" },
+            { speaker: "吴崇", text: state.memories.wuConfessed ? "我已经把自己誊过的假名和县仓司佐的笔迹写下。你拿走这一页，他们还会再造一页；可若我们能让三份证词同时抵达采访使，他们便不能只杀一个驿卒了事。" : "县仓司佐做账，何六替他们截信，而我替县衙誊过三年假册。你拿走这一页，只会让他们再造一页。" },
             { speaker: "沈砚", text: "至少今夜，他们还没来得及按这张纸抓人。哥，把名字给我。" },
             { speaker: "孙平", text: "给你，然后呢？带着二十三户逃？没有户籍，没有田，没有过所，他们躲过今晚，也会死在下一道关津。" },
-            ...(state.companionChoice ? [{ speaker: "旁白", text: state.companionChoice === "evidence" ? "山神庙里定下的办法仍然可行：三个人各带走一部分证据，没有谁能独自决定全部人的命。" : state.companionChoice === "protect" ? "沈砚看向你。山神庙里那句‘先救人’，现在不再是一句安慰，而是一笔必须兑现的债。" : state.companionChoice === "procedure" ? "沈砚站到了孙平与火盆之间。她记得你坚持要把兄长交给观察使，也已做好在这里阻止你的准备。" : "吴崇与沈砚都没有看你。你在山神庙没有作出承诺，他们也不打算把最后的决定完全交给你。" }] : []),
+            ...(state.companionChoice ? [{ speaker: "旁白", text: state.companionChoice === "evidence" ? "山神庙里定下的办法仍然可行：有人守账，有人认路，有人带孙平活着离开。" : state.companionChoice === "protect" ? "沈砚看向你。山神庙里那句‘先救人’，现在不再是一句安慰，而是一笔必须兑现的债。" : state.companionChoice === "procedure" ? "沈砚站到了孙平与火盆之间。她记得你坚持要把兄长交给采访使，也已做好在这里阻止你的准备。" : "吴崇与沈砚都没有看你。你在山神庙没有作出承诺，他们也不打算把最后的决定完全交给你。" }] : []),
             { speaker: "旁白", text: "远处官道忽然响起急促马铃。真正的军报正越过临皋：范阳兵反。没有人再能阻止天下大乱，但火盆旁的二十三个名字仍在等你决定。" },
         ], "final");
     }
 
     function actionsForLocation() {
         if (state.location === "funeral") {
-            const approachChosen = Boolean(state.memories.funeralApproach);
-            const actions = [
-                { id: "respect", kind: "交谈", label: "先祭一炷香", hint: "取得送葬者信任", closed: approachChosen && !topicSeen("funeral", "respect") },
-                { id: "inspect", kind: "察看", label: "验看尸身", hint: "更快拿到物证", closed: approachChosen && !topicSeen("funeral", "inspect") },
-                { id: "record", kind: "证据", label: "记入验簿", hint: "让死者留下卷宗" },
-            ];
-            if (approachChosen || topicSeen("funeral", "shen")) {
-                actions.push({ id: "shen", kind: "追问", label: "追问沈砚", hint: hasClue("relay_knot") ? "她认识驿结" : "她听见二十三户失态了" });
-            }
-            if (approachChosen || topicSeen("funeral", "token")) {
-                actions.push({ id: "token", kind: "遗物", label: "查看旧鞋", hint: state.relations.villagers > 0 ? "老妇愿意开口" : "需要说明理由" });
-            }
-            return decorateSceneActions(actions, "funeral");
+            return decorateSceneActions([
+                { id: "close", label: "先让他们合棺" },
+                { id: "respect", label: "请她等一炷香" },
+                { id: "inspect", label: "按公事验尸" },
+            ], "funeral");
         }
         if (state.location === "post") {
-            const actions = [];
-            actions.push({ id: "case", kind: "察看", label: "看公文匣", hint: "确认少了什么" });
-            actions.push({ id: "horse", kind: "察看", label: "看回驿马", hint: "马蹄记得去向" });
-            if (topicSeen("post", "ledger") || hasClue("empty_case") || hasClue("last_words")) {
-                actions.push({ id: "ledger", kind: "线索", label: hasClue("last_words") ? "比对二十三户" : "翻驿簿", hint: "把遗言和账册放一起" });
-            }
-            if (topicSeen("post", "postmaster") || evidenceSummary() >= 2) {
-                actions.push({ id: "postmaster", kind: "对质", label: "对质何六", hint: "逼他说出谁截信" });
-            }
-            if (topicSeen("post", "shen_plan") || hasClue("shen_identity")) {
-                actions.push({ id: "shen_plan", kind: "同行", label: "问兄妹暗号", hint: "看沈砚是否信你" });
-            }
-            if (topicSeen("post", "wu") || hasClue("cut_ledger")) {
-                actions.push({ id: "wu", kind: "追问", label: "追问吴崇", hint: "他认得笔迹" });
-            }
-            return decorateSceneActions(actions, "post");
+            return decorateSceneActions([
+                { id: "listen", label: "先听何六说完" },
+                { id: "horse", label: "追问那匹空马" },
+                { id: "ledger", label: "直接问缺页名册" },
+            ], "post");
         }
         if (state.location === "shrine") {
-            return [
-                { id: "protect", kind: "承诺", label: "先救人", hint: "答应沈砚" },
-                { id: "evidence", kind: "计划", label: "分藏证据", hint: "让真相不只在一人手里" },
-                { id: "procedure", kind: "原则", label: "上呈观察使", hint: "相信程序" },
-                { id: "silence", kind: "回避", label: "立即赶路", hint: "不作承诺" },
-            ];
+            return decorateSceneActions([
+                { id: "protect", label: "先救孙平" },
+                { id: "evidence", label: "先护名册" },
+                { id: "procedure", label: "先挡追兵" },
+            ], "shrine");
         }
         return [];
     }
@@ -1075,7 +1040,6 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
     function renderTopbar() {
         const navigationTools = state.mode === "briefing" ? "" : `
             <button type="button" class="story-icon-btn" data-story-action="map" aria-label="打开行程图" title="行程图">⌖</button>
-            <button type="button" class="story-icon-btn" data-story-action="clues" aria-label="查看线索" title="线索簿">◇</button>
         `;
         const audioTools = `
             <button type="button" class="story-icon-btn story-audio-btn ${state.audio.bgmOn ? "is-on" : ""}" data-story-action="toggle-bgm" aria-label="${state.audio.bgmOn ? "关闭背景音乐" : "开启背景音乐"}" title="${state.audio.bgmOn ? "关闭背景音乐" : "开启背景音乐"}">乐</button>
@@ -1146,6 +1110,59 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
         `;
     }
 
+    function renderStoryAftermath(location) {
+        const isFuneral = state.location === "funeral";
+        const approach = isFuneral ? state.memories.funeralApproach : state.memories.postApproach;
+        const content = isFuneral
+            ? {
+                eyebrow: "途中见闻",
+                title: "河滩之后",
+                intro: "薄棺入土，河雾仍旧贴着水面。你们没有真正弄清死者是谁，却已经知道孙平带走的不是一页普通名册。",
+                beats: approach === "close"
+                    ? ["老妇没有再挡你们的路。她只把“二十三户”四个字留在河风里。", "沈砚走在最后，替那只旧鞋抹掉了泥。", "吴崇没有把这件事写进公文，只在小册角落记下“怀远驿”。"]
+                    : approach === "respect"
+                        ? ["残香烧尽前，老妇把死者临终的话交给了你。", "沈砚第一次没有急着反驳吴崇。", "吴崇嘴上说人会胡言，手却已经把“二十三户”记了下来。"]
+                        : ["棺绳上的马汗把死者重新拖回驿路。", "老妇看你的眼神更冷，像是在看又一张官府的脸。", "沈砚认出了驿结，也暴露了她和孙平之间不止是同行。"],
+                action: "前往怀远驿",
+                actionType: "location",
+                actionValue: "post",
+            }
+            : {
+                eyebrow: "主线地点",
+                title: "怀远驿之后",
+                intro: "怀远驿没有给出答案，只给出一个方向。孙平、名册、河滩上的死者，都被同一条废弃渡路连在了一起。",
+                beats: approach === "listen"
+                    ? ["何六说得越圆，你越听见他绕开的地方。", "吴崇把废渡口写在小册上，没有再替县衙催你回城。", "沈砚站在马旁，像是终于等到有人愿意听完谎话。"]
+                    : approach === "horse"
+                        ? ["那匹空马替不会开口的人指出了渡口。", "沈砚把芦苇攥在手心，第一次主动走到你身侧。", "何六不再看马，也不再说孙平只是逃了。"]
+                        : ["缺页名册把怀远驿拖进了临皋的账。", "吴崇认得那笔字，却没有立刻替任何人遮掩。", "何六提醒你：愿意让账见光的人，未必能活到天亮。"],
+                action: state.shrineUnlocked ? "去山神庙" : "前往废渡口",
+                actionType: "location",
+                actionValue: state.shrineUnlocked ? "shrine" : "ferry",
+            };
+
+        panel.innerHTML = `
+            <div class="story-demo-shell">
+                <section class="story-demo-stage is-scene" style="--story-bg: url('${escapeHtml(location.image)}')">
+                    <div class="story-demo-bg"></div><div class="story-demo-shade"></div>
+                    ${renderTopbar()}
+                    <div class="story-scene-panel is-aftermath">
+                        <span>${escapeHtml(content.eyebrow)}</span>
+                        <h2>${escapeHtml(content.title)}</h2>
+                        <p>${escapeHtml(content.intro)}</p>
+                        <div class="story-aftermath-list">
+                            ${content.beats.map(item => `<p>${escapeHtml(item)}</p>`).join("")}
+                        </div>
+                        <button type="button" class="story-map-return" data-story-${content.actionType}="${escapeHtml(content.actionValue)}">${escapeHtml(content.action)}</button>
+                        <button type="button" class="story-map-return is-quiet" data-story-action="map">返回行程图</button>
+                    </div>
+                    ${state.notice ? `<div class="story-toast">${escapeHtml(state.notice)}</div>` : ""}
+                </section>
+            </div>
+        `;
+        scheduleNoticeDismiss();
+    }
+
     function renderScene() {
         state.mode = "scene";
         const location = LOCATIONS[state.location] || LOCATIONS.road;
@@ -1153,6 +1170,12 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
         const limited = Boolean(SCENE_LIMITS[state.location]);
         const remaining = remainingSceneActions();
         const sceneFinished = state.completed.has(state.location);
+        const hasAftermathChoice = state.location === "funeral" || state.location === "post";
+        const storyChoiceMode = hasAftermathChoice || state.location === "shrine";
+        if (hasAftermathChoice && sceneFinished) {
+            renderStoryAftermath(location);
+            return;
+        }
         panel.innerHTML = `
             <div class="story-demo-shell">
                 <section class="story-demo-stage is-scene" style="--story-bg: url('${escapeHtml(location.image)}')">
@@ -1162,21 +1185,21 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
                         <span>${escapeHtml(location.eyebrow)}</span>
                         <h2>${escapeHtml(location.name)}</h2>
                         <p>${escapeHtml(location.description)}</p>
-                        <div class="story-scene-status" aria-label="同行者状态">
+                        ${storyChoiceMode ? "" : `<div class="story-scene-status" aria-label="同行者状态">
                             <span><em>沈砚</em><b>${escapeHtml(relationLabel("shen"))}</b></span>
                             <span><em>吴崇</em><b>${escapeHtml(relationLabel("wu"))}</b></span>
                             <span><em>线索</em><b>${evidenceSummary()} 项关键证据</b></span>
-                        </div>
-                        ${limited ? `<div class="story-scene-pressure"><b>${sceneFinished ? "调查已经结束" : `天色渐晚，还来得及调查 ${remaining} 项`}</b><span>${sceneFinished ? "你可以回看采取过的行动，但不能重新选择。" : "你不必查完所有内容，也不可能让所有人都满意。"}</span></div>` : ""}
-                        <div class="story-action-list">
+                        </div>`}
+                        ${limited && !storyChoiceMode ? `<div class="story-scene-pressure"><b>${sceneFinished ? "调查已经结束" : `天色渐晚，还来得及调查 ${remaining} 项`}</b><span>${sceneFinished ? "你可以回看采取过的行动，但不能重新选择。" : "你不必查完所有内容，也不可能让所有人都满意。"}</span></div>` : ""}
+                        <div class="story-action-list ${storyChoiceMode ? "is-story-choices" : ""}">
                             ${actions.length ? actions.map((action, index) => `
                                 <button type="button" data-story-topic="${escapeHtml(action.id)}" class="${action.selected ? "is-seen" : ""} ${action.closed ? "is-closed" : ""}" ${action.disabled ? "disabled" : ""}>
-                                    <em>${escapeHtml(action.stateLabel || action.kind || String(index + 1).padStart(2, "0"))}</em><b>${escapeHtml(action.label)}</b><span>${escapeHtml(action.selected ? "这是你在此处作出的选择。" : action.closed ? "此前的做法已经关闭了这条路。" : action.hint)}</span>
+                                    ${storyChoiceMode ? `<b>${index + 1}. ${escapeHtml(action.label)}</b>` : `<em>${escapeHtml(action.stateLabel || action.kind || String(index + 1).padStart(2, "0"))}</em><b>${escapeHtml(action.label)}</b><span>${escapeHtml(action.selected ? "这是你在此处作出的选择。" : action.closed ? "此前的做法已经关闭了这条路。" : action.hint)}</span>`}
                                 </button>
                             `).join("") : '<div class="story-scene-complete"><b>这里暂时没有新的线索</b><span>你可以返回行程图，前往下一处地点。</span></div>'}
                         </div>
-                        <button type="button" class="story-map-return" data-story-action="${limited && !sceneFinished ? "finish-scene" : "map"}">${limited && !sceneFinished ? "带着现有线索离开" : "返回行程图"}</button>
-                        ${limited && !sceneFinished ? '<small class="story-leave-warning">离开后，未调查的内容将无法原样重来。</small>' : ""}
+                        ${storyChoiceMode ? "" : `<button type="button" class="story-map-return" data-story-action="${limited && !sceneFinished ? "finish-scene" : "map"}">${limited && !sceneFinished ? "带着现有线索离开" : "返回行程图"}</button>`}
+                        ${limited && !sceneFinished && !storyChoiceMode ? '<small class="story-leave-warning">离开后，未调查的内容将无法原样重来。</small>' : ""}
                     </div>
                     ${state.notice ? `<div class="story-toast">${escapeHtml(state.notice)}</div>` : ""}
                 </section>
@@ -1277,24 +1300,13 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
                     ${renderTopbar()}
                     <div class="story-final-panel">
                         <span>天亮之前</span>
-                        <h2>你要把这二十三个名字交给谁？</h2>
-                        <div class="story-final-context">
-                            <span><em>关键证据</em><b>${evidenceSummary()} 项</b></span>
-                            <span><em>沈砚</em><b>${escapeHtml(relationLabel("shen"))}</b></span>
-                            <span><em>吴崇</em><b>${escapeHtml(relationLabel("wu"))}</b></span>
-                            <p>${state.memories.deathRecorded ? "赵七的死亡已被正式记入验簿。" : "赵七仍只存在于你们几个人的证词里。"} ${state.companionChoice === "evidence" ? "三份证据已经分开保管。" : state.companionChoice === "protect" ? "你曾答应沈砚先救人。" : state.companionChoice === "procedure" ? "你曾坚持把孙平交给观察使。" : "你没有向任何一方作出承诺。"}</p>
+                        <h2>这二十三个名字，给谁？</h2>
+                        <p class="story-final-brief">火快灭了，巡骑也快到了。</p>
+                        <div class="story-final-choices is-brief">
+                            <button type="button" data-story-ending="protect"><b>1. 交给沈砚</b></button>
+                            <button type="button" data-story-ending="report"><b>2. 交给采访使</b></button>
+                            <button type="button" data-story-ending="flee"><b>3. 丢进火里</b></button>
                         </div>
-                        <div class="story-final-choices">
-                            <button type="button" data-story-ending="protect"><b>把军报正本送回，暗中把名簿交还二十三户</b><em>救人优先，但你和孙平会背上隐匿公文的风险</em></button>
-                            <button type="button" data-story-ending="report"><b>带人证、尸证和名簿一并上呈观察使</b><em>相信程序，但证据是否足够将决定谁被定罪</em></button>
-                            <button type="button" data-story-ending="flee"><b>烧掉副簿，送孙平兄妹渡河离开</b><em>保住眼前的人，却让名册背后的账继续存在</em></button>
-                            <button type="button" data-story-ending="bargain"><b>用副簿与县里交易，换二十三户暂缓征发</b><em>最快止血，也让真正做假账的人继续掌权</em></button>
-                        </div>
-                        <form class="story-free-action" data-story-free-form>
-                            <label for="story-free-input">或者说出你自己的处理方式</label>
-                            <div><input id="story-free-input" name="free_action" maxlength="160" autocomplete="off" placeholder="例如：正本照送，先抄下名册，再安排名单上的人今夜离村"><button type="submit">照此行动</button></div>
-                            <p>系统会理解行动意图，并映射到现有结果规则，不会让一句话改变天下大势。</p>
-                        </form>
                     </div>
                 </section>
             </div>
@@ -1329,8 +1341,8 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
             report: {
                 title: enoughEvidence ? "尸体终于有了名字" : "程序收下了簿册",
                 choice: enoughEvidence
-                    ? "你把赵七的遗言、青骢马水痕、残缺驿簿和孙平的证词一并呈上。观察使无法把它只当作驿卒偷银，临皋县三名属吏被暂押查账。"
-                    : "你把孙平和副簿交给观察使。案卷被收下，孙平也被先行扣押。没有足够旁证，县里仍坚持他是盗取公文的逃卒。",
+                    ? "你把赵七的遗言、青骢马水痕、残缺驿簿和孙平的证词一并呈上。采访使无法把它只当作驿卒偷银，临皋县三名属吏被暂押查账。"
+                    : "你把孙平和副簿交给采访使。案卷被收下，孙平也被先行扣押。没有足够旁证，县里仍坚持他是盗取公文的逃卒。",
                 people: `${enoughEvidence
                     ? "河滩的无名死者被确认是驿卒赵七。老妇终于在他的木牌上替他写下姓名。二十三户暂缓征发，但案子还远没有结束。"
                     : "沈砚在衙门外等到天黑，没有等到兄长出来。她没有责怪你，只问了一句：‘他们说会查，要查到什么时候？’"}${state.companionChoice && !brokenPromise ? ` ${companionAftermath}` : ""}`,
@@ -1364,7 +1376,7 @@ export function createHistoricalRpgDemo({ panel, onExit, onTrack } = {}) {
         if (!value) return "";
         if (/烧|毁|逃|渡河|放走|掩护/.test(value)) return "flee";
         if (/交易|谈判|交换|宽限|暂缓|条件/.test(value)) return "bargain";
-        if (/上报|呈报|观察使|查办|依法|人证|交给官府/.test(value)) return "report";
+        if (/上报|呈报|观察使|采访使|查办|依法|人证|交给官府/.test(value)) return "report";
         if (/抄|名单|名簿|百姓|离村|藏|保护|正本照送|军报照送/.test(value)) return "protect";
         return "report";
     }

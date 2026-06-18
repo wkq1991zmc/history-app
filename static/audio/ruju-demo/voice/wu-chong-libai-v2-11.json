@@ -1,0 +1,13 @@
+{
+  "model": "cosyvoice-v2",
+  "speaker": "吴崇",
+  "voice": "libai_v2",
+  "text": "何驿长，我们还没问，你便把罪名和去向都说全了。",
+  "created_at": "2026-06-18 00:05:14",
+  "request_id": "97b2219b8e6540a0aadcb3c4267986de",
+  "usage": {
+    "characters": 23
+  },
+  "file": "static/audio/ruju-demo/voice/wu-chong-libai-v2-11.wav",
+  "bytes": 336524
+}

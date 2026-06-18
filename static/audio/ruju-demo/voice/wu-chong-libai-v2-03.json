@@ -1,0 +1,13 @@
+{
+  "model": "cosyvoice-v2",
+  "speaker": "吴崇",
+  "voice": "libai_v2",
+  "text": "不是军报正本，只是一页点名簿。可县里催得比丢了官印还急。",
+  "created_at": "2026-06-18 00:04:39",
+  "request_id": "bfc42f835d69491780f45aae9e6306db",
+  "usage": {
+    "characters": 28
+  },
+  "file": "static/audio/ruju-demo/voice/wu-chong-libai-v2-03.wav",
+  "bytes": 426764
+}

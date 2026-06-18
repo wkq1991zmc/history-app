@@ -1,0 +1,13 @@
+{
+  "model": "cosyvoice-v2",
+  "speaker": "吴崇",
+  "voice": "libai_v2",
+  "text": "锁没有被撬，说明开匣的人本就有钥匙。怀远驿能碰钥匙的，除了孙平还有你。",
+  "created_at": "2026-06-18 00:05:19",
+  "request_id": "777422b40add44acb5ae0968fceb12dc",
+  "usage": {
+    "characters": 35
+  },
+  "file": "static/audio/ruju-demo/voice/wu-chong-libai-v2-12.wav",
+  "bytes": 520844
+}

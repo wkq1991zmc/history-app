@@ -1,0 +1,13 @@
+{
+  "model": "cosyvoice-v2",
+  "speaker": "吴崇",
+  "voice": "libai_v2",
+  "text": "隐瞒与案犯的亲缘，按理我现在就该让你回临皋。",
+  "created_at": "2026-06-18 00:05:06",
+  "request_id": "575bd4de04724529a7ae37f98125a50c",
+  "usage": {
+    "characters": 22
+  },
+  "file": "static/audio/ruju-demo/voice/wu-chong-libai-v2-09.wav",
+  "bytes": 301964
+}
