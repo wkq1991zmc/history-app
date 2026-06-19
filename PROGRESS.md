@@ -3,7 +3,7 @@
 > 本文档供后续会话接手时使用。每完成一个阶段更新一次。
 > 当前阶段：**阶段一已完成，等用户确认进入阶段二**
 
-最后更新：2026-06-19（阶段二完成）
+最后更新：2026-06-19（阶段三完成）
 
 ---
 
@@ -16,8 +16,8 @@
 | 安全网 #1 | "驿路无名"最后稳定版本 commit 留底 | ✅ 已完成（`f241e84`） |
 | **阶段一** | 文档结构（docs/ 拆分 + CLAUDE.md） | ✅ 已完成 |
 | 安全网 #2 | 阶段一文档结构 commit | ✅ 已完成（`e9dbfdd`） |
-| **阶段二** | 归档与清理"驿路无名" | ✅ 已完成（`14d59e3`），**等用户确认** |
-| 阶段三 | 入局模块架构重构（多故事支持） | ⬜ 未开始 |
+| **阶段二** | 归档与清理"驿路无名" | ✅ 已完成（`14d59e3`） |
+| **阶段三** | 入局模块架构重构（多故事支持） | ✅ 已完成（5 commits：`dad75e0` → `9205bd5`），**等用户确认** |
 | 阶段四 | UI 实现（按 `docs/04_UI_SPEC.md`） | ⬜ 未开始 |
 | 阶段五 | AI 对话系统（阿萤 + 历史人物，对接百炼） | ⬜ 未开始 |
 
@@ -183,21 +183,102 @@ commit message 明确指出是"驿路无名最后稳定版本，后续将整体�
 
 ---
 
-## 下一步（阶段三预告）
+## 阶段三：已做内容（5 commits `dad75e0` → `9205bd5`）
 
-待用户确认阶段二无误后，进入阶段三：入局模块架构重构（多故事支持）。
+按用户拍板方案：**新增独立 `/story/*` 体系，零修改 `/time_travel/*` 公开课代码路径**。
 
-按 SETUP_GUIDE 第六节阶段三，重点关注：
+### Commit 1 `dad75e0`：`data/stories/` 多故事数据骨架
 
-1. **评估现有架构与文档建议的差异**——SETUP_GUIDE §阶段三明确说目录结构、接口路径、JSON 设计都"只是建议"，要 grep 真实代码后给出更适配的方案
-2. 设计 `data/stories/<story_id>/` 多故事数据结构（建议用现有 `intrigue_scenes_*.json` 风格扩展，而不是另起一套）
-3. 改造 `/time_travel/...` 接口为多故事版（公开课已 200，不能破坏）
-4. **顺带做阶段二 B/C 层挪过来的事**：
-   - 重构 `_load_intrigue_scenes()` 让 `intrigue_scenes.json` 文件名不再硬依赖
-   - 重写 hero 入口区（多故事选择器）
-   - 改 `applyClassroomEntryCopy` 文案逻辑
+- `data/stories/README.md`：完整文档化架构 + 6 种 scene type + 3 种 line type + companion_state_card / historical_figure schema + md→json 同步约定
+- `data/stories/sanguo/manifest.json`：schema_version 1.0、8 章索引、人物角色、估算字数与时长
+- `data/stories/sanguo/chapters/00_prologue.json`：从 docs/chapters/00_prologue.md 忠实翻译，14 scenes，4 种 type
+- `data/stories/sanguo/chapters/02_luoyang.json`：从 docs/chapters/02_luoyang.md 忠实翻译，14 scenes，6 种 type 全部覆盖
 
-**阶段三完成后**：在本 PROGRESS.md 增加"阶段三已做内容"一节。
+### Commit 2 `936af78`：api.py 状态 + 独立 loader
+
+新增（旧 `_load_intrigue_scenes` / `INTRIGUE_SCENES` 一行不动）：
+- `story_sessions` 字典（与 `time_travel_sessions` 完全独立）
+- `STORIES_DIR = DATA_DIR / "stories"`
+- `_load_stories()` —— 启动时只加载 manifest 索引，章节按需加载
+- `STORIES` 模块状态
+- `_load_chapter(story_id, chapter_id)` —— 按需加载 + 路径穿越防御（`..` / `/` / `\` 拦截）
+
+### Commit 3 `7bda6a6`：4 个 `/story/*` 基础 endpoint
+
+- GET `/story/list` —— 列出故事摘要
+- GET `/story/{story_id}/manifest` —— 完整 manifest
+- GET `/story/{story_id}/chapter/{chapter_id}` —— 按需加载章节
+- POST `/story/{story_id}/session/start` —— 创建/继续会话（含 load_session_id 支持）
+
+session 状态字段：`story_id / current_chapter / current_scene / protagonist_name / identity / choices_made / companion_relationship / secrets_unlocked / created_at`。
+
+### Commit 4 `bd0e080`：前端故事选择器（数据流，不做 UI）
+
+- `index.html`：新增 `<section id="sanguo-panel">` 挂载点；app.js 缓存版本号升至 `story-demo-20260619a`
+- `app.js`：
+  - `state.story` 状态块
+  - `elements.sanguoPanel`
+  - `fetchStoryList / fetchStoryManifest / startStorySession / applyStoryEntryCopy / enterStoryPanel / exitStoryPanel / renderSanguoPanelStub`
+  - `bindHistoricalRpgEntry` 非公开课分支：clicking 入口按钮启动 `stories[0]`
+  - `init()` 拉故事列表并应用入口文案 + 退出按钮事件委托
+  - `showHome()` 加入 hide sanguoPanel
+
+UI 说明：仅打通数据流。占位渲染用内联样式显示 session_id/章节/场景 + 章节索引。阶段四 UI 会替换 `renderSanguoPanelStub` 为真正的剧情场景渲染。
+
+### Commit 5 `9205bd5`：占位 talk_stream endpoints
+
+- POST `/story/{story_id}/companion/talk_stream` —— 阿萤自由对话（流式占位）
+- POST `/story/{story_id}/historical/talk_stream` —— 历史人物受限对话（流式占位）
+- SSE 流格式与现有 `/classroom/talk_stream` 一致：`message_start → delta 逐字 → message_end → done`，便于阶段五复用前端流式渲染
+
+阶段五会接入百炼 + 状态卡 / 知识边界卡 + 三道检查后实现真实回复。
+
+### 验证（自动化）
+
+- ✅ `python -m py_compile api.py` 通过
+- ✅ uvicorn 干净启动，无 startup error
+- ✅ 公开课 `/?x=lawvisual` 200
+- ✅ 主页 `/` 200，`/events_list` 200，`/site_config` 200
+- ✅ `/story/list` 返回 sanguo 摘要
+- ✅ `/story/sanguo/manifest` 返回 schema_version 1.0 + 8 章索引
+- ✅ `/story/sanguo/chapter/00_prologue` 返回 14 scenes
+- ✅ `/story/sanguo/chapter/99_doesnt_exist` → 404
+- ✅ `_load_chapter('sanguo', '../../etc/passwd')` → None（路径穿越拦截）
+- ✅ POST `/story/sanguo/session/start` 创建 UUID session
+- ✅ POST `companion/talk_stream` SSE 流：speaker=阿萤
+- ✅ POST `historical/talk_stream` SSE 流：speaker=历史人物
+- ✅ bogus session_id → SSE error
+- ⏳ 真人浏览器验证待用户做（公开课 5 案例 + 主页 4 模块 + 入口卡片显示三国篇 + 点击进入 sanguo-panel 看到占位 + 返回按钮）
+
+### 关键决策（与 SETUP_GUIDE 偏离）
+
+1. 接口前缀用 `/story/`（不用 SETUP_GUIDE 建议的 `/intrigue/`）——避免与 `/time_travel/` 语义重复
+2. 数据 schema 不要 `prompts/` 和 `characters.json`——状态卡内嵌到对应章节节点
+3. `_load_intrigue_scenes` 一行不动；新增独立 `_load_stories`——物理隔离公开课
+4. 新建独立 `sanguo-panel` 而非复用 `careerPrototypePanel`——避免旧 career 双挂载问题
+5. md / json 同步策略：md 是真源，json 是派生；改剧情先改 md
+
+### 关键状态备注（必读）
+
+- **`data/intrigue_scenes.json` 仍是 `[]` 占位**：仅为兼容 `_load_intrigue_scenes()` 的硬依赖（要求文件存在 + scenes 非空，靠 glob 捞到 `intrigue_scenes_law_classroom.json` 满足非空检查）。**旧 `_load_intrigue_scenes()` 与 `_build_intrigue_payload()` 整套体系将来彻底废弃公开课时可连同 `intrigue_scenes.json` 占位一起删除**。
+- 6 个 `ruju-chibi-*.webp` / `ruju-entry-bg.webp` 共用资源仍保留（公开课赤壁朝议视觉局 + 入口背景用）
+- `careerPrototypePanel` 元素保留作旧 career 系统休眠挂载（阶段二记录的偏差 3）
+
+---
+
+## 下一步（阶段四预告）
+
+待用户确认阶段三无误后，进入阶段四：UI 实现（按 `docs/04_UI_SPEC.md` 从零做）。
+
+要点：
+1. 替换 `renderSanguoPanelStub` 为真正的剧情场景渲染
+2. 实现"电影 × 古籍"哲学的字幕式呈现（参考 `docs/UI_REFERENCE_SNIPPETS.md`）
+3. 实现 6 种 scene type 的渲染：narration / narration_with_choice / companion_free_talk / historical_distant_view / historical_limited_talk / chapter_end
+4. 实现印章式选项、笔记本系统、卷/言/乐/声 顶栏
+5. 章节切换地图过场
+6. 输入主角姓名节点（`awaits_input: "protagonist_name"`）
+
+**阶段四完成后**：本 PROGRESS.md 增加"阶段四已做内容"一节。
 
 ---
 
