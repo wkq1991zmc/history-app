@@ -8,6 +8,40 @@
 
 ---
 
+## ⚠️ 阶段四必须替换的旧 UI 元素清单（不要遗漏整体，只改局部）
+
+阶段二/三遗留下来的占位 UI 元素，阶段四**必须全部替换或整体重做**。容易出现的错误是只改了某一处局部、却忘了主页/其他位置的相关元素仍在显示旧文案或旧结构。
+
+### 入局主页（`#time-travel-content` 内）
+
+| 元素 | 位置 | 当前状态 | 阶段四处理 |
+|---|---|---|---|
+| Hero 标题 `#ruju-hero-title` + 副标题 `#ruju-hero-copy` | `static/index.html` line ~192-193 | 阶段二改为"人在局中，亲历历史"/"新故事筹备中"占位 | **整体重做**为故事选择器或三国篇引导页 |
+| 入口卡片 `.ruju-entry-card` 标题 `<h2>入局</h2>` + `<p>内容更新中</p>` + 章节 chip `.ruju-event-chip` | `static/index.html` line ~200-208 | 阶段二/三占位文案 | **整体重做**为故事卡片或直接进入三国篇序章 |
+| 红色"即将开放"按钮 `#travel-start-btn` | `static/index.html` line ~210 | 阶段二改为"即将开放"，阶段三 JS 把它改为"进入第一章"并接通 `enterStoryPanel` | **重新设计为印章式入局按钮**或直接由故事卡片承载点击 |
+| 入局流程三卡片 "01 一站一案 / 02 剧情选择 / 03 走向大势" | `static/index.html` line ~241-263，class `.ruju-flow-rail` | 仍为"驿路无名"宣传文案，特别是 03 卡片**仍写"你不能改写安史之乱"** | **整体重做**——文案换为三国篇定位，或直接删除整个流程介绍 |
+| `<span></span>` 空 span | line ~211（`.ruju-entry-actions` 内） | 阶段二清空，JS 在非公开课模式填章节数 | 阶段四重做入口时直接重新设计这块 |
+
+### Sanguo Panel 占位
+
+| 元素 | 位置 | 当前状态 | 阶段四处理 |
+|---|---|---|---|
+| `<section id="sanguo-panel">` 整体内容 | `static/index.html` line ~269 + `app.js` `renderSanguoPanelStub` 函数 | 阶段三 commit 4 占位：内联样式显示 session_id/章节/场景/章节索引 + "返回入局首页"按钮 | **完全替换**为真正的剧情场景渲染（背景图 + 字幕 + 印章选项 + 顶栏 + 笔记本入口） |
+
+### `ruju-*` 通用 CSS 类（保留命名空间）
+
+`static/css/styles.css` 内大量 `.ruju-mode / .ruju-playing / .ruju-visual-avatar / .ruju-verdict-dossier / .ruju-status-row / ...` 等通用类是**公开课和三国篇共用的语义命名空间**（"入局" = ruju）。
+
+- ⛔ 不能批量删 `ruju-*`
+- ✅ 阶段四给三国篇加新类时建议沿用 `ruju-` 前缀或 `sanguo-` 前缀，避免与公开课冲突
+- ✅ 修改公开课已使用的 `ruju-*` 类时**必须真人浏览器验证公开课五案例不被波及**
+
+### 主入口 hero 区域（旧"驿路无名"残留）
+
+虽然阶段二改了入口卡片文案，但 `.ruju-flow-rail` 三卡片是阶段二遗漏的——这正是 [`../CLAUDE.md`](../CLAUDE.md) §"UI commit 必须真人浏览器验证"教训的来源。阶段四开始前，已在收尾流程顺手把 `.ruju-flow-rail` 第三卡的"安史之乱"残留改成中性表达；阶段四时这三张卡整体重做。
+
+---
+
 ## 7.1 整体哲学
 
 **"电影 × 古籍"的混合体**。
