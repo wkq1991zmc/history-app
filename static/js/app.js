@@ -1,5 +1,3 @@
-import { createHistoricalRpgDemo } from './historical_rpg_demo.js?v=story-demo-20260618f';
-
 const DEFAULT_EVENT_ID = "\u79e6\u671d\u00b7\u4e00\u7edf\u516d\u56fd";
 const AUTH_REMEMBER_KEY = "historyAppRememberLogin";
 const AUTH_TOKEN_KEY = "historyAppAuthToken";
@@ -382,22 +380,22 @@ function updateClassroomDemoVisibility() {
     if (elements.rujuHeroCopy) {
         elements.rujuHeroCopy.textContent = visible
             ? "进入古代司法现场，听取律令、亲情与教化的不同声音。"
-            : "沿着一条明确主线做出选择、结识人物。天下大势不会改变，但普通人的命运会留下余波。";
+            : "新故事筹备中。";
     }
     if (elements.rujuEntryCardTitle) {
-        elements.rujuEntryCardTitle.textContent = visible ? "选择断案卷宗" : "驿路无名";
+        elements.rujuEntryCardTitle.textContent = visible ? "选择断案卷宗" : "入局";
     }
     if (elements.rujuEntryCardCopy) {
-        elements.rujuEntryCardCopy.textContent = visible ? "课堂体验模式 · 请根据老师指引进入" : "从临皋官道的一匹空马开始，沿着不同地方的主线一路卷入天宝末年的巨变。";
+        elements.rujuEntryCardCopy.textContent = visible ? "课堂体验模式 · 请根据老师指引进入" : "内容更新中";
     }
     if (elements.rujuEventChipText) {
-        elements.rujuEventChipText.textContent = visible ? "东汉末年 · 赤壁战前的江东朝议" : "第一站 · 临皋 / 唐 · 天宝十四载";
+        elements.rujuEventChipText.textContent = visible ? "东汉末年 · 赤壁战前的江东朝议" : "新故事筹备中";
     }
     if (elements.travelStartBtn) {
-        elements.travelStartBtn.textContent = visible ? "开始入局" : "进入第一站";
+        elements.travelStartBtn.textContent = visible ? "开始入局" : "即将开放";
     }
     if (elements.rujuEntryActionLabel) {
-        elements.rujuEntryActionLabel.textContent = visible ? "随机入局" : "连续章节 · 历史悬疑互动剧 Demo";
+        elements.rujuEntryActionLabel.textContent = visible ? "随机入局" : "";
     }
 }
 
@@ -566,17 +564,6 @@ Object.assign(elements, {
     chibiMapModal: document.getElementById('chibi-map-modal'),
     chibiMapClose: document.getElementById('chibi-map-close')
 });
-
-let historicalRpgDemo = null;
-
-function ensureHistoricalRpgDemo() {
-    historicalRpgDemo ||= createHistoricalRpgDemo({
-        panel: elements.careerPrototypePanel,
-        onExit: exitHistoricalRpgDemo,
-        onTrack: detail => trackAnalytics('time_travel', { detail }),
-    });
-    return historicalRpgDemo;
-}
 
 // ================= API 请求 =================
 async function apiGet(endpoint, options = {}) {
@@ -1261,31 +1248,13 @@ function setCareerMode(enabled) {
     elements.appShell?.classList.toggle('career-mode', Boolean(enabled));
 }
 
-function exitHistoricalRpgDemo() {
-    setCareerMode(false);
-    elements.timeTravelContent?.classList.remove('ruju-playing');
-    elements.careerPrototypePanel?.classList.add('hidden');
-    elements.travelStartPanel?.classList.remove('hidden');
-}
-
-function startHistoricalRpgDemo() {
-    showTimeTravel();
-    setCareerMode(true);
-    elements.timeTravelContent?.classList.add('ruju-playing');
-    elements.travelStartPanel?.classList.add('hidden');
-    elements.travelPlayPanel?.classList.add('hidden');
-    elements.travelVisualPanel?.classList.add('hidden');
-    elements.careerPrototypePanel?.classList.remove('hidden');
-    ensureHistoricalRpgDemo()?.start();
-}
-
 function bindHistoricalRpgEntry() {
     const button = elements.travelStartBtn;
     if (!button || button.dataset.storyDemoBound === 'true') return;
     button.dataset.storyDemoBound = 'true';
     button.addEventListener('click', () => {
         if (isLawClassroomDemo()) startTimeTravel();
-        else startHistoricalRpgDemo();
+        // 非公开课模式入口在阶段四（三国篇 UI）才重新接通
     });
 }
 
@@ -1353,9 +1322,7 @@ async function loadTravelScenes() {
 
 async function init() {
     trackAnalytics('visit');
-    ensureHistoricalRpgDemo();
     bindHistoricalRpgEntry();
-    elements.careerStartBtn?.addEventListener('click', startHistoricalRpgDemo);
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
     updateClassroomDemoVisibility();
     loadTravelScenes();

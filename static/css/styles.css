@@ -1791,23 +1791,6 @@ body {
     line-height: 1.95;
 }
 
-.ruju-demo-mark {
-    display: flex;
-    align-items: center;
-    gap: 0.7rem;
-    margin-top: 1.8rem;
-    color: #f2c985;
-    font-size: 0.78rem;
-    font-weight: 900;
-    letter-spacing: 0.16em;
-}
-
-.ruju-demo-mark span {
-    width: 3rem;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(242, 201, 133, 0.74), transparent);
-}
-
 #time-travel-content:not(.hidden):not(.ruju-playing):has(#travel-start-panel:not(.hidden)) .travel-start-panel.ruju-entry-panel {
     background: none;
 }

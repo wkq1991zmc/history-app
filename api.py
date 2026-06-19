@@ -1894,7 +1894,7 @@ def _build_intrigue_payload(scene: Dict, seed_text: str = "") -> Dict:
         scene_text = (
             f"{briefing}\n\n"
             f"你的任务：你就是「{user_role.get('name')}」，需要在有限行动力内听取意见、追问、遣使、整军或改变路线。"
-            "你的行动会推动局势；行动力耗尽后，曹操、刘备和江东内部也会各自行动，直到赤壁走向一个自然结局。"
+            "你的行动会推动局势。"
         ).strip()
     dialogue = _build_initial_adviser_debate(scene, user_role)
     payload = {
