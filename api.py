@@ -3808,6 +3808,116 @@ async def classroom_historian_talk_stream(req: ClassroomHistorianTalkRequest, x_
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
+
+# ======== 多故事接口（"入局"新一代） ========
+# 与 /time_travel/* 公开课接口完全物理隔离
+
+class StorySessionStartRequest(BaseModel):
+    """开启故事会话。可选传入 load_session_id 以从已有存档继续。"""
+    load_session_id: Optional[str] = None
+
+
+@app.get("/story/list")
+async def story_list():
+    """列出可入局的故事（manifest 摘要）。"""
+    items = []
+    for story_id, manifest in STORIES.items():
+        items.append({
+            "story_id": story_id,
+            "title": manifest.get("title", ""),
+            "subtitle": manifest.get("subtitle", ""),
+            "era": manifest.get("era", ""),
+            "year_range": manifest.get("year_range", ""),
+            "estimated_hours": manifest.get("estimated_hours", 0),
+            "slogan": manifest.get("slogan", ""),
+            "chapter_count": len(manifest.get("chapters", [])),
+        })
+    return {"success": True, "stories": items}
+
+
+@app.get("/story/{story_id}/manifest")
+async def story_manifest(story_id: str):
+    """加载某故事的完整 manifest。"""
+    manifest = STORIES.get(story_id)
+    if not manifest:
+        raise HTTPException(status_code=404, detail=f"故事不存在: {story_id}")
+    return {"success": True, "manifest": manifest}
+
+
+@app.get("/story/{story_id}/chapter/{chapter_id}")
+async def story_chapter(story_id: str, chapter_id: str):
+    """按需加载章节剧本。"""
+    if story_id not in STORIES:
+        raise HTTPException(status_code=404, detail=f"故事不存在: {story_id}")
+    chapter = _load_chapter(story_id, chapter_id)
+    if not chapter:
+        raise HTTPException(status_code=404, detail=f"章节不存在或正在撰写中: {chapter_id}")
+    return {"success": True, "chapter": chapter}
+
+
+@app.post("/story/{story_id}/session/start")
+async def story_session_start(
+    story_id: str,
+    req: StorySessionStartRequest,
+    x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID"),
+):
+    """创建故事会话。若传入 load_session_id 则从存档继续，否则新建。"""
+    player_id = x_client_id if x_client_id else "unknown_player"
+    if not check_rate_limit(player_id):
+        raise HTTPException(status_code=429, detail="触发太快了，请稍等一下。")
+    manifest = STORIES.get(story_id)
+    if not manifest:
+        raise HTTPException(status_code=404, detail=f"故事不存在: {story_id}")
+
+    # 继续已有存档
+    if req.load_session_id:
+        session = story_sessions.get(req.load_session_id)
+        if not session or session.get("story_id") != story_id:
+            raise HTTPException(status_code=404, detail="会话不存在或已过期")
+        return {
+            "success": True,
+            "session_id": req.load_session_id,
+            "story_id": story_id,
+            "current_chapter": session.get("current_chapter", ""),
+            "current_scene": session.get("current_scene", ""),
+            "protagonist_name": session.get("protagonist_name", ""),
+            "resumed": True,
+        }
+
+    # 新建会话：从首章入口 scene 开始
+    chapters = manifest.get("chapters", [])
+    if not chapters:
+        raise HTTPException(status_code=500, detail=f"故事 {story_id} 无可用章节")
+    first_chapter_id = chapters[0].get("id", "")
+    first_chapter = _load_chapter(story_id, first_chapter_id)
+    if not first_chapter:
+        raise HTTPException(status_code=500, detail=f"首章 {first_chapter_id} 数据未就绪")
+    entry_scene = first_chapter.get("entry_scene", "")
+
+    session_id = str(uuid.uuid4())
+    story_sessions[session_id] = {
+        "story_id": story_id,
+        "current_chapter": first_chapter_id,
+        "current_scene": entry_scene,
+        "protagonist_name": "",
+        "identity": "",  # 序章末的身份分支（游侠剑客/寒门士子/商队子弟/流民医徒）
+        "choices_made": [],
+        "companion_relationship": {},  # 阿萤关系状态
+        "secrets_unlocked": [],
+        "created_at": time.time(),
+    }
+    _safe_record_analytics("story", player_id, story_id, "", "session_start")
+    return {
+        "success": True,
+        "session_id": session_id,
+        "story_id": story_id,
+        "current_chapter": first_chapter_id,
+        "current_scene": entry_scene,
+        "protagonist_name": "",
+        "resumed": False,
+    }
+
+
 @app.post("/guess_game/start")
 async def guess_game_start(req: GuessGameStartRequest):
     session_id = str(uuid.uuid4())
