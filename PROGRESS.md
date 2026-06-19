@@ -3,7 +3,7 @@
 > 本文档供后续会话接手时使用。每完成一个阶段更新一次。
 > 当前阶段：**阶段一已完成，等用户确认进入阶段二**
 
-最后更新：2026-06-19
+最后更新：2026-06-19（阶段二完成）
 
 ---
 
@@ -13,9 +13,10 @@
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
-| 安全网提交 | 把"驿路无名"最后稳定版本 commit 留底 | ✅ 已完成（`f241e84`） |
-| **阶段一** | 文档结构（docs/ 拆分 + CLAUDE.md） | ✅ 已完成，**等用户确认** |
-| 阶段二 | 归档与清理"驿路无名" | ⬜ 未开始 |
+| 安全网 #1 | "驿路无名"最后稳定版本 commit 留底 | ✅ 已完成（`f241e84`） |
+| **阶段一** | 文档结构（docs/ 拆分 + CLAUDE.md） | ✅ 已完成 |
+| 安全网 #2 | 阶段一文档结构 commit | ✅ 已完成（`e9dbfdd`） |
+| **阶段二** | 归档与清理"驿路无名" | ✅ 已完成（`14d59e3`），**等用户确认** |
 | 阶段三 | 入局模块架构重构（多故事支持） | ⬜ 未开始 |
 | 阶段四 | UI 实现（按 `docs/04_UI_SPEC.md`） | ⬜ 未开始 |
 | 阶段五 | AI 对话系统（阿萤 + 历史人物，对接百炼） | ⬜ 未开始 |
@@ -117,23 +118,86 @@ commit message 明确指出是"驿路无名最后稳定版本，后续将整体�
 
 ---
 
-## 下一步（阶段二预告）
+## 阶段二：已做内容（commit `14d59e3`）
 
-待用户确认阶段一无误后，进入阶段二：归档与清理"驿路无名"。
+### A 层删除（按已扫描的真实代码，非 SETUP_GUIDE 附录 C 原清单）
 
-按 SETUP_GUIDE 第六节：
+| 组 | 内容 | 备注 |
+|---|---|---|
+| A1 | `static/images/ruju-demo/`、`static/audio/ruju-demo/` 全部 | 9+ 张图、60+ 音频文件 |
+| A2 | `static/js/historical_rpg_demo.js`、`static/css/historical-rpg-demo.css` | 整文件删除 |
+| A3 | 删 `data/intrigue_scenes_batch_01.json`；`data/intrigue_scenes.json` **改为 `[]`** | **重要**：`_load_intrigue_scenes()` 硬依赖 `intrigue_scenes.json` 文件名，不能删，只能清空 |
+| A4 | `index.html`/`app.js`/`styles.css` 局部 edit | 入口卡片 hero 区改占位 |
 
-1. **先 grep 全项目扫描**，列出真实"将删除文件清单"（用户先确认）：
-   ```
-   grep -rn "historical_rpg_demo" --include="*.js" --include="*.html" --include="*.py" --include="*.css"
-   grep -rn "ruju-demo" ...
-   grep -rn "yi_lu_wu_ming\|驿路无名" ...
-   ```
-2. 删除前**已经 commit 了安全网**（`f241e84`），可直接动手
-3. 逐组删除，每组验证项目仍能启动 + 公开课五案例仍能正常进入
-4. 顺序：媒体资源 → 前端代码 → HTML 引用 → app.js 接入逻辑 → api.py payload
+### B 层（顺带做）
 
-**阶段二完成后**：在本 PROGRESS.md 增加"阶段二已做内容"一节。
+- `api.py:1897` 清掉"行动力耗尽后，曹操、刘备和江东内部也会各自行动，直到赤壁走向一个自然结局"
+
+### C 层（按计划挪到阶段三）
+
+- index.html 整个 hero 区重做（多故事架构）
+- app.js 中 `ruju-*` 大段 UI 渲染逻辑（lines ~2356-3736）
+- styles.css `.ruju-*` 通用类
+- `_build_intrigue_payload()` / `INTRIGUE_SCENES_PATH` 重构成多故事
+
+### 新建文件
+
+- `docs/UI_REFERENCE_SNIPPETS.md` —— 字幕样式 + 流式字符渲染参考（从删除前抄出），阶段四用
+
+### 验证已通过
+
+- ✅ uvicorn 启动 OK，无 startup error
+- ✅ `/` 主页 200
+- ✅ `/?x=lawvisual` 公开课 200
+- ✅ `/events_list` 长卷 200
+- ✅ `/site_config` 200
+- ✅ `/static/js/app.js` 200
+- ✅ `/static/css/styles.css` 200
+- ✅ 已删的 `/static/js/historical_rpg_demo.js`、`/static/css/historical-rpg-demo.css`、`/static/images/ruju-demo/*`、`/static/audio/ruju-demo/*` 全部正确 404
+- ✅ 主页 HTML 内**零** "驿路无名/临皋/怀远驿/历史悬疑互动剧" 字符
+- ✅ api.py 内**零** "行动力耗尽" 字符
+- ✅ `python -m py_compile api.py` 通过
+- ⏳ 真人浏览器验证待用户做（公开课 5 案例完整流程）
+
+### 关键偏差（必须给后续会话/AI 看的）
+
+1. **`_load_intrigue_scenes()` 对 `intrigue_scenes.json` 文件名硬依赖**（api.py:1428-1440）
+   - 不能 `rm` 删除该文件，只能改为 `[]`
+   - 阶段三重构 `_load_intrigue_scenes` 时把这个硬约束也一并解掉
+
+2. **`ruju-*` CSS 命名空间是公开课 + 旧入局共用的**（"入局"拼音首字母 ruju）
+   - app.js 里有 40+ 处 `ruju-mode/ruju-playing/ruju-visual-avatar/ruju-verdict-dossier/...`
+   - **绝对不能批量删 `ruju-*`**——否则公开课"礼法断案" UI 全毁
+
+3. **`<section id="career-prototype-panel">` 是双挂载点**
+   - 既给"驿路无名" (`historical_rpg_demo.js`) 用，也给旧 career 系统用
+   - 8 处 `careerPrototypePanel.innerHTML = ...` 无 optional chaining，删 section 会导致这些 innerHTML 写入崩
+   - 处理方式：**只改 aria-label，不删 section 元素**——保持 career 系统休眠
+
+4. **`ruju-chibi-*.webp` 和 `ruju-entry-bg.webp` 不属于"驿路无名"**
+   - 是公开课赤壁朝议视觉局 + 入口共用资源
+   - styles.css 6 处引用——保留
+
+5. **codex_handoff 提到的 `handleTravelChoice()` 死代码**（app.js:3786 之后）
+   - 当前仍存在；阶段三/四清理时一并处理
+
+---
+
+## 下一步（阶段三预告）
+
+待用户确认阶段二无误后，进入阶段三：入局模块架构重构（多故事支持）。
+
+按 SETUP_GUIDE 第六节阶段三，重点关注：
+
+1. **评估现有架构与文档建议的差异**——SETUP_GUIDE §阶段三明确说目录结构、接口路径、JSON 设计都"只是建议"，要 grep 真实代码后给出更适配的方案
+2. 设计 `data/stories/<story_id>/` 多故事数据结构（建议用现有 `intrigue_scenes_*.json` 风格扩展，而不是另起一套）
+3. 改造 `/time_travel/...` 接口为多故事版（公开课已 200，不能破坏）
+4. **顺带做阶段二 B/C 层挪过来的事**：
+   - 重构 `_load_intrigue_scenes()` 让 `intrigue_scenes.json` 文件名不再硬依赖
+   - 重写 hero 入口区（多故事选择器）
+   - 改 `applyClassroomEntryCopy` 文案逻辑
+
+**阶段三完成后**：在本 PROGRESS.md 增加"阶段三已做内容"一节。
 
 ---
 
