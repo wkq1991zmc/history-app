@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "story_id": "sanguo",
+  "title": "三国篇·亲历东汉末年",
+  "subtitle": "从黄巾起义到赤壁之战",
+  "era": "东汉末年",
+  "year_range": "184-208",
+  "estimated_hours": 10,
+  "estimated_words": 250000,
+  "slogan": "人在局中，亲历历史",
+  "chapters": [
+    { "id": "00_prologue",  "title": "序章·涿郡",            "year": "中平元年(184)",    "status": "complete" },
+    { "id": "01_interlude", "title": "过渡·五年间",           "year": "184-189",         "status": "stub"     },
+    { "id": "02_luoyang",   "title": "第一站·洛阳",          "year": "中平六年(189)",    "status": "complete" },
+    { "id": "03_changan",   "title": "第二站·长安",          "year": "初平三年(192)",    "status": "stub"     },
+    { "id": "04_xuzhou",    "title": "第三站·徐州",          "year": "兴平元年(194)",    "status": "stub"     },
+    { "id": "05_xudu",      "title": "第四站·许都",          "year": "建安五年(200)",    "status": "stub"     },
+    { "id": "06_hebei",     "title": "第五站·河北",          "year": "建安五年至十二年(200-207)", "status": "stub" },
+    { "id": "07_chibi",     "title": "终章·荆州/赤壁",       "year": "建安十二年至十三年(207-208)", "status": "stub" }
+  ],
+  "characters": {
+    "protagonist": { "default_name": "无名", "renamable": true },
+    "companion":   { "name": "阿萤" }
+  }
+}
