@@ -119,6 +119,8 @@ GUESS_DYNASTY_WORDS = [
 ]
 guess_game_sessions = {}
 time_travel_sessions = {}
+# 三国篇等新一代多故事玩法的会话存储，与 time_travel_sessions 完全独立
+story_sessions = {}
 
 # ======== 轻量访问统计，仅管理员可见 ========
 ANALYTICS_DATA_DIR = Path("analytics_data").resolve()
@@ -1444,6 +1446,61 @@ def _load_intrigue_scenes() -> List[Dict]:
 
 
 INTRIGUE_SCENES = _load_intrigue_scenes()
+
+
+# ======== 多故事（"入局"新一代架构） ========
+# 与 _load_intrigue_scenes / INTRIGUE_SCENES 完全独立，物理隔离公开课和旧入局玩法
+STORIES_DIR = DATA_DIR / "stories"
+
+
+def _load_stories() -> Dict[str, Dict]:
+    """启动时建索引：扫描 data/stories/<story_id>/manifest.json
+    只加载 manifest 元信息，章节剧本按需加载（避免启动时全量读入 25 万字）。
+    返回 {story_id: manifest_dict}。
+    """
+    stories: Dict[str, Dict] = {}
+    if not STORIES_DIR.exists():
+        return stories
+    for story_dir in sorted(STORIES_DIR.iterdir()):
+        if not story_dir.is_dir():
+            continue
+        manifest_path = story_dir / "manifest.json"
+        if not manifest_path.exists():
+            continue
+        try:
+            with manifest_path.open("r", encoding="utf-8") as file:
+                data = json.load(file)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"Invalid story manifest JSON in {manifest_path}: {exc}") from exc
+        if not isinstance(data, dict):
+            raise RuntimeError(f"Story manifest must be an object: {manifest_path}")
+        story_id = data.get("story_id") or story_dir.name
+        stories[story_id] = data
+    return stories
+
+
+def _load_chapter(story_id: str, chapter_id: str) -> Optional[Dict]:
+    """按需加载章节剧本：data/stories/<story_id>/chapters/<chapter_id>.json。
+    返回 None 表示章节不存在（运行时可作 404 或"章节正在撰写中"提示）。
+    """
+    if not story_id or not chapter_id:
+        return None
+    # 防御目录穿越：禁止 / \ 和 ..
+    if "/" in story_id or "\\" in story_id or ".." in story_id:
+        return None
+    if "/" in chapter_id or "\\" in chapter_id or ".." in chapter_id:
+        return None
+    path = STORIES_DIR / story_id / "chapters" / f"{chapter_id}.json"
+    if not path.exists():
+        return None
+    try:
+        with path.open("r", encoding="utf-8") as file:
+            return json.load(file)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Invalid chapter JSON in {path}: {exc}") from exc
+
+
+STORIES = _load_stories()
 
 
 def _load_career_prototypes() -> List[Dict]:
