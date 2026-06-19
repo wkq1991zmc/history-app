@@ -3918,6 +3918,82 @@ async def story_session_start(
     }
 
 
+class StoryCompanionTalkRequest(BaseModel):
+    """阶段五实现：阿萤自由对话流式请求。"""
+    session_id: str
+    message: str
+    scene_id: Optional[str] = None  # 当前场景 id（用于查找 companion_state_card）
+
+
+class StoryHistoricalTalkRequest(BaseModel):
+    """阶段五实现：历史人物受限对话流式请求。"""
+    session_id: str
+    message: str
+    scene_id: Optional[str] = None  # 当前场景 id（用于查找 historical_figure.knowledge_card）
+
+
+async def _story_placeholder_stream(story_id: str, kind: str, session_id: str):
+    """阶段五真正接通百炼前的占位 SSE 流。"""
+    if story_id not in STORIES:
+        yield f"data: {json.dumps({'type': 'error', 'message': f'故事不存在: {story_id}'}, ensure_ascii=False)}\n\n"
+        return
+    session = story_sessions.get(session_id)
+    if not session or session.get("story_id") != story_id:
+        yield f"data: {json.dumps({'type': 'error', 'message': '会话不存在或已过期'}, ensure_ascii=False)}\n\n"
+        return
+    notice = (
+        "（阶段三 Commit 5 占位回复。阶段五会接入阿里百炼 qwen3.6-flash，"
+        "加载状态卡 / 知识边界卡 + 三道检查后生成真正的回复。）"
+        if kind == "companion"
+        else "（阶段三 Commit 5 占位回复。阶段五会接入历史人物知识边界卡 + 3-5 轮硬限 + 三道检查。）"
+    )
+    meta = {
+        "type": "message_start",
+        "speaker": "阿萤" if kind == "companion" else "历史人物",
+        "role": "占位",
+        "kind": "stub",
+    }
+    yield f"data: {json.dumps(meta, ensure_ascii=False)}\n\n"
+    for char in notice:
+        yield f"data: {json.dumps({'type': 'delta', 'delta': char}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.01)
+    yield f"data: {json.dumps({'type': 'message_end'}, ensure_ascii=False)}\n\n"
+    done = {"type": "done", "success": True, "phase": "stub", "kind": kind}
+    yield f"data: {json.dumps(done, ensure_ascii=False)}\n\n"
+
+
+@app.post("/story/{story_id}/companion/talk_stream")
+async def story_companion_talk_stream(
+    story_id: str,
+    req: StoryCompanionTalkRequest,
+    x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID"),
+):
+    """阿萤自由对话（流式占位）。阶段五接入百炼 + companion_state_card + 硬约束检查。"""
+    player_id = x_client_id if x_client_id else "unknown_player"
+    if not check_rate_limit(player_id):
+        raise HTTPException(status_code=429, detail="触发太快了，请稍等一下。")
+    return StreamingResponse(
+        _story_placeholder_stream(story_id, "companion", req.session_id),
+        media_type="text/event-stream",
+    )
+
+
+@app.post("/story/{story_id}/historical/talk_stream")
+async def story_historical_talk_stream(
+    story_id: str,
+    req: StoryHistoricalTalkRequest,
+    x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID"),
+):
+    """历史人物受限对话（流式占位）。阶段五接入百炼 + knowledge_card + 三道检查 + 3-5 轮硬限。"""
+    player_id = x_client_id if x_client_id else "unknown_player"
+    if not check_rate_limit(player_id):
+        raise HTTPException(status_code=429, detail="触发太快了，请稍等一下。")
+    return StreamingResponse(
+        _story_placeholder_stream(story_id, "historical", req.session_id),
+        media_type="text/event-stream",
+    )
+
+
 @app.post("/guess_game/start")
 async def guess_game_start(req: GuessGameStartRequest):
     session_id = str(uuid.uuid4())
