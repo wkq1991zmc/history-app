@@ -356,6 +356,14 @@ const state = {
         affairMode: "dialogue",
         affairStoryChoices: []
     },
+    // 三国篇等新一代多故事的运行时状态，与 timeTravel/career 完全独立
+    story: {
+        list: [],                  // /story/list 返回的摘要数组
+        currentStoryId: null,
+        currentManifest: null,     // /story/<id>/manifest 返回的完整 manifest
+        sessionId: null,
+        sessionData: null          // /story/<id>/session/start 返回的 session 信息
+    },
     isLoading: false
 };
 
@@ -491,6 +499,7 @@ Object.assign(elements, {
 Object.assign(elements, {
     travelStartPanel: document.getElementById('travel-start-panel'),
     careerPrototypePanel: document.getElementById('career-prototype-panel'),
+    sanguoPanel: document.getElementById('sanguo-panel'),
     careerStartBtn: document.getElementById('career-start-btn'),
     careerEntry: document.querySelector('.ruju-career-entry'),
     rujuHeroTitle: document.getElementById('ruju-hero-title'),
@@ -1253,9 +1262,121 @@ function bindHistoricalRpgEntry() {
     if (!button || button.dataset.storyDemoBound === 'true') return;
     button.dataset.storyDemoBound = 'true';
     button.addEventListener('click', () => {
-        if (isLawClassroomDemo()) startTimeTravel();
-        // 非公开课模式入口在阶段四（三国篇 UI）才重新接通
+        if (isLawClassroomDemo()) {
+            startTimeTravel();
+            return;
+        }
+        // 非公开课：进入故事选择器选中的故事（当前默认第一个）
+        const stories = state.story.list;
+        if (stories && stories.length > 0) {
+            enterStoryPanel(stories[0].story_id);
+        }
     });
+}
+
+// ======== 多故事数据流（阶段三 Commit 4，UI 在阶段四） ========
+
+async function fetchStoryList() {
+    const res = await apiGet('/story/list');
+    if (res?.success && Array.isArray(res.stories)) {
+        state.story.list = res.stories;
+    }
+    return state.story.list;
+}
+
+async function fetchStoryManifest(storyId) {
+    if (!storyId) return null;
+    const res = await apiGet(`/story/${encodeURIComponent(storyId)}/manifest`);
+    if (res?.success && res.manifest) {
+        state.story.currentStoryId = storyId;
+        state.story.currentManifest = res.manifest;
+        return res.manifest;
+    }
+    return null;
+}
+
+async function startStorySession(storyId, loadSessionId = null) {
+    if (!storyId) return null;
+    const body = loadSessionId ? { load_session_id: loadSessionId } : {};
+    const res = await apiPost(`/story/${encodeURIComponent(storyId)}/session/start`, body);
+    if (res?.success) {
+        state.story.currentStoryId = storyId;
+        state.story.sessionId = res.session_id;
+        state.story.sessionData = res;
+        return res;
+    }
+    return null;
+}
+
+function applyStoryEntryCopy() {
+    // 公开课模式由 updateClassroomDemoVisibility 处理，本函数不动
+    if (isLawClassroomDemo()) return;
+    const stories = state.story.list;
+    if (!stories || stories.length === 0) return;
+    const first = stories[0];
+    if (elements.rujuHeroTitle) elements.rujuHeroTitle.textContent = first.slogan || '人在局中，亲历历史';
+    if (elements.rujuHeroCopy) elements.rujuHeroCopy.textContent = first.subtitle || '';
+    if (elements.rujuEntryCardTitle) elements.rujuEntryCardTitle.textContent = first.title || '入局';
+    if (elements.rujuEntryCardCopy) elements.rujuEntryCardCopy.textContent = first.subtitle || '';
+    if (elements.rujuEventChipText) {
+        const parts = [first.era, first.year_range, `约 ${first.estimated_hours} 小时`].filter(Boolean);
+        elements.rujuEventChipText.textContent = parts.join(' · ');
+    }
+    if (elements.travelStartBtn) elements.travelStartBtn.textContent = '进入第一章';
+    if (elements.rujuEntryActionLabel) {
+        elements.rujuEntryActionLabel.textContent = `共 ${first.chapter_count} 章`;
+    }
+}
+
+async function enterStoryPanel(storyId) {
+    const manifest = await fetchStoryManifest(storyId);
+    if (!manifest) {
+        alert('无法加载故事 manifest');
+        return;
+    }
+    const sessionInfo = await startStorySession(storyId);
+    if (!sessionInfo) {
+        alert('无法开启故事会话');
+        return;
+    }
+    showTimeTravel();
+    elements.travelStartPanel?.classList.add('hidden');
+    elements.travelPlayPanel?.classList.add('hidden');
+    elements.travelVisualPanel?.classList.add('hidden');
+    elements.careerPrototypePanel?.classList.add('hidden');
+    elements.sanguoPanel?.classList.remove('hidden');
+    renderSanguoPanelStub(manifest, sessionInfo);
+}
+
+function exitStoryPanel() {
+    elements.sanguoPanel?.classList.add('hidden');
+    elements.travelStartPanel?.classList.remove('hidden');
+}
+
+function renderSanguoPanelStub(manifest, sessionInfo) {
+    if (!elements.sanguoPanel) return;
+    // 仅 commit 4 占位渲染：确认数据流打通，剧情场景渲染在阶段四 UI 实现
+    const chapters = (manifest.chapters || [])
+        .map(c => `<li><b>${escapeHtml(c.id)}</b>｜${escapeHtml(c.title)}｜${escapeHtml(c.year)}｜<em>${escapeHtml(c.status)}</em></li>`)
+        .join('');
+    elements.sanguoPanel.innerHTML = `
+        <div class="sanguo-stub" style="padding: 3rem 2rem; max-width: 44rem; margin: 0 auto; color: #f0e8d8; font-family: 'Noto Serif SC', serif; line-height: 1.7;">
+            <h2 style="color: #d4a557; margin-bottom: 0.6rem;">${escapeHtml(manifest.title || '')}</h2>
+            <p style="opacity: 0.8; margin-bottom: 1.4rem;">${escapeHtml(manifest.slogan || '')}</p>
+            <hr style="border: 0; border-top: 1px solid rgba(212, 165, 87, 0.3); margin: 1.2rem 0;">
+            <p>当前会话：<code>${escapeHtml(sessionInfo.session_id)}</code></p>
+            <p>当前章节：<code>${escapeHtml(sessionInfo.current_chapter)}</code></p>
+            <p>当前场景：<code>${escapeHtml(sessionInfo.current_scene)}</code></p>
+            <hr style="border: 0; border-top: 1px solid rgba(212, 165, 87, 0.3); margin: 1.2rem 0;">
+            <p style="opacity: 0.7;">章节索引（schema_version ${escapeHtml(manifest.schema_version || '?')}）：</p>
+            <ul style="list-style: none; padding-left: 0; font-size: 0.9rem;">${chapters}</ul>
+            <hr style="border: 0; border-top: 1px solid rgba(212, 165, 87, 0.3); margin: 1.2rem 0;">
+            <p style="opacity: 0.6; font-size: 0.9rem;">◇ 阶段三 Commit 4 占位：数据流已打通。剧情场景渲染、AI 对话界面、印章式选择等 UI 由阶段四从零实现。</p>
+            <p style="margin-top: 1.5rem;">
+                <button type="button" data-story-action="exit-story" style="background: transparent; border: 1px solid #d4a557; color: #d4a557; padding: 0.5rem 1.4rem; font-family: inherit; cursor: pointer;">返回入局首页</button>
+            </p>
+        </div>
+    `;
 }
 
 function showHome() {
@@ -1274,6 +1395,7 @@ function showHome() {
     elements.guessGameContent.classList.add('hidden');
     elements.timeTravelContent?.classList.add('hidden');
     elements.careerPrototypePanel?.classList.add('hidden');
+    elements.sanguoPanel?.classList.add('hidden');
     elements.chatSection?.classList?.remove('hidden');
     document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.remove('bg-[#c62828]/10', 'text-[#c62828]', 'border-[#c62828]', 'font-bold');
@@ -1324,8 +1446,16 @@ async function init() {
     trackAnalytics('visit');
     bindHistoricalRpgEntry();
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
+    // sanguo-panel 的退出按钮（事件委托）
+    elements.sanguoPanel?.addEventListener('click', (e) => {
+        if (e.target?.closest?.('[data-story-action="exit-story"]')) {
+            exitStoryPanel();
+        }
+    });
     updateClassroomDemoVisibility();
     loadTravelScenes();
+    // 拉故事列表 + 应用入口文案（公开课模式由 applyStoryEntryCopy 自动跳过）
+    fetchStoryList().then(() => applyStoryEntryCopy()).catch(() => {});
     // 1. 获取导航目录
     const res = await apiGet('/events_list');
     if(res && res.success) {
