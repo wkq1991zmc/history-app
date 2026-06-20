@@ -1536,6 +1536,18 @@ function finishTypingDOM() {
         renderSanguoNameInput(scene);
         return;
     }
+    // C6: 末行 + AI 节点 → 渲染言/史 + 跳过按钮（in-character 占位）
+    if (isLast && (scene?.type === 'companion_free_talk' || scene?.type === 'historical_limited_talk')) {
+        btnEl.hidden = true;
+        renderSanguoTalkActions(scene);
+        return;
+    }
+    // C6: 末行 + chapter_end → 渲染章节切换按钮
+    if (isLast && scene?.type === 'chapter_end') {
+        btnEl.hidden = true;
+        renderSanguoChapterEnd(scene);
+        return;
+    }
     btnEl.hidden = false;
     btnEl.textContent = isLast ? '推进' : '继续';
 }
@@ -1606,6 +1618,12 @@ async function sanguoAdvanceToScene(fromScene, nextScene, nextChapter = null, ch
     state.story.sessionData.current_chapter = res.current_chapter;
     state.story.lineIndex = 0;
     resetSanguoChoiceDisplay();
+    // C6: 章节切换时重新加载章节数据
+    const currentChapterId = state.story.currentChapter?.chapter_id;
+    if (res.current_chapter !== currentChapterId) {
+        const newChapter = await fetchStoryChapter(storyId, res.current_chapter);
+        if (!newChapter) { alert(`无法加载下一章数据: ${res.current_chapter}`); return; }
+    }
     syncSanguoBackground();
     syncSanguoTopbar();
     startTypingCurrentLine();
@@ -1635,6 +1653,206 @@ function resetSanguoChoiceDisplay() {
         choicesEl.innerHTML = '';
     }
     if (btnEl) btnEl.hidden = false;
+}
+
+// C6: AI 节点占位（companion_free_talk / historical_limited_talk）
+//     in-character 回复，不破坏沉浸（阶段五接百炼前的过渡）
+
+function renderSanguoTalkActions(scene) {
+    const choicesEl = elements.sanguoPanel?.querySelector('[data-sanguo-choices]');
+    if (!choicesEl) return;
+    let mark = '言';
+    let hint = '与她说话';
+    let skipText = '继续';
+    if (scene.type === 'companion_free_talk') {
+        const ch = scene.companion_state_card?.character || '阿萤';
+        mark = '言';
+        hint = `与${ch}说话`;
+        skipText = '睡吧';
+    } else if (scene.type === 'historical_limited_talk') {
+        const ch = scene.historical_figure?.name || '';
+        mark = '史';
+        const rounds = scene.historical_figure?.knowledge_card?.rounds_limit;
+        hint = `与${ch}对话${rounds ? `（${rounds} 轮）` : ''}`;
+        skipText = '告辞';
+    }
+    choicesEl.innerHTML = `
+        <div class="sanguo-talk-actions">
+            <button type="button" class="sanguo-talk-btn" data-sanguo-talk-action="open">
+                <span class="sanguo-talk-mark">${escapeHtml(mark)}</span>
+                <span class="sanguo-talk-hint">${escapeHtml(hint)}</span>
+            </button>
+            <button type="button" class="sanguo-talk-btn-skip" data-sanguo-talk-action="skip">${escapeHtml(skipText)}</button>
+        </div>
+    `;
+    choicesEl.hidden = false;
+}
+
+function openSanguoTalkInput(scene) {
+    const choicesEl = elements.sanguoPanel?.querySelector('[data-sanguo-choices]');
+    if (!choicesEl) return;
+    let promptText = '你想说点什么？';
+    if (scene.type === 'companion_free_talk') {
+        const ch = scene.companion_state_card?.character || '阿萤';
+        promptText = `你想对${ch}说点什么`;
+    } else if (scene.type === 'historical_limited_talk') {
+        const ch = scene.historical_figure?.name || '';
+        promptText = `你想问${ch}什么`;
+    }
+    choicesEl.innerHTML = `
+        <form class="sanguo-input-form" data-sanguo-talk-form>
+            <label class="sanguo-input-label">${escapeHtml(promptText)}</label>
+            <input class="sanguo-input" type="text" maxlength="80" data-sanguo-talk-input autocomplete="off" spellcheck="false">
+            <div class="sanguo-input-row">
+                <span class="sanguo-input-hint">阶段五接入百炼后将由 AI 实时生成回复</span>
+                <button type="button" class="sanguo-input-submit" data-sanguo-talk-action="cancel">取消</button>
+                <button type="submit" class="sanguo-input-submit">说</button>
+            </div>
+        </form>
+    `;
+    setTimeout(() => choicesEl.querySelector('[data-sanguo-talk-input]')?.focus(), 80);
+}
+
+function handleSanguoTalkSubmit() {
+    const scene = getCurrentScene();
+    if (!scene) return;
+    // 占位 in-character 回复（阶段五接百炼后替换）
+    let lines = [];
+    if (scene.type === 'companion_free_talk') {
+        const speaker = scene.companion_state_card?.character || '阿萤';
+        lines = [
+            { type: 'dialogue', speaker, text: '……', pace: 'slow' },
+            { type: 'dialogue', speaker, text: '嗯。', pace: 'slow' }
+        ];
+    } else if (scene.type === 'historical_limited_talk') {
+        const speaker = scene.historical_figure?.name || '历史人物';
+        const fallbacks = scene.historical_figure?.knowledge_card?.fallback_lines || [];
+        const text = fallbacks[0] || '此事容后再议。';
+        lines = [{
+            type: 'dialogue',
+            speaker,
+            text,
+            stage_direction: '拈须不语，半晌方道',
+            pace: 'slow'
+        }];
+    }
+    state.story.injectedLines = lines;
+    state.story.injectedLineIndex = 0;
+    renderNextInjectedLine();
+}
+
+function renderNextInjectedLine() {
+    const lines = state.story.injectedLines || [];
+    const idx = state.story.injectedLineIndex || 0;
+    if (idx >= lines.length) {
+        state.story.injectedLines = null;
+        state.story.injectedLineIndex = 0;
+        renderSanguoTalkActions(getCurrentScene());
+        return;
+    }
+    typeStandaloneLine(lines[idx], () => {
+        state.story.injectedLineIndex = idx + 1;
+        setTimeout(() => renderNextInjectedLine(), 380);
+    });
+}
+
+function typeStandaloneLine(line, onDone) {
+    sanguoClearTyping();
+    const dialogueBox = elements.sanguoPanel?.querySelector('[data-sanguo-dialogue]');
+    const textEl = elements.sanguoPanel?.querySelector('[data-sanguo-text]');
+    const speakerEl = elements.sanguoPanel?.querySelector('[data-sanguo-speaker]');
+    const btnEl = elements.sanguoPanel?.querySelector('[data-sanguo-action="advance"]');
+    const choicesEl = elements.sanguoPanel?.querySelector('[data-sanguo-choices]');
+    if (!dialogueBox || !textEl) return;
+    if (btnEl) btnEl.hidden = true;
+    if (choicesEl) { choicesEl.hidden = true; choicesEl.innerHTML = ''; }
+
+    const lineType = line.type || 'narration';
+    dialogueBox.className = 'sanguo-dialogue-box';
+    dialogueBox.classList.add(`sanguo-line--${lineType}`);
+    if (lineType === 'dialogue' && line.speaker === '阿萤') {
+        dialogueBox.classList.add('sanguo-speaker-ayinghuo');
+    }
+    if (speakerEl) {
+        if (lineType === 'dialogue' && line.speaker) {
+            const stageStr = line.stage_direction
+                ? ` <span class="sanguo-stage-dir">（${escapeHtml(line.stage_direction)}）</span>`
+                : '';
+            speakerEl.innerHTML = `<b>—— ${escapeHtml(line.speaker)}</b>${stageStr}`;
+            speakerEl.hidden = false;
+        } else {
+            speakerEl.hidden = true;
+            speakerEl.innerHTML = '';
+        }
+    }
+
+    const content = String(line.text || '');
+    const paceKey = (line.pace && SANGUO_PACE_MS[line.pace]) ? line.pace : 'normal';
+    const charDelay = SANGUO_PACE_MS[paceKey];
+    textEl.textContent = '';
+    dialogueBox.classList.add('is-typing');
+    state.story.typing = true;
+    state.story.typingToken += 1;
+    const token = state.story.typingToken;
+
+    if (!content) {
+        state.story.typing = false;
+        dialogueBox.classList.remove('is-typing');
+        onDone?.();
+        return;
+    }
+    let idx = 0;
+    const step = () => {
+        if (token !== state.story.typingToken) return;
+        idx += 1;
+        textEl.textContent = content.slice(0, idx);
+        if (idx < content.length) {
+            const prevChar = content[idx - 1] || '';
+            const punctPause = SANGUO_PUNCT_RE.test(prevChar) ? SANGUO_PUNCT_PAUSE_MS : 0;
+            state.story.typingTimer = window.setTimeout(step, charDelay + punctPause);
+            return;
+        }
+        state.story.typingTimer = null;
+        state.story.typing = false;
+        dialogueBox.classList.remove('is-typing');
+        onDone?.();
+    };
+    state.story.typingTimer = window.setTimeout(step, SANGUO_FIRST_CHAR_DELAY_MS);
+}
+
+async function handleSanguoTalkSkip() {
+    const scene = getCurrentScene();
+    if (!scene?.next) { alert('当前场景无 next 字段'); return; }
+    await sanguoAdvanceToScene(scene.scene_id, scene.next);
+}
+
+// C6: chapter_end 章节切换
+function renderSanguoChapterEnd(scene) {
+    const choicesEl = elements.sanguoPanel?.querySelector('[data-sanguo-choices]');
+    if (!choicesEl) return;
+    const nextChapterId = scene.next_chapter;
+    let nextChapterInfo = null;
+    if (nextChapterId) {
+        const chapters = state.story.currentManifest?.chapters || [];
+        nextChapterInfo = chapters.find(c => c.id === nextChapterId);
+    }
+    let html = '<div class="sanguo-chapter-end-actions">';
+    if (nextChapterInfo && nextChapterInfo.status === 'complete') {
+        html += `<button type="button" class="sanguo-chapter-next-btn" data-sanguo-chapter-action="next">进入「${escapeHtml(nextChapterInfo.title || nextChapterId)}」</button>`;
+    } else if (nextChapterInfo) {
+        html += `<button type="button" class="sanguo-chapter-stub-btn" disabled>「${escapeHtml(nextChapterInfo.title || nextChapterId)}」正在撰写中</button>`;
+    }
+    html += `<button type="button" class="sanguo-talk-btn-skip" data-story-action="exit-story">返回入局首页</button>`;
+    html += '</div>';
+    choicesEl.innerHTML = html;
+    choicesEl.hidden = false;
+}
+
+async function handleSanguoNextChapter() {
+    const scene = getCurrentScene();
+    if (!scene?.next_chapter) { alert('当前章节末无 next_chapter'); return; }
+    // next_scene 在后端章节切换时会被忽略（后端用新章 entry_scene 覆盖）
+    await sanguoAdvanceToScene(scene.scene_id, scene.scene_id, scene.next_chapter);
 }
 
 // C5: 主角姓名输入
@@ -1795,7 +2013,7 @@ async function init() {
     }
     bindHistoricalRpgEntry();
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
-    // sanguo-panel 的事件委托：退出按钮 + 字幕推进按钮 + 印章选项
+    // sanguo-panel 的事件委托：退出 + 推进 + 印章选项 + 言/史 + 章节切换
     elements.sanguoPanel?.addEventListener('click', (e) => {
         if (e.target?.closest?.('[data-sanguo-action="advance"]')) {
             e.preventDefault();
@@ -1808,17 +2026,45 @@ async function init() {
             handleSanguoChoice(choiceBtn.dataset.sanguoChoiceId);
             return;
         }
+        // C6: AI 节点的 talk action
+        const talkAction = e.target?.closest?.('[data-sanguo-talk-action]');
+        if (talkAction) {
+            e.preventDefault();
+            const action = talkAction.dataset.sanguoTalkAction;
+            const scene = getCurrentScene();
+            if (action === 'open' && scene) {
+                openSanguoTalkInput(scene);
+            } else if (action === 'skip') {
+                handleSanguoTalkSkip();
+            } else if (action === 'cancel' && scene) {
+                renderSanguoTalkActions(scene);
+            }
+            return;
+        }
+        // C6: chapter_end 章节切换
+        if (e.target?.closest?.('[data-sanguo-chapter-action="next"]')) {
+            e.preventDefault();
+            handleSanguoNextChapter();
+            return;
+        }
         if (e.target?.closest?.('[data-story-action="exit-story"]')) {
             exitStoryPanel();
         }
     });
-    // C5: 主角姓名输入表单提交
+    // C5+C6: 输入表单提交（姓名 + 自由对话）
     elements.sanguoPanel?.addEventListener('submit', (e) => {
-        const form = e.target?.closest?.('[data-sanguo-input-form]');
-        if (!form) return;
-        e.preventDefault();
-        const input = form.querySelector('[data-sanguo-name-input]');
-        handleSanguoSubmitName(input?.value);
+        const nameForm = e.target?.closest?.('[data-sanguo-input-form]');
+        if (nameForm) {
+            e.preventDefault();
+            const input = nameForm.querySelector('[data-sanguo-name-input]');
+            handleSanguoSubmitName(input?.value);
+            return;
+        }
+        const talkForm = e.target?.closest?.('[data-sanguo-talk-form]');
+        if (talkForm) {
+            e.preventDefault();
+            handleSanguoTalkSubmit();
+        }
     });
     // 键盘 Space / Enter 推进
     document.addEventListener('keydown', sanguoKeyboardHandler);

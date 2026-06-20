@@ -474,6 +474,124 @@
 }
 
 /* ============================================================
+ * C6 AI 节点 in-character 占位（言 / 史 按钮 + 跳过）
+ *  - companion_free_talk: 言 + 睡吧
+ *  - historical_limited_talk: 史 + 告辞
+ *  - chapter_end: 进入下一章
+ * ============================================================ */
+
+.sanguo-talk-actions {
+    margin-top: 1.15rem;
+    display: flex;
+    align-items: center;
+    gap: 1.4rem;
+    pointer-events: auto;
+}
+
+.sanguo-talk-btn {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    background: transparent;
+    border: 0;
+    color: var(--sanguo-amber);
+    font-family: inherit;
+    cursor: pointer;
+    padding: 0.45rem 0;
+    transition: color 0.2s;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.92);
+}
+
+.sanguo-talk-mark {
+    font-family: 'KaiTi', '楷体', 'STKaiti', 'Noto Serif SC', serif;
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: #a02828;
+    letter-spacing: 0.04em;
+    border: 1.5px solid #a02828;
+    border-radius: 2px;
+    padding: 0.15rem 0.45rem;
+    background: rgba(160, 40, 40, 0.12);
+    box-shadow: 0 0 14px rgba(160, 40, 40, 0.25);
+    transition: background 0.2s, box-shadow 0.25s;
+}
+
+.sanguo-talk-btn:hover .sanguo-talk-mark {
+    background: rgba(160, 40, 40, 0.28);
+    box-shadow: 0 0 22px rgba(160, 40, 40, 0.55);
+}
+
+.sanguo-talk-hint {
+    color: var(--sanguo-amber-dim);
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+}
+
+.sanguo-talk-btn:hover .sanguo-talk-hint {
+    color: var(--sanguo-amber-bright);
+}
+
+.sanguo-talk-btn-skip {
+    background: transparent;
+    border: 0;
+    color: var(--sanguo-amber-dim);
+    font-family: inherit;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    cursor: pointer;
+    padding: 0.45rem 0.6rem;
+    transition: color 0.2s;
+}
+
+.sanguo-talk-btn-skip:hover {
+    color: var(--sanguo-amber-bright);
+}
+
+/* historical_limited_talk 剩余轮数提示（顶栏右上） */
+.sanguo-rounds-hint {
+    color: #c87878;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    margin-right: 1rem;
+}
+
+/* chapter_end 进入下一章按钮 */
+.sanguo-chapter-end-actions {
+    margin-top: 1.55rem;
+    display: flex;
+    gap: 1.6rem;
+    pointer-events: auto;
+}
+
+.sanguo-chapter-next-btn {
+    background: transparent;
+    border: 1px solid var(--sanguo-amber);
+    color: var(--sanguo-amber);
+    font-family: inherit;
+    font-size: 0.95rem;
+    letter-spacing: 0.16em;
+    padding: 0.55rem 1.8rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.sanguo-chapter-next-btn:hover {
+    background: rgba(212, 165, 87, 0.12);
+    color: var(--sanguo-amber-bright);
+}
+
+.sanguo-chapter-stub-btn {
+    background: transparent;
+    border: 1px dashed var(--sanguo-amber-dim);
+    color: var(--sanguo-amber-dim);
+    font-family: inherit;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    padding: 0.5rem 1.4rem;
+    cursor: not-allowed;
+}
+
+/* ============================================================
  * 入口卡片视觉强化（不与公开课 .ruju-* 冲突）
  *  - 让首页入口看起来"立起来"
  *  - 应用在 .ruju-entry-card 上，但作为补充而非覆盖
