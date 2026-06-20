@@ -33,6 +33,11 @@ except Exception:
 
 load_dotenv()
 
+# 阶段五 5.3：导入三国篇 AI 相关模块（必须 load_dotenv 后导入，
+# 否则 sanguo_ai 读取 WEB_API_KEY/DASHSCOPE_API_KEY 时 env 还未注入）
+import sanguo_ai
+import sanguo_checks
+
 from load_data import EVENTS_DB 
 from career_engine import get_session as get_career_session
 from career_engine import start_session as start_career_session
@@ -3918,6 +3923,11 @@ async def story_session_start(
         "choices_made": [],
         "companion_relationship": {},  # 阿萤关系状态
         "secrets_unlocked": [],
+        # 阶段五 5.3：阿萤自由对话历史按 scene_id 隔离
+        # 形如 {"campfire_free_talk": [{"role":"user","content":"..."},...]}
+        "companion_dialogue_history": {},
+        # 阶段五 5.4：历史人物受限对话历史（同上结构）
+        "historical_dialogue_history": {},
         "created_at": time.time(),
     }
     _safe_record_analytics("story", player_id, story_id, "", "session_start")
@@ -4029,8 +4039,148 @@ class StoryHistoricalTalkRequest(BaseModel):
     scene_id: Optional[str] = None  # 当前场景 id（用于查找 historical_figure.knowledge_card）
 
 
+def _resolve_recent_choices_text(story_id: str, choices_made: List[Dict], limit: int = 5) -> List[str]:
+    """把 session.choices_made entries 解析为人类可读的选择文本列表（用作 LLM 上下文）。
+
+    每个 entry: {"from_scene", "choice_id", "next_scene", "chapter", "ts"}
+    需从对应章节 JSON 中找到选项的 .text。本调用内缓存 loaded chapters 避免重复 IO。
+    """
+    if not choices_made:
+        return []
+    cache: Dict[str, Dict] = {}
+    results: List[str] = []
+    for entry in choices_made[-limit:]:
+        chapter_id = entry.get("chapter", "")
+        choice_id = entry.get("choice_id", "")
+        from_scene = entry.get("from_scene", "")
+        if not (chapter_id and choice_id and from_scene):
+            continue
+        if chapter_id not in cache:
+            ch = _load_chapter(story_id, chapter_id)
+            if not ch:
+                continue
+            cache[chapter_id] = ch
+        ch = cache[chapter_id]
+        scene = next((s for s in ch.get("scenes", []) if s.get("scene_id") == from_scene), None)
+        if not scene:
+            continue
+        choice = next((c for c in (scene.get("choices") or []) if c.get("id") == choice_id), None)
+        if choice:
+            results.append(choice.get("text", choice_id))
+    return results
+
+
+def _find_scene_in_chapter(chapter_data: Dict, scene_id: str) -> Optional[Dict]:
+    """章节 JSON 内按 scene_id 查 scene dict。"""
+    if not chapter_data or not scene_id:
+        return None
+    for s in chapter_data.get("scenes", []):
+        if s.get("scene_id") == scene_id:
+            return s
+    return None
+
+
+async def _story_companion_stream(
+    story_id: str,
+    session_id: str,
+    message: str,
+    scene_id_override: Optional[str] = None,
+):
+    """阶段五 5.3：阿萤自由对话真实实现。
+
+    流程：collect → sanguo_checks.check_companion → 通过 stream 给前端 /
+    不通过最多重试 3 次（升 temperature） / 仍不通过 pick_fallback。
+    成功 path 才把对白写入 companion_dialogue_history。
+    """
+    # 1. 校验 session / 故事 / 场景类型
+    if story_id not in STORIES:
+        yield f"data: {json.dumps({'type': 'error', 'message': f'故事不存在: {story_id}'}, ensure_ascii=False)}\n\n"
+        return
+    session = story_sessions.get(session_id)
+    if not session or session.get("story_id") != story_id:
+        yield f"data: {json.dumps({'type': 'error', 'message': '会话不存在或已过期'}, ensure_ascii=False)}\n\n"
+        return
+    chapter_id = session.get("current_chapter", "")
+    scene_id = scene_id_override or session.get("current_scene", "")
+    chapter_data = _load_chapter(story_id, chapter_id)
+    scene = _find_scene_in_chapter(chapter_data, scene_id) if chapter_data else None
+    if not scene or scene.get("type") != "companion_free_talk":
+        yield f"data: {json.dumps({'type': 'error', 'message': f'场景不是阿萤自由对话节点: {scene_id}'}, ensure_ascii=False)}\n\n"
+        return
+    state_card = scene.get("companion_state_card") or {}
+
+    # 2. 构造 system prompt（注入状态卡 + 玩家近期选择 + 秘密机制）
+    recent_choices = _resolve_recent_choices_text(story_id, session.get("choices_made", []), limit=5)
+    system_prompt = sanguo_ai.build_companion_system_prompt(state_card, recent_choices=recent_choices)
+
+    # 3. 取本 scene 历史（按 scene_id 隔离，跨 scene 不互相污染）
+    history_map = session.setdefault("companion_dialogue_history", {})
+    history = history_map.setdefault(scene_id, [])
+    history_window = history[-6:]  # 最近 3 轮足够支撑短对话
+
+    # 4. collect → 三道检查 → 重试 ≤ 3 次
+    reply = ""
+    final_violations: List[str] = []
+    MAX_TRIES = 3
+    base_temp = 0.85
+    for attempt in range(MAX_TRIES):
+        temp = base_temp + 0.05 * attempt  # 每次重试微升温度避免循环命中同样违规
+        try:
+            collected = await sanguo_ai.collect_completion(
+                system_prompt,
+                history_window,
+                message,
+                max_tokens=120,
+                temperature=temp,
+            )
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': f'LLM 调用失败: {str(e)[:120]}'}, ensure_ascii=False)}\n\n"
+            return
+        collected = (collected or "").strip()
+        result = sanguo_checks.check_companion(
+            collected,
+            secrets_reveal_allowed=state_card.get("secrets_reveal_allowed"),
+        )
+        if result.ok and collected:
+            reply = collected
+            final_violations = []
+            break
+        final_violations = result.violations
+
+    used_fallback = False
+    if not reply:
+        reply = sanguo_checks.pick_fallback(["……", "……嗯。", "……不知道。"])
+        used_fallback = True
+
+    # 5. SSE 推送（沿用 /classroom/talk_stream 同款格式）
+    meta = {
+        "type": "message_start",
+        "speaker": "阿萤",
+        "role": "伙伴自由对话",
+        "kind": "companion",
+    }
+    yield f"data: {json.dumps(meta, ensure_ascii=False)}\n\n"
+    for char in reply:
+        yield f"data: {json.dumps({'type': 'delta', 'delta': char}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.012)
+    yield f"data: {json.dumps({'type': 'message_end'}, ensure_ascii=False)}\n\n"
+    done = {
+        "type": "done",
+        "success": True,
+        "kind": "companion",
+        "used_fallback": used_fallback,
+        "violations": final_violations if used_fallback else [],
+    }
+    yield f"data: {json.dumps(done, ensure_ascii=False)}\n\n"
+
+    # 6. 仅成功 path 才写入对话历史（fallback 不污染上下文）
+    if not used_fallback:
+        history.append({"role": "user", "content": message})
+        history.append({"role": "assistant", "content": reply})
+
+
 async def _story_placeholder_stream(story_id: str, kind: str, session_id: str):
-    """阶段五真正接通百炼前的占位 SSE 流。"""
+    """阶段五真正接通百炼前的占位 SSE 流（仅 historical 仍在用，companion 已迁至 _story_companion_stream）。"""
     if story_id not in STORIES:
         yield f"data: {json.dumps({'type': 'error', 'message': f'故事不存在: {story_id}'}, ensure_ascii=False)}\n\n"
         return
@@ -4065,12 +4215,18 @@ async def story_companion_talk_stream(
     req: StoryCompanionTalkRequest,
     x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID"),
 ):
-    """阿萤自由对话（流式占位）。阶段五接入百炼 + companion_state_card + 硬约束检查。"""
+    """阿萤自由对话流式（阶段五 5.3 真实实现）。
+
+    流程：加载当前 scene companion_state_card → 注入 system prompt
+    （含 hint/reveal 秘密机制 + 玩家近期选择） → collect → 三道检查 →
+    通过 stream / 不通过最多重 3 次 / 全失败 fallback。
+    成功后写入 session.companion_dialogue_history[scene_id]。
+    """
     player_id = x_client_id if x_client_id else "unknown_player"
     if not check_rate_limit(player_id):
         raise HTTPException(status_code=429, detail="触发太快了，请稍等一下。")
     return StreamingResponse(
-        _story_placeholder_stream(story_id, "companion", req.session_id),
+        _story_companion_stream(story_id, req.session_id, req.message, scene_id_override=req.scene_id),
         media_type="text/event-stream",
     )
 

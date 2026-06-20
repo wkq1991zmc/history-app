@@ -29,25 +29,28 @@ SANGUO_ENABLE_THINKING = os.environ.get("WEB_FAST_ENABLE_THINKING", "").lower() 
     "1", "true", "yes", "on"
 )
 
-SANGUO_API_KEY = (
-    os.environ.get("WEB_API_KEY")
-    or os.environ.get("DASHSCOPE_API_KEY")
-    or os.environ.get("GEMINI_API_KEY")
-)
-SANGUO_BASE_URL = os.environ.get(
-    "WEB_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
-)
-
 _client: Optional[AsyncOpenAI] = None
 
 
 def get_client() -> AsyncOpenAI:
-    """Lazily create OpenAI-compatible client (单实例)."""
+    """Lazily create OpenAI-compatible client (单实例)。
+
+    env vars 在 call time 读取——不在 module import 时读，避免 dotenv
+    未加载就被冻结。
+    """
     global _client
     if _client is None:
+        api_key = (
+            os.environ.get("WEB_API_KEY")
+            or os.environ.get("DASHSCOPE_API_KEY")
+            or os.environ.get("GEMINI_API_KEY")
+        )
+        base_url = os.environ.get(
+            "WEB_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        )
         _client = AsyncOpenAI(
-            api_key=SANGUO_API_KEY,
-            base_url=SANGUO_BASE_URL,
+            api_key=api_key,
+            base_url=base_url,
             timeout=httpx.Timeout(SANGUO_TIMEOUT, connect=10.0),
         )
     return _client
