@@ -364,7 +364,11 @@ const state = {
         sessionId: null,
         sessionData: null,         // /story/<id>/session/start 返回的 session 信息
         currentChapter: null,      // /story/<id>/chapter/<cid> 返回的完整章节数据
-        sceneIndex: null           // {scene_id: scene} 索引，便于 next 跳转
+        sceneIndex: null,          // {scene_id: scene} 索引，便于 next 跳转
+        lineIndex: 0,              // 当前 scene 内的 line 推进位置
+        typing: false,             // 是否正在流式打字
+        typingToken: 0,            // 流式取消用 token
+        typingTimer: null          // 流式 setTimeout id
     },
     isLoading: false
 };
@@ -1278,6 +1282,13 @@ function bindHistoricalRpgEntry() {
 
 // ======== 多故事数据流（阶段三 Commit 4，UI 在阶段四） ========
 
+// C3 流式打字速度：data/stories/README.md schema 文档定义
+// slow≈60-80ms / normal≈35-40ms / fast≈28ms，默认 normal
+const SANGUO_PACE_MS = { slow: 70, normal: 38, fast: 28 };
+const SANGUO_PUNCT_PAUSE_MS = 95;        // 中文标点后额外停顿
+const SANGUO_FIRST_CHAR_DELAY_MS = 80;   // 首字延迟（让上句余韵保留）
+const SANGUO_PUNCT_RE = /[。！？；…]/;
+
 async function fetchStoryList() {
     const res = await apiGet('/story/list');
     if (res?.success && Array.isArray(res.stories)) {
@@ -1376,55 +1387,241 @@ async function enterStoryPanel(storyId) {
     elements.careerPrototypePanel?.classList.add('hidden');
     elements.sanguoPanel?.classList.remove('hidden');
     renderSanguoPanelShell(manifest, sessionInfo, chapter);
+    startSanguoScene();
 }
 
 function exitStoryPanel() {
+    sanguoClearTyping();
     elements.sanguoPanel?.classList.add('hidden');
     elements.travelStartPanel?.classList.remove('hidden');
 }
 
 /**
- * 渲染 sanguo-panel 基础壳子（C2）：
- *  - 背景层（取当前 scene 或 chapter 的 background_image）
- *  - 暗化叠层
- *  - 顶栏（站名/章节 + 卷/言/乐/声 四图标占位）
- *  - 场景容器（C3 字幕渲染）
- *  - 临时占位提示（C3 会替换为字幕）
+ * 渲染 sanguo-panel 持久结构：
+ *  - 背景层 / 暗化叠层 / 顶栏 / 场景区
+ *  - 场景区含 dialogue-box（speaker / text / continue-btn）
+ * 流式渲染在 startTypingCurrentLine 操作内部 DOM，不重建整个 panel。
  */
 function renderSanguoPanelShell(manifest, sessionInfo, chapter) {
     if (!elements.sanguoPanel) return;
     const scene = getCurrentScene();
     const bgUrl = getSceneBackgroundUrl(scene, chapter);
     const stationTitle = chapter?.title || '';
-    const sceneId = sessionInfo?.current_scene || '';
-    const lineCount = scene?.lines?.length || 0;
-    const sceneType = scene?.type || '?';
 
     elements.sanguoPanel.innerHTML = `
-        <div class="sanguo-bg" style="${bgUrl ? `background-image: url('${escapeAttr(bgUrl)}')` : ''}"></div>
+        <div class="sanguo-bg" data-sanguo-bg style="${bgUrl ? `background-image: url('${escapeAttr(bgUrl)}')` : ''}"></div>
         <div class="sanguo-shade"></div>
         <div class="sanguo-topbar">
-            <div class="sanguo-topbar-title">${escapeHtml(stationTitle)}<em>${escapeHtml(scene?.scene_id || '')}</em></div>
+            <div class="sanguo-topbar-title" data-sanguo-topbar-title>${escapeHtml(stationTitle)}</div>
             <div class="sanguo-topbar-icons">
-                <button type="button" class="sanguo-topbar-icon" disabled title="笔记本（阶段四 P1 实现）">卷</button>
-                <button type="button" class="sanguo-topbar-icon" disabled title="自由对话（阶段五接入）">言</button>
+                <button type="button" class="sanguo-topbar-icon" disabled title="笔记本（阶段四 P1）">卷</button>
+                <button type="button" class="sanguo-topbar-icon" disabled title="自由对话（阶段五）">言</button>
                 <button type="button" class="sanguo-topbar-icon" disabled title="背景音乐（阶段四 P2）">乐</button>
-                <button type="button" class="sanguo-topbar-icon" disabled title="角色朗读（不做）">声</button>
+                <button type="button" class="sanguo-topbar-icon" data-story-action="exit-story" title="返回入局首页" aria-label="返回入局首页">×</button>
             </div>
         </div>
         <div class="sanguo-scene">
-            <div class="sanguo-shell-placeholder">
-                <p>◇ 阶段四 Commit 2 · 基础壳子已就位</p>
-                <b>${escapeHtml(manifest.title || '')}</b>
-                <p style="margin-top: 0.8rem;">章节：${escapeHtml(chapter?.title || sessionInfo.current_chapter)}</p>
-                <p>场景：<code>${escapeHtml(sceneId)}</code>（type=${escapeHtml(sceneType)}，${lineCount} 行）</p>
-                <p style="margin-top: 0.8rem; opacity: 0.55; font-size: 0.85rem;">背景已加载。C3 将在此区域实现字幕流式打字 + 旁白/对白/心声三层文字 + pace 控制。</p>
-                <div class="sanguo-shell-actions">
-                    <button type="button" data-story-action="exit-story" class="sanguo-exit-btn">返回入局首页</button>
-                </div>
+            <div class="sanguo-dialogue-box" data-sanguo-dialogue>
+                <div class="sanguo-speaker" data-sanguo-speaker hidden></div>
+                <p class="sanguo-text" data-sanguo-text aria-live="polite"></p>
+                <button type="button" class="sanguo-continue-btn" data-sanguo-action="advance" aria-label="继续">显示全文</button>
             </div>
         </div>
     `;
+}
+
+function startSanguoScene() {
+    state.story.lineIndex = 0;
+    startTypingCurrentLine();
+}
+
+function sanguoClearTyping() {
+    state.story.typingToken += 1;
+    if (state.story.typingTimer) {
+        window.clearTimeout(state.story.typingTimer);
+        state.story.typingTimer = null;
+    }
+    state.story.typing = false;
+}
+
+function startTypingCurrentLine() {
+    sanguoClearTyping();
+    const scene = getCurrentScene();
+    const line = scene?.lines?.[state.story.lineIndex];
+    if (!scene || !line) return;
+    const dialogueBox = elements.sanguoPanel?.querySelector('[data-sanguo-dialogue]');
+    const textEl = elements.sanguoPanel?.querySelector('[data-sanguo-text]');
+    const speakerEl = elements.sanguoPanel?.querySelector('[data-sanguo-speaker]');
+    const btnEl = elements.sanguoPanel?.querySelector('[data-sanguo-action="advance"]');
+    if (!dialogueBox || !textEl) return;
+
+    // 重置类型 class
+    const lineType = line.type || 'narration';
+    dialogueBox.className = 'sanguo-dialogue-box';
+    dialogueBox.classList.add(`sanguo-line--${lineType}`);
+    if (line.display_style === 'fullscreen_subtitle') {
+        dialogueBox.classList.add('sanguo-line--fullscreen_subtitle');
+    }
+    if (lineType === 'dialogue' && line.speaker === '阿萤') {
+        dialogueBox.classList.add('sanguo-speaker-ayinghuo');
+    }
+
+    // Speaker 渲染（仅 dialogue 显示）
+    if (speakerEl) {
+        if (lineType === 'dialogue' && line.speaker) {
+            const stageStr = line.stage_direction
+                ? ` <span class="sanguo-stage-dir">（${escapeHtml(line.stage_direction)}）</span>`
+                : '';
+            speakerEl.innerHTML = `<b>—— ${escapeHtml(line.speaker)}</b>${stageStr}`;
+            speakerEl.hidden = false;
+        } else {
+            speakerEl.hidden = true;
+            speakerEl.innerHTML = '';
+        }
+    }
+
+    const content = String(line.text || '');
+    const paceKey = (line.pace && SANGUO_PACE_MS[line.pace]) ? line.pace : 'normal';
+    const charDelay = SANGUO_PACE_MS[paceKey];
+
+    textEl.textContent = '';
+    dialogueBox.classList.add('is-typing');
+    if (btnEl) {
+        btnEl.textContent = '显示全文';
+        btnEl.classList.add('is-typing');
+    }
+    state.story.typing = true;
+    state.story.typingToken += 1;
+    const token = state.story.typingToken;
+
+    if (!content) {
+        finishTypingDOM();
+        return;
+    }
+    let idx = 0;
+    const step = () => {
+        if (token !== state.story.typingToken) return;
+        idx += 1;
+        textEl.textContent = content.slice(0, idx);
+        if (idx < content.length) {
+            const prevChar = content[idx - 1] || '';
+            const punctPause = SANGUO_PUNCT_RE.test(prevChar) ? SANGUO_PUNCT_PAUSE_MS : 0;
+            state.story.typingTimer = window.setTimeout(step, charDelay + punctPause);
+            return;
+        }
+        finishTypingDOM();
+    };
+    state.story.typingTimer = window.setTimeout(step, SANGUO_FIRST_CHAR_DELAY_MS);
+}
+
+function finishTypingDOM() {
+    state.story.typingTimer = null;
+    state.story.typing = false;
+    const dialogueBox = elements.sanguoPanel?.querySelector('[data-sanguo-dialogue]');
+    const btnEl = elements.sanguoPanel?.querySelector('[data-sanguo-action="advance"]');
+    dialogueBox?.classList.remove('is-typing');
+    const scene = getCurrentScene();
+    if (btnEl) {
+        btnEl.classList.remove('is-typing');
+        const lineCount = scene?.lines?.length || 0;
+        const isLast = state.story.lineIndex >= lineCount - 1;
+        btnEl.textContent = isLast ? '推进' : '继续';
+    }
+}
+
+function finishTyping() {
+    if (!state.story.typing) return false;
+    state.story.typingToken += 1;
+    if (state.story.typingTimer) window.clearTimeout(state.story.typingTimer);
+    const scene = getCurrentScene();
+    const line = scene?.lines?.[state.story.lineIndex];
+    const textEl = elements.sanguoPanel?.querySelector('[data-sanguo-text]');
+    if (textEl) textEl.textContent = String(line?.text || '');
+    finishTypingDOM();
+    return true;
+}
+
+async function advanceSanguoLine() {
+    if (finishTyping()) return;  // 流式中：先跳到全文
+    const scene = getCurrentScene();
+    if (!scene) return;
+    const lineCount = scene.lines?.length || 0;
+    if (state.story.lineIndex < lineCount - 1) {
+        state.story.lineIndex += 1;
+        startTypingCurrentLine();
+        return;
+    }
+    // 已显示完所有 line，按 scene type 决定下一步
+    await advanceSanguoSceneByType(scene);
+}
+
+async function advanceSanguoSceneByType(scene) {
+    switch (scene.type) {
+        case 'narration':
+        case 'historical_distant_view': {
+            if (!scene.next) { alert('当前场景无 next 字段。章节末请用 chapter_end type'); return; }
+            await sanguoAdvanceToScene(scene.scene_id, scene.next);
+            return;
+        }
+        case 'narration_with_choice':
+            // C4 实现选项呈现
+            alert(`场景类型 narration_with_choice 由 C4 实现。当前 scene=${scene.scene_id}`);
+            return;
+        case 'companion_free_talk':
+        case 'historical_limited_talk':
+            // C6 实现 AI 节点占位
+            alert(`场景类型 ${scene.type} 由 C6 实现（in-character 占位）。当前 scene=${scene.scene_id}`);
+            return;
+        case 'chapter_end':
+            // C6 实现章节切换
+            alert(`章节切换由 C6 实现。本章结束。next_chapter=${scene.next_chapter || '(无)'}`);
+            return;
+        default:
+            alert(`未知场景 type: ${scene.type}（scene=${scene.scene_id}）`);
+    }
+}
+
+async function sanguoAdvanceToScene(fromScene, nextScene, nextChapter = null) {
+    const storyId = state.story.currentStoryId;
+    const sessionId = state.story.sessionId;
+    const body = { from_scene: fromScene, next_scene: nextScene };
+    if (nextChapter) body.next_chapter = nextChapter;
+    const res = await apiPost(
+        `/story/${encodeURIComponent(storyId)}/session/${encodeURIComponent(sessionId)}/advance`,
+        body
+    );
+    if (!res?.success) { alert('推进失败'); return; }
+    state.story.sessionData.current_scene = res.current_scene;
+    state.story.sessionData.current_chapter = res.current_chapter;
+    state.story.lineIndex = 0;
+    syncSanguoBackground();
+    syncSanguoTopbar();
+    startTypingCurrentLine();
+}
+
+function syncSanguoBackground() {
+    const scene = getCurrentScene();
+    const chapter = state.story.currentChapter;
+    const bgEl = elements.sanguoPanel?.querySelector('[data-sanguo-bg]');
+    if (!bgEl) return;
+    const url = getSceneBackgroundUrl(scene, chapter);
+    bgEl.style.backgroundImage = url ? `url('${url}')` : '';
+}
+
+function syncSanguoTopbar() {
+    const chapter = state.story.currentChapter;
+    const titleEl = elements.sanguoPanel?.querySelector('[data-sanguo-topbar-title]');
+    if (titleEl) titleEl.textContent = chapter?.title || '';
+}
+
+function sanguoKeyboardHandler(e) {
+    if (!elements.sanguoPanel || elements.sanguoPanel.classList.contains('hidden')) return;
+    if (e.key !== ' ' && e.key !== 'Enter' && e.code !== 'Space') return;
+    // 不抢输入框焦点
+    const ae = document.activeElement;
+    if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
+    e.preventDefault();
+    advanceSanguoLine();
 }
 
 function showHome() {
@@ -1494,12 +1691,19 @@ async function init() {
     trackAnalytics('visit');
     bindHistoricalRpgEntry();
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
-    // sanguo-panel 的退出按钮（事件委托）
+    // sanguo-panel 的事件委托：退出按钮 + 字幕推进按钮
     elements.sanguoPanel?.addEventListener('click', (e) => {
+        if (e.target?.closest?.('[data-sanguo-action="advance"]')) {
+            e.preventDefault();
+            advanceSanguoLine();
+            return;
+        }
         if (e.target?.closest?.('[data-story-action="exit-story"]')) {
             exitStoryPanel();
         }
     });
+    // 键盘 Space / Enter 推进
+    document.addEventListener('keydown', sanguoKeyboardHandler);
     updateClassroomDemoVisibility();
     loadTravelScenes();
     // 拉故事列表 + 应用入口文案（公开课模式由 applyStoryEntryCopy 自动跳过）
