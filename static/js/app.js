@@ -1423,6 +1423,7 @@ function renderSanguoPanelShell(manifest, sessionInfo, chapter) {
                 <div class="sanguo-speaker" data-sanguo-speaker hidden></div>
                 <p class="sanguo-text" data-sanguo-text aria-live="polite"></p>
                 <button type="button" class="sanguo-continue-btn" data-sanguo-action="advance" aria-label="继续">显示全文</button>
+                <div class="sanguo-choices" data-sanguo-choices hidden></div>
             </div>
         </div>
     `;
@@ -1519,12 +1520,18 @@ function finishTypingDOM() {
     const btnEl = elements.sanguoPanel?.querySelector('[data-sanguo-action="advance"]');
     dialogueBox?.classList.remove('is-typing');
     const scene = getCurrentScene();
-    if (btnEl) {
-        btnEl.classList.remove('is-typing');
-        const lineCount = scene?.lines?.length || 0;
-        const isLast = state.story.lineIndex >= lineCount - 1;
-        btnEl.textContent = isLast ? '推进' : '继续';
+    const lineCount = scene?.lines?.length || 0;
+    const isLast = state.story.lineIndex >= lineCount - 1;
+    if (!btnEl) return;
+    btnEl.classList.remove('is-typing');
+    // C4: 末行 + narration_with_choice → 直接渲染印章选项，隐藏继续按钮
+    if (isLast && scene?.type === 'narration_with_choice' && Array.isArray(scene?.choices) && scene.choices.length) {
+        btnEl.hidden = true;
+        renderSanguoChoices(scene);
+        return;
     }
+    btnEl.hidden = false;
+    btnEl.textContent = isLast ? '推进' : '继续';
 }
 
 function finishTyping() {
@@ -1562,8 +1569,7 @@ async function advanceSanguoSceneByType(scene) {
             return;
         }
         case 'narration_with_choice':
-            // C4 实现选项呈现
-            alert(`场景类型 narration_with_choice 由 C4 实现。当前 scene=${scene.scene_id}`);
+            // 不应到这里——finishTypingDOM 末行已渲染选项；点击选项后由 handleSanguoChoice 处理
             return;
         case 'companion_free_talk':
         case 'historical_limited_talk':
@@ -1579,11 +1585,12 @@ async function advanceSanguoSceneByType(scene) {
     }
 }
 
-async function sanguoAdvanceToScene(fromScene, nextScene, nextChapter = null) {
+async function sanguoAdvanceToScene(fromScene, nextScene, nextChapter = null, choiceId = null) {
     const storyId = state.story.currentStoryId;
     const sessionId = state.story.sessionId;
     const body = { from_scene: fromScene, next_scene: nextScene };
     if (nextChapter) body.next_chapter = nextChapter;
+    if (choiceId) body.choice_id = choiceId;
     const res = await apiPost(
         `/story/${encodeURIComponent(storyId)}/session/${encodeURIComponent(sessionId)}/advance`,
         body
@@ -1592,9 +1599,58 @@ async function sanguoAdvanceToScene(fromScene, nextScene, nextChapter = null) {
     state.story.sessionData.current_scene = res.current_scene;
     state.story.sessionData.current_chapter = res.current_chapter;
     state.story.lineIndex = 0;
+    resetSanguoChoiceDisplay();
     syncSanguoBackground();
     syncSanguoTopbar();
     startTypingCurrentLine();
+}
+
+// C4: 印章式选择呈现
+function renderSanguoChoices(scene) {
+    const choicesEl = elements.sanguoPanel?.querySelector('[data-sanguo-choices]');
+    if (!choicesEl) return;
+    const html = (scene.choices || []).map(c => {
+        const cls = c.pending ? ' is-pending' : '';
+        const titleAttr = c.pending ? ' title="此分支正在撰写中"' : '';
+        return `<button type="button" class="sanguo-choice${cls}" data-sanguo-choice-id="${escapeAttr(c.id || '')}"${titleAttr}>
+            <span class="sanguo-seal" aria-hidden="true"></span>
+            <span class="sanguo-choice-text">${escapeHtml(c.text || '')}</span>
+        </button>`;
+    }).join('');
+    choicesEl.innerHTML = html;
+    choicesEl.hidden = false;
+}
+
+function resetSanguoChoiceDisplay() {
+    const choicesEl = elements.sanguoPanel?.querySelector('[data-sanguo-choices]');
+    const btnEl = elements.sanguoPanel?.querySelector('[data-sanguo-action="advance"]');
+    if (choicesEl) {
+        choicesEl.hidden = true;
+        choicesEl.innerHTML = '';
+    }
+    if (btnEl) btnEl.hidden = false;
+}
+
+async function handleSanguoChoice(choiceId) {
+    const scene = getCurrentScene();
+    if (!scene || !Array.isArray(scene.choices)) return;
+    const choice = scene.choices.find(c => c.id === choiceId);
+    if (!choice) return;
+    if (choice.pending) {
+        // pending 分支：弹出温和提示，不推进
+        alert(`此分支正在撰写中：${choice.text || ''}`);
+        return;
+    }
+    // 选中印章效果（短暂视觉反馈）
+    const btn = elements.sanguoPanel?.querySelector(`[data-sanguo-choice-id="${choiceId}"]`);
+    if (btn) {
+        btn.classList.add('is-selected');
+        // 禁用所有按钮防止双击
+        elements.sanguoPanel?.querySelectorAll('[data-sanguo-choice-id]').forEach(b => b.disabled = true);
+    }
+    // 短暂延迟让玩家看到印章红光后再推进
+    await new Promise(r => setTimeout(r, 350));
+    await sanguoAdvanceToScene(scene.scene_id, choice.next, null, choiceId);
 }
 
 function syncSanguoBackground() {
@@ -1695,11 +1751,17 @@ async function init() {
     }
     bindHistoricalRpgEntry();
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
-    // sanguo-panel 的事件委托：退出按钮 + 字幕推进按钮
+    // sanguo-panel 的事件委托：退出按钮 + 字幕推进按钮 + 印章选项
     elements.sanguoPanel?.addEventListener('click', (e) => {
         if (e.target?.closest?.('[data-sanguo-action="advance"]')) {
             e.preventDefault();
             advanceSanguoLine();
+            return;
+        }
+        const choiceBtn = e.target?.closest?.('[data-sanguo-choice-id]');
+        if (choiceBtn) {
+            e.preventDefault();
+            handleSanguoChoice(choiceBtn.dataset.sanguoChoiceId);
             return;
         }
         if (e.target?.closest?.('[data-story-action="exit-story"]')) {
