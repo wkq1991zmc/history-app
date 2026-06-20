@@ -506,7 +506,8 @@
         "secrets_hint_allowed": [
           "secret_brother"
         ],
-        "secrets_reveal_allowed": []
+        "secrets_reveal_allowed": [],
+        "relationship_stage": "guarded"
       },
       "next": "morning_identity_choice",
       "background_image": "/static/images/sanguo/00-prologue-earth-temple-firelight-talk.png"

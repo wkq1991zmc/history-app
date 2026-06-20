@@ -405,7 +405,8 @@
           "secret_brother",
           "secret_mirror"
         ],
-        "secrets_reveal_allowed": []
+        "secrets_reveal_allowed": [],
+        "relationship_stage": "guarded"
       },
       "next": "knock_at_door",
       "background_image": "/static/images/sanguo/02-luoyang-inn-midnight-talk.png"

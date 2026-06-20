@@ -62,6 +62,23 @@
 - `secrets_reveal_allowed`：本节点 AI 可让阿萤"完整说出"该秘密
 
 **规则**：hint 是 reveal 的前置——一个 secret 必须先在多个章节积累 hint，才能在锁定章节内具体节点解锁 reveal。这模拟"长期铺垫 → 最终爆发"的叙事节奏。
+
+#### §5.2.2 关系阶段（companion_state_card.relationship_stage）
+
+阿萤不是单一静态人设——她随主线情感弧从警惕沉默自然展开为偶尔露脆弱、能调侃主角。`relationship_stage` 字段在每个 companion_free_talk 节点告诉 AI 当前所处的关系阶段。
+
+| 阶段 | 典型适用章节 | 字数 / 话长 | 行为特征 |
+|---|---|---|---|
+| `guarded` | 序章 - 第二站长安 | 2-10 字常见 | 防御性短答；不主动展开；接受善意不否定但不感激；**这是基础状态** |
+| `warming` | 第三站徐州 - 第四站许都 | 10-20 字一句 | 偶尔展开细节；能开冷玩笑（带苦感）；不撒娇不哭 |
+| `trusted` | 第五站河北 - 终章赤壁 | 15-30 字一句 | 能调侃主角；展示部分脆弱（疲惫/害怕）；偶说半句软话 |
+| `broken` | 秘密揭开关键节点 | 30-60 字（破例）| 情绪剧烈；可哭、可重复、可结巴；真情流露——**仅当 secrets_reveal_allowed 非空时启用**，禁用于普通节点 |
+
+**默认与缺失**：scene 不填 `relationship_stage` 时按 `guarded` 处理（保守起点）。
+
+**进入条件**：阶段升级由策划在剧本中按情感弧推进的章节锚点（如第三站后从 guarded → warming）显式设置，AI 不会自己升级。这与"节点由剧本定，触发由 AI 判定"的秘密揭开机制一致。
+
+**实现细节**：阶段 → prompt guidance 的映射在 `sanguo_ai.py` 的 `RELATIONSHIP_STAGE_GUIDANCE` 字典；schema 字段定义在 `data/stories/README.md`。
 - **她不会主动说的事**：
   - 弟弟的死因
   - 她对自己的恐惧

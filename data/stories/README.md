@@ -127,9 +127,21 @@
   "current_hints_allowed": ["我已经三天没合眼了"],
   "rounds_limit": null,                                    // null = 不限轮数
   "secrets_hint_allowed": ["secret_brother"],              // 本节点 AI 可"漏一点点"的秘密 id 列表
-  "secrets_reveal_allowed": []                             // 本节点 AI 可"完整揭开"的秘密 id 列表
+  "secrets_reveal_allowed": [],                            // 本节点 AI 可"完整揭开"的秘密 id 列表
+  "relationship_stage": "guarded"                          // guarded | warming | trusted | broken（不填默认 guarded）
 }
 ```
+
+#### `relationship_stage` 字段
+
+随主线情感弧推进，阿萤对玩家的开放度逐步松动。本字段告诉 AI 当前节点的关系阶段，注入对应的话长 / 调侃自由度 / 脆弱展示指引。详见 `docs/02_CHARACTERS.md` §5.2.2 与 `sanguo_ai.py` 的 `RELATIONSHIP_STAGE_GUIDANCE` 字典。
+
+| 阶段 | 典型章节 | 行为概述 |
+|---|---|---|
+| `guarded`（默认） | 序章 - 第二站长安 | 2-10 字，防御性，不主动展开 |
+| `warming` | 第三站徐州 - 第四站许都 | 10-20 字，能开冷玩笑，偶流露细节 |
+| `trusted` | 第五站河北 - 终章赤壁 | 15-30 字，能调侃主角，可展示脆弱 |
+| `broken` | 秘密揭开关键节点 | 30-60 字，情绪剧烈，真情流露（**仅当 secrets_reveal_allowed 非空时启用**）|
 
 #### `secrets_hint_allowed` / `secrets_reveal_allowed` 字段语义
 
