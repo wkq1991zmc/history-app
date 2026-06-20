@@ -3928,6 +3928,9 @@ async def story_session_start(
         "companion_dialogue_history": {},
         # 阶段五 5.4：历史人物受限对话历史（同上结构）
         "historical_dialogue_history": {},
+        # 阶段五 5.4：历史人物对话轮数计数，达到 rounds_limit 后硬限
+        # 形如 {"xunyu_limited_talk": 3}
+        "historical_round_count": {},
         "created_at": time.time(),
     }
     _safe_record_analytics("story", player_id, story_id, "", "session_start")
@@ -4179,8 +4182,137 @@ async def _story_companion_stream(
         history.append({"role": "assistant", "content": reply})
 
 
+async def _story_historical_stream(
+    story_id: str,
+    session_id: str,
+    message: str,
+    scene_id_override: Optional[str] = None,
+):
+    """阶段五 5.4：历史人物受限对话真实实现。
+
+    与 _story_companion_stream 主要差异：
+    - 取 historical_figure.knowledge_card（非 companion_state_card）
+    - 用 sanguo_checks.check_historical（含知识越界检查，不含秘密泄露）
+    - 轮数硬限：scene 内累计 ≥ knowledge_card.rounds_limit 后直接 fallback + ended=True
+    - fallback_lines 取自 knowledge_card（非通用列表）
+    - temperature 0.7 起步（更稳，避免历史人物胡说）
+    - max_tokens 180（士人可稍长，但 persona 约束 60 字以内）
+    """
+    if story_id not in STORIES:
+        yield f"data: {json.dumps({'type': 'error', 'message': f'故事不存在: {story_id}'}, ensure_ascii=False)}\n\n"
+        return
+    session = story_sessions.get(session_id)
+    if not session or session.get("story_id") != story_id:
+        yield f"data: {json.dumps({'type': 'error', 'message': '会话不存在或已过期'}, ensure_ascii=False)}\n\n"
+        return
+    chapter_id = session.get("current_chapter", "")
+    scene_id = scene_id_override or session.get("current_scene", "")
+    chapter_data = _load_chapter(story_id, chapter_id)
+    scene = _find_scene_in_chapter(chapter_data, scene_id) if chapter_data else None
+    if not scene or scene.get("type") != "historical_limited_talk":
+        yield f"data: {json.dumps({'type': 'error', 'message': f'场景不是历史人物受限对话节点: {scene_id}'}, ensure_ascii=False)}\n\n"
+        return
+
+    figure = scene.get("historical_figure") or {}
+    figure_name = figure.get("name") or "历史人物"
+    knowledge_card = figure.get("knowledge_card") or {}
+    rounds_limit = int(knowledge_card.get("rounds_limit", 5))
+    fallback_lines = knowledge_card.get("fallback_lines") or ["此事容后再议。"]
+
+    # 轮数硬限：若已达上限，不调 LLM，直接 fallback + ended=True
+    round_map = session.setdefault("historical_round_count", {})
+    current_count = int(round_map.get(scene_id, 0))
+    if current_count >= rounds_limit:
+        reply = sanguo_checks.pick_fallback(fallback_lines)
+        yield f"data: {json.dumps({'type': 'message_start', 'speaker': figure_name, 'role': '历史人物受限对话', 'kind': 'historical'}, ensure_ascii=False)}\n\n"
+        for char in reply:
+            yield f"data: {json.dumps({'type': 'delta', 'delta': char}, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.012)
+        yield f"data: {json.dumps({'type': 'message_end'}, ensure_ascii=False)}\n\n"
+        done = {
+            "type": "done",
+            "success": True,
+            "kind": "historical",
+            "used_fallback": True,
+            "violations": [],
+            "round": current_count,
+            "rounds_limit": rounds_limit,
+            "ended": True,
+            "reason": "rounds_exhausted",
+        }
+        yield f"data: {json.dumps(done, ensure_ascii=False)}\n\n"
+        return
+
+    # 构造 prompt + 取历史
+    recent_choices = _resolve_recent_choices_text(story_id, session.get("choices_made", []), limit=5)
+    system_prompt = sanguo_ai.build_historical_system_prompt(figure_name, knowledge_card, recent_choices=recent_choices)
+    history_map = session.setdefault("historical_dialogue_history", {})
+    history = history_map.setdefault(scene_id, [])
+    history_window = history[-6:]
+
+    # collect → check_historical → 重试 ≤ 3 次
+    reply = ""
+    final_violations: List[str] = []
+    MAX_TRIES = 3
+    base_temp = 0.7
+    for attempt in range(MAX_TRIES):
+        temp = base_temp + 0.05 * attempt
+        try:
+            collected = await sanguo_ai.collect_completion(
+                system_prompt,
+                history_window,
+                message,
+                max_tokens=180,
+                temperature=temp,
+            )
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': f'LLM 调用失败: {str(e)[:120]}'}, ensure_ascii=False)}\n\n"
+            return
+        collected = (collected or "").strip()
+        result = sanguo_checks.check_historical(collected)
+        if result.ok and collected:
+            reply = collected
+            final_violations = []
+            break
+        final_violations = result.violations
+
+    used_fallback = False
+    if not reply:
+        reply = sanguo_checks.pick_fallback(fallback_lines)
+        used_fallback = True
+
+    # SSE 推送
+    yield f"data: {json.dumps({'type': 'message_start', 'speaker': figure_name, 'role': '历史人物受限对话', 'kind': 'historical'}, ensure_ascii=False)}\n\n"
+    for char in reply:
+        yield f"data: {json.dumps({'type': 'delta', 'delta': char}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.012)
+    yield f"data: {json.dumps({'type': 'message_end'}, ensure_ascii=False)}\n\n"
+
+    # 轮数计数（无论 success/fallback 都增——用户用了一次对话尝试）
+    new_count = current_count + 1
+    round_map[scene_id] = new_count
+    ended = new_count >= rounds_limit
+
+    done = {
+        "type": "done",
+        "success": True,
+        "kind": "historical",
+        "used_fallback": used_fallback,
+        "violations": final_violations if used_fallback else [],
+        "round": new_count,
+        "rounds_limit": rounds_limit,
+        "ended": ended,
+    }
+    yield f"data: {json.dumps(done, ensure_ascii=False)}\n\n"
+
+    # 仅成功 path 写入历史（fallback 不污染上下文）
+    if not used_fallback:
+        history.append({"role": "user", "content": message})
+        history.append({"role": "assistant", "content": reply})
+
+
 async def _story_placeholder_stream(story_id: str, kind: str, session_id: str):
-    """阶段五真正接通百炼前的占位 SSE 流（仅 historical 仍在用，companion 已迁至 _story_companion_stream）。"""
+    """（阶段五 5.3/5.4 完成后已无 caller；保留以防未来扩展。）"""
     if story_id not in STORIES:
         yield f"data: {json.dumps({'type': 'error', 'message': f'故事不存在: {story_id}'}, ensure_ascii=False)}\n\n"
         return
@@ -4237,12 +4369,21 @@ async def story_historical_talk_stream(
     req: StoryHistoricalTalkRequest,
     x_client_id: Optional[str] = Header(None, alias="X-CLIENT-ID"),
 ):
-    """历史人物受限对话（流式占位）。阶段五接入百炼 + knowledge_card + 三道检查 + 3-5 轮硬限。"""
+    """历史人物受限对话流式（阶段五 5.4 真实实现）。
+
+    与 companion 主要差异：
+    - 注入 historical_figure.knowledge_card（非 companion_state_card）
+    - check_historical 含知识越界，不含秘密泄露
+    - 轮数硬限：rounds_limit 通常 5，达到后强制 fallback + ended=True
+    - fallback_lines 取自 knowledge_card（如荀彧的"此事容后再议。"）
+    - SSE done 含 round / rounds_limit / ended 字段，供前端 5.5 显示"剩余 X/5"
+      并在 ended=True 时自动推进到下一 scene（xunyu_farewell 等）
+    """
     player_id = x_client_id if x_client_id else "unknown_player"
     if not check_rate_limit(player_id):
         raise HTTPException(status_code=429, detail="触发太快了，请稍等一下。")
     return StreamingResponse(
-        _story_placeholder_stream(story_id, "historical", req.session_id),
+        _story_historical_stream(story_id, req.session_id, req.message, scene_id_override=req.scene_id),
         media_type="text/event-stream",
     )
 
