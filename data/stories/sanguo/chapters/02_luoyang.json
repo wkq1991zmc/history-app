@@ -505,6 +505,88 @@
           "speaker": "男人",
           "stage_direction": "拱手",
           "text": "在下颍川荀彧。"
+        },
+        {
+          "type": "narration",
+          "text": "主角愣在原地。\"颍川荀彧\"四个字像一块石头压在心口。何、袁、杨几家私底下点过名的人，不该出现在他这种穷书生的客栈大堂里。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "荀彧",
+          "stage_direction": "抬手请他在临窗的桌边坐下",
+          "text": "阁下不必拘礼。在下不便久留，动静大了，于你不利。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "主角",
+          "text": "……您怎么知道我手上有那份文书？"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "荀彧",
+          "text": "那一枚邺城太守的印，是在下一位早死的族弟留下的。五年前他死的那一夜，这枚印不见了。在下找了它五年。"
+        },
+        {
+          "type": "narration",
+          "text": "主角心里咯噔一下。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "主角",
+          "text": "……所以您是来收回的？"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "荀彧",
+          "stage_direction": "摇头",
+          "text": "不。在下不要。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "荀彧",
+          "text": "这文书里写的事，若是在下拿了，明早便有人来取在下的头。这一纸求不来功，也压不下祸——拿在谁手上，谁就在火里。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "主角",
+          "text": "那您为何还来？"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "荀彧",
+          "text": "来见阁下一面。见一眼这文书，还在不在能护它的人手里。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "主角",
+          "text": "……我？我能护？"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "荀彧",
+          "text": "您不在朝中，您没有族，没有党，没有人盯。在您手里，这文书还有一线生机，能不被人用。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "主角",
+          "text": "……用来做什么？"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "荀彧",
+          "text": "用来杀人。今夜在洛阳，谁拿了这一纸，便能借它清掉一批人。董司空可以用，何进余党可以用，十常侍残部，也可以用。",
+          "pace": "slow"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "荀彧",
+          "text": "看见还在阁下手里，便能放心。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "荀彧",
+          "text": "剩下的一句。洛阳要塌。今夜不塌，明日不塌，一两个月内必塌。阁下若要走，走西去长安的路。如今还通，再过两个月，就要断了。",
+          "pace": "slow"
         }
       ],
       "next": "xunyu_limited_talk",
