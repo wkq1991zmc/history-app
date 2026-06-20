@@ -52,7 +52,7 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    transition: opacity 1.2s ease;
+    transition: opacity 0.7s ease;
     filter: brightness(1.18) contrast(1.04);
     z-index: 1;
 }

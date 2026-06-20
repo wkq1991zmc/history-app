@@ -1995,7 +1995,27 @@ function syncSanguoBackground() {
     const bgEl = elements.sanguoPanel?.querySelector('[data-sanguo-bg]');
     if (!bgEl) return;
     const url = getSceneBackgroundUrl(scene, chapter);
-    bgEl.style.backgroundImage = url ? `url('${url}')` : '';
+    const nextCss = url ? `url('${url}')` : '';
+
+    // 同一张图重复 render（如点 "继续" 内 scene 重画），跳过 fade
+    if (bgEl.dataset.currentUrl === nextCss) return;
+
+    const isFirstRender = bgEl.dataset.currentUrl === undefined;
+    bgEl.dataset.currentUrl = nextCss;
+
+    if (isFirstRender) {
+        bgEl.style.backgroundImage = nextCss;
+        return;
+    }
+
+    // 淡出到黑（opacity 0）→ 700ms 后换图 → 淡入（opacity 1）
+    if (bgEl._fadeTimer) clearTimeout(bgEl._fadeTimer);
+    bgEl.style.opacity = '0';
+    bgEl._fadeTimer = setTimeout(() => {
+        bgEl.style.backgroundImage = nextCss;
+        bgEl.style.opacity = '1';
+        bgEl._fadeTimer = null;
+    }, 700);
 }
 
 function syncSanguoTopbar() {
