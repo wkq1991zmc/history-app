@@ -3,7 +3,7 @@
 > 本文档供后续会话接手时使用。每完成一个阶段更新一次。
 > 当前阶段：**阶段一已完成，等用户确认进入阶段二**
 
-最后更新：2026-06-19（阶段三完成）
+最后更新：2026-06-20（阶段四完成，MVP 可玩通）
 
 ---
 
@@ -17,8 +17,9 @@
 | **阶段一** | 文档结构（docs/ 拆分 + CLAUDE.md） | ✅ 已完成 |
 | 安全网 #2 | 阶段一文档结构 commit | ✅ 已完成（`e9dbfdd`） |
 | **阶段二** | 归档与清理"驿路无名" | ✅ 已完成（`14d59e3`） |
-| **阶段三** | 入局模块架构重构（多故事支持） | ✅ 已完成（5 commits：`dad75e0` → `9205bd5`），**等用户确认** |
-| 阶段四 | UI 实现（按 `docs/04_UI_SPEC.md`） | ⬜ 未开始 |
+| **阶段三** | 入局模块架构重构（多故事支持） | ✅ 已完成（5 commits：`dad75e0` → `9205bd5`） |
+| 阶段三收尾 | 史料权威 + 貂蝉杜氏修正 + 荀彧 fallback + UI 替换清单 | ✅ 已完成（`06f49f7` + `fa38596`） |
+| **阶段四** | UI 实现（按 `docs/04_UI_SPEC.md` + `04b_VISUAL_STYLE_GUIDE.md`） | ✅ 已完成（C1-C8 共 9 commits 含修复），**等用户全流程验证** |
 | 阶段五 | AI 对话系统（阿萤 + 历史人物，对接百炼） | ⬜ 未开始 |
 
 ---
@@ -266,19 +267,114 @@ UI 说明：仅打通数据流。占位渲染用内联样式显示 session_id/�
 
 ---
 
-## 下一步（阶段四预告）
+---
 
-待用户确认阶段三无误后，进入阶段四：UI 实现（按 `docs/04_UI_SPEC.md` 从零做）。
+## 阶段四：已做内容（C1-C8 共 9 commits + 多个修复补丁）
+
+按用户在阶段三方案书确认的方向 + 用户拍板的视觉锚（GPT Image 2.0 v1·黄昏调性，`docs/04b_VISUAL_STYLE_GUIDE.md`）实施。
+
+### 视觉锚 v1（用户预置）
+
+- `static/images/sanguo/00-lane-v1.png` 序章·乡道·黄昏版（GPT Image 2.0 生成）
+  - 歪脖子桃树 + 烂泥路 + 远方烟柱 + 极小剪影 + 黄昏暖橙地平线
+  - 2.35:1 宽幅，电影级写实摄影 + 数字 matte painting
+- `docs/04b_VISUAL_STYLE_GUIDE.md` 视觉风格规范
+  - 后续场景图按此规范生成
+
+### Commit 顺序
+
+| # | Commit | 内容 |
+|---|---|---|
+| C1 | `81075fb` | api.py 新增 session 推进 endpoint（advance/set_name/get） |
+| C2 | `4ba5d37` | sanguo-panel 基础壳 + 入口首页重做（删 ruju-flow-rail 三卡片）+ pace schema + sanguo.css |
+| C3 | `4da29a0` | 流式打字 + narration 渲染 + 三层文字 + pace 字段 |
+| C3 修复 1 | `4adb859` | 用户验证发现 4 问题：左侧 nav / 背景压暗 / "画面：" 残留 / hero 区残留 |
+| C3 修复 2 | `6ae76df` | sanguo-panel 改 position:fixed（解决高度被打乱） |
+| C3 修复 3 | `f3f280d` | sanguo-panel reparent 到 body（解决 z-index 被祖先 stacking context 困住） |
+| C4 | `c8c9c51` | narration_with_choice + 印章选择 + advance 记录 choice_id |
+| C5 | `53f45f1` | input_protagonist_name 仿古纸输入框 + set_name 调用 |
+| C6 | `7351073` | companion_free_talk + historical 节点 in-character 占位 + chapter_end 章节切换 |
+| C7 (P1) | `e4d625e` | 笔记本（卷）简化版 |
+| C8 | (本次) | 收尾：序章 next_chapter 临时跳 02_luoyang 跳过 stub 01_interlude；PROGRESS.md 更新 |
+
+### 6 种 scene type 全部覆盖
+
+- **narration** —— C3 流式打字
+- **narration_with_choice** —— C4 印章式选项，pending 分支显"撰写中"
+- **companion_free_talk** —— C6 阿萤"……→嗯。" in-character 占位（阶段五接百炼）
+- **historical_distant_view** —— C3 同 narration 渲染（远观无对话）
+- **historical_limited_talk** —— C6 荀彧 fallback "（拈须不语，半晌方道）此事容后再议。"
+- **chapter_end** —— C6 全屏字幕 + "进入下一章" / "正在撰写中" stub
+
+### MVP 可玩通的剧情段
+
+```
+序章·涿郡（00_prologue）：
+  lane (v1 视觉锚)
+  → grandma_words → water_bag → zhuoxian_market → peddler
+  → midway_subtitle (全屏字幕)
+  → earth_temple_outside → ayinghuo_first_meet（3 选项·2 pending）
+  → recognize_kin
+  → input_protagonist_name（仿古纸输入框）
+  → campfire_free_talk（言/睡吧 + in-character 占位）
+  → morning_identity_choice（4 选项·3 pending）
+  → chapter_end (全屏字幕)
+  → 进入「第一站·洛阳」
+
+第一站·洛阳（02_luoyang）：
+  city_wall → city_gate → gate_captain（3 选项·2 pending）
+  → document_scene → tongtuo_street
+  → dongzhuo_carriage（historical_distant_view 董卓远观）
+  → inn_night → ayinghuo_midnight_talk（companion_free_talk）
+  → knock_at_door → xunyu_appears
+  → xunyu_limited_talk（historical_limited_talk 5 轮硬限·占位回 fallback）
+  → xunyu_farewell → back_upstairs（4 选项·3 pending）
+  → chapter_end
+```
+
+### 关键技术决策
+
+1. **sanguo-panel 全屏覆盖**：JS 在 init 时 reparent 到 `<body>` 直接子级 + CSS `position: fixed; z-index: 9999`。避开任何祖先 stacking context 困扰。
+2. **物理隔离继续**：所有新 CSS 类用 `sanguo-*` 前缀，与公开课 `ruju-*` 不冲突；所有新 endpoint 在 `/story/*` 命名空间。
+3. **章节切换检测**：sanguoAdvanceToScene 比对 currentChapter.chapter_id 与 res.current_chapter，不同时重新 fetchStoryChapter。
+4. **流式渲染两套管道**：startTypingCurrentLine（scene.lines 索引推进）和 typeStandaloneLine（一次性 line + callback）。前者用于剧本主线，后者用于 C6 in-character 占位回复。
+5. **C6 in-character 占位代替"阶段五接入"提示**：保持沉浸感（用户补充 2 要求）。阿萤"……→嗯。"，荀彧 fallback_lines[0]。
+
+### 临时跳过
+
+- `00_prologue.json` 末 `next_chapter: "02_luoyang"`（原 `01_interlude` 是 stub）
+  - 为让用户能完整验证序章 → 第一站。等 01_interlude 写完后恢复
+
+### 验证（自动化）
+
+- ✅ `python -m py_compile api.py` 通过
+- ✅ uvicorn 干净启动
+- ✅ 公开课 `/?x=lawvisual` 200
+- ✅ 主页 + 长卷 + 入口卡片 200
+- ✅ 所有 sanguo.css / app.js 资源 200
+- ⏳ 真人浏览器全流程验证待用户做
+
+### 阶段四暂未做（按方案书 P2 延后）
+
+- 章节切换地图过场动画（用 fade 替代）
+- 笔记本完整版（日录/人印/地图/心事 四标签 + 翻页效果）
+- 历史人物对话"史"印章常驻顶栏标记
+- BGM 实际接通（顶栏"乐"暂禁用）
+
+---
+
+## 下一步（阶段五预告）
+
+待用户全流程验证 + 拍板后，进入阶段五：AI 对话系统接入百炼。
 
 要点：
-1. 替换 `renderSanguoPanelStub` 为真正的剧情场景渲染
-2. 实现"电影 × 古籍"哲学的字幕式呈现（参考 `docs/UI_REFERENCE_SNIPPETS.md`）
-3. 实现 6 种 scene type 的渲染：narration / narration_with_choice / companion_free_talk / historical_distant_view / historical_limited_talk / chapter_end
-4. 实现印章式选项、笔记本系统、卷/言/乐/声 顶栏
-5. 章节切换地图过场
-6. 输入主角姓名节点（`awaits_input: "protagonist_name"`）
+1. 把 C6 in-character 占位替换为真正的 LLM 调用
+2. 实现 `companion_state_card` 注入 system prompt（阿萤）
+3. 实现 `historical_figure.knowledge_card` + 三道检查（预言/人设/越界）
+4. 历史人物对话硬限轮数 + fallback_lines 兜底
+5. SSE 流式渲染前端复用 `typeStandaloneLine` 接 SSE delta
 
-**阶段四完成后**：本 PROGRESS.md 增加"阶段四已做内容"一节。
+**阶段五完成后**：本 PROGRESS.md 增加"阶段五已做内容"一节。
 
 ---
 

@@ -229,7 +229,7 @@
         { "type": "narration", "display_style": "fullscreen_subtitle", "text": "洛阳，也在等着另一个人——" },
         { "type": "narration", "display_style": "fullscreen_subtitle", "text": "那个人，叫董卓。" }
       ],
-      "next_chapter": "01_interlude"
+      "next_chapter": "02_luoyang"
     }
   ]
 }
