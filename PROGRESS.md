@@ -1,10 +1,10 @@
 # 入局·三国篇 — 项目进度
 
 > 本文档供后续会话接手时使用。每完成一个阶段更新一次。
-> 当前阶段：**阶段四 MVP 完成 + 全流程已验证通过 + 阶段五方案书拍板，准备进入 5.1**
+> 当前阶段：**阶段五全部完成（5.1-5.5b 共 7 commits），主理人浏览器全流程验证通过。下一阶段为 BGM（阶段六）或后续章节策划。**
 > 阶段五方案书：[docs/PHASE5_PLAN.md](docs/PHASE5_PLAN.md)
 
-最后更新：2026-06-21（4 张新图接入 + fade transition + 阿萤台词去粗口 + PHASE5_PLAN 拍板）
+最后更新：2026-06-21（阶段五 ship：AI 对话接百炼 + 三道检查 + 秘密锁 + 关系阶段进化机制）
 
 ---
 
@@ -20,8 +20,11 @@
 | **阶段二** | 归档与清理"驿路无名" | ✅ 已完成（`14d59e3`） |
 | **阶段三** | 入局模块架构重构（多故事支持） | ✅ 已完成（5 commits：`dad75e0` → `9205bd5`） |
 | 阶段三收尾 | 史料权威 + 貂蝉杜氏修正 + 荀彧 fallback + UI 替换清单 | ✅ 已完成（`06f49f7` + `fa38596`） |
-| **阶段四** | UI 实现（按 `docs/04_UI_SPEC.md` + `04b_VISUAL_STYLE_GUIDE.md`） | ✅ 已完成（C1-C8 共 9 commits 含修复），**等用户全流程验证** |
-| 阶段五 | AI 对话系统（阿萤 + 历史人物，对接百炼） | ⬜ 未开始 |
+| **阶段四** | UI 实现（按 `docs/04_UI_SPEC.md` + `04b_VISUAL_STYLE_GUIDE.md`） | ✅ 已完成（C1-C8 共 9 commits 含修复），全流程已验证 |
+| 阶段四收尾 | 4 张新场景图接入 + fade transition + 阿萤台词去粗口 | ✅ 已完成（`d11e69e` + `487b7c6` + `da21e95` + `16a6880`） |
+| **阶段五** | AI 对话系统（阿萤 + 历史人物，对接百炼） | ✅ 已完成（5.1-5.5b 共 7 commits：`6479ebf` → `fa4d954`），全流程验证通过 |
+| 阶段六（未启动） | BGM 系统 | ⬜ 未开始 |
+| 后续章节策划 | 01_interlude / 03_changan → 07_chibi 剧本细化 | ⬜ 由策划 Claude 推进 |
 
 ---
 
@@ -364,18 +367,109 @@ UI 说明：仅打通数据流。占位渲染用内联样式显示 session_id/�
 
 ---
 
-## 下一步（阶段五预告）
+## 阶段五：已做内容（7 commits `6479ebf` → `fa4d954`）
 
-待用户全流程验证 + 拍板后，进入阶段五：AI 对话系统接入百炼。
+按 [docs/PHASE5_PLAN.md](docs/PHASE5_PLAN.md) 拍板的方案执行。AI 对话系统从占位升级为真实 LLM 驱动，三道检查兜底，秘密锁机制就位，关系阶段进化机制就位。
 
-要点：
-1. 把 C6 in-character 占位替换为真正的 LLM 调用
-2. 实现 `companion_state_card` 注入 system prompt（阿萤）
-3. 实现 `historical_figure.knowledge_card` + 三道检查（预言/人设/越界）
-4. 历史人物对话硬限轮数 + fallback_lines 兜底
-5. SSE 流式渲染前端复用 `typeStandaloneLine` 接 SSE delta
+### 5.1 schema 升级 (`6479ebf`)
 
-**阶段五完成后**：本 PROGRESS.md 增加"阶段五已做内容"一节。
+- `companion_state_card.secrets_unlockable` 占位字段替换为：
+  - `secrets_hint_allowed: string[]` —— 可"漏一点点"的 secret id
+  - `secrets_reveal_allowed: string[]` —— 可"完整揭开"的 secret id
+- 定义 2 个权威 secret id（写入 [`docs/02_CHARACTERS.md`](docs/02_CHARACTERS.md) §5.2.1）：
+  - `secret_brother`（弟弟死于她手，锁第三站徐州）
+  - `secret_mirror`（看见董卓时的恐惧，锁第五站河北）
+- 两章现有 companion_state_card 同步升级
+
+### 5.2 后端 LLM 客户端 + 三道检查 (`1fae856` + `3a943b0`)
+
+- 新建 `sanguo_ai.py`：百炼 client 单例 + system prompt 构造器
+  - `build_companion_system_prompt(state_card, recent_choices)`
+  - `build_historical_system_prompt(figure, knowledge_card, recent_choices)`
+  - `collect_completion` / `stream_completion`
+  - 沿用 `WEB_API_KEY > DASHSCOPE_API_KEY > GEMINI_API_KEY` 优先级
+  - 关 qwen3 thinking 模式保证流式即时
+- 新建 `sanguo_checks.py`：三道检查混合方案
+  - 预言性句式 regex（"将会/必将/注定/日后/我看你/终将"等 20+ 词）
+  - 秘密泄露 phrase 字典（命中且 secret_id 不在 reveal_allowed → 违规）
+  - 元叙述（"作为 AI"/"我无法"）+ 现代词扫描
+  - 知识越界（"赤壁之战"/"草船借箭"等绝对禁词，仅历史人物用）
+- smoke test 12/12 通过
+
+### 5.3 阿萤自由对话接百炼 (`0ab5f38`)
+
+- `/story/sanguo/companion/talk_stream` 占位 → 真实 LLM
+- 流程：load state_card → build prompt → collect → check_companion →
+  通过则 SSE 推送 / 不通过最多重试 3 次（升温度）/ 全失败 fallback
+- session 新增 `companion_dialogue_history` / `historical_dialogue_history`
+- 烟测 3 轮通过（campfire_free_talk）：阿萤回复短而冷且秘密守住
+
+### 5.4 荀彧受限对话接百炼 + 5 轮硬限 (`4482fd0`)
+
+- `/story/sanguo/historical/talk_stream` 占位 → 真实 LLM
+- 轮数硬限：count >= rounds_limit 时早期 return + fallback_lines + ended=True
+- 烟测 6 轮通过（xunyu_limited_talk）：第 1-5 轮真实 LLM 回复（38-49 字士人腔，知识边界严守），
+  第 5 轮 ended=True 触发，第 6 轮 0.1s 早期 return 给 fallback "这话不必当此说。"
+
+### 5.5 前端 SSE 流式渲染 (`f372a8e`)
+
+- `handleSanguoTalkSubmit(message)` 重写为 fetch + ReadableStream + TextDecoder
+- delta 逐字 append 到 textEl（沿用阶段四"流式打字"沉浸感）
+- 推进逻辑：companion 默认回 talk_actions（无限轮）；historical 未达限回
+  talk_actions 显示"剩余 N/Y"；historical 达限自动 sanguoAdvanceToScene 推进到 scene.next
+- 缓存版本号 bump `20260621b`
+
+### 5.5b persona 软化 + 关系阶段进化机制 (`fa4d954`)
+
+主理人验证 5.5 时反馈"阿萤过于冷淡，吃了我的东西没必要这么冷"+"希望随剧情深入开朗活泼"，两轮迭代：
+
+- **persona v2**: 明确"冷"是防御不是攻击；禁用"走远点/别管我/别问废话"等 push-back 句式
+- **persona v3**: 在已破冰的场景偶尔展开 5-15 字提一个具体细节，至少一半回复 ≥ 5 字
+- **关系阶段进化**：新增 `relationship_stage` 字段（guarded / warming / trusted / broken）+
+  `RELATIONSHIP_STAGE_GUIDANCE` 字典翻译为 system prompt 指引。当前两章都标 guarded，未来章节按情感弧推进
+- 详细阶段表写入 [`docs/02_CHARACTERS.md`](docs/02_CHARACTERS.md) §5.2.2
+
+### 阶段五完成判定（[docs/PHASE5_PLAN.md](docs/PHASE5_PLAN.md) §6）
+
+✅ 全部跑通：
+- 序章篝火夜话：阿萤短而冷，hint 自然漏出，秘密守住
+- 洛阳客栈夜半：不同状态卡 + secret_mirror hint_allowed 已就位
+- 荀彧 5 轮硬限 + 第 6 轮 ended → 自动 advance 到 xunyu_farewell
+- 公开课 5 案例完全不破
+
+### 关键技术决策
+
+1. **混合三道检查 vs 后置 LLM 校验**：选混合（prompt 内置约束 + 规则黑名单），保留阶段四已实现的流式打字沉浸感
+2. **persona 软化方向**：防御性而非攻击性。push-back 句式被明确禁用
+3. **关系阶段进化作为 4 阶段 enum**：策划写每个 companion_free_talk 节点时显式指定阶段，AI 不会自己升级
+4. **fallback 不污染对话历史**：成功 path 才写入 dialogue_history，避免"用户问 X，AI 回'此事容后再议'"的循环
+
+---
+
+## 下一步建议
+
+阶段五已 ship，主线技术架构齐备。剩余工作分两轨：
+
+### 技术轨
+
+- **阶段六**：BGM 系统（详见 PHASE5_PLAN §四 D3 决策）
+  - 序章 + 洛阳各一首 BGM 资源采集（古琴/箫/笛调性，参考《天地劫》/《对马岛之魂》）
+  - "乐"按钮启用 + autoplay 处理（入口卡片首次点击 init audio context）
+  - 章节切换换曲（淡入淡出）
+  - manifest / chapter JSON `background_music` 字段接入
+
+### 策划轨（策划 Claude）
+
+- 序章其他分支（递水/继续走/选项 1、2 庙里分支 / 4 身份分支 3 条 pending）
+- 过渡·五年间（蒙太奇）
+- 第二站长安（饥荒，远观路线 per BIBLE §5.3 修正）
+- 第三站徐州（曹操屠城；阿萤揭秘一，**relationship_stage 升 warming**）
+- 第四站许都（衣带诏）
+- 第五站河北（官渡之战；阿萤揭秘二 + 重伤，**升 trusted**）
+- 终章赤壁（多结局表 5 种）
+
+待策划写完一章后，按 `docs/04b_VISUAL_STYLE_GUIDE.md` §5 SOP 生图 + 翻译 JSON +
+按 `docs/02_CHARACTERS.md` §5.2.2 标 relationship_stage 即可接入。
 
 ---
 
