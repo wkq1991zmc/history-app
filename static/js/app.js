@@ -1687,6 +1687,12 @@ async function loadTravelScenes() {
 
 async function init() {
     trackAnalytics('visit');
+    // 把 sanguo-panel reparent 到 <body> 直接子级
+    // 避免被 .app-shell / main / #time-travel-content 任一祖先的
+    // transform/filter/will-change 困住 position:fixed（退化为 absolute）
+    if (elements.sanguoPanel && elements.sanguoPanel.parentElement !== document.body) {
+        document.body.appendChild(elements.sanguoPanel);
+    }
     bindHistoricalRpgEntry();
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
     // sanguo-panel 的事件委托：退出按钮 + 字幕推进按钮
