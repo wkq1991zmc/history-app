@@ -1530,6 +1530,12 @@ function finishTypingDOM() {
         renderSanguoChoices(scene);
         return;
     }
+    // C5: 末行 + awaits_input → 渲染主角姓名输入框
+    if (isLast && scene?.awaits_input === 'protagonist_name') {
+        btnEl.hidden = true;
+        renderSanguoNameInput(scene);
+        return;
+    }
     btnEl.hidden = false;
     btnEl.textContent = isLast ? '推进' : '继续';
 }
@@ -1629,6 +1635,44 @@ function resetSanguoChoiceDisplay() {
         choicesEl.innerHTML = '';
     }
     if (btnEl) btnEl.hidden = false;
+}
+
+// C5: 主角姓名输入
+function renderSanguoNameInput(scene) {
+    const choicesEl = elements.sanguoPanel?.querySelector('[data-sanguo-choices]');
+    if (!choicesEl) return;
+    choicesEl.innerHTML = `
+        <form class="sanguo-input-form" data-sanguo-input-form>
+            <label class="sanguo-input-label" for="sanguo-name-input">请写下你的名字</label>
+            <input id="sanguo-name-input" class="sanguo-input" type="text" maxlength="12"
+                   data-sanguo-name-input placeholder="无名" autocomplete="off" spellcheck="false">
+            <div class="sanguo-input-row">
+                <span class="sanguo-input-hint">不填则默认"无名"</span>
+                <button type="submit" class="sanguo-input-submit">写下</button>
+            </div>
+        </form>
+    `;
+    choicesEl.hidden = false;
+    // 自动聚焦输入框，方便玩家直接打字
+    setTimeout(() => {
+        elements.sanguoPanel?.querySelector('[data-sanguo-name-input]')?.focus();
+    }, 80);
+}
+
+async function handleSanguoSubmitName(rawName) {
+    const storyId = state.story.currentStoryId;
+    const sessionId = state.story.sessionId;
+    const finalName = String(rawName || '').trim() || '无名';
+    const res = await apiPost(
+        `/story/${encodeURIComponent(storyId)}/session/${encodeURIComponent(sessionId)}/set_name`,
+        { name: finalName }
+    );
+    if (!res?.success) { alert('设置姓名失败'); return; }
+    state.story.sessionData.protagonist_name = res.protagonist_name;
+    const scene = getCurrentScene();
+    if (scene?.next) {
+        await sanguoAdvanceToScene(scene.scene_id, scene.next);
+    }
 }
 
 async function handleSanguoChoice(choiceId) {
@@ -1767,6 +1811,14 @@ async function init() {
         if (e.target?.closest?.('[data-story-action="exit-story"]')) {
             exitStoryPanel();
         }
+    });
+    // C5: 主角姓名输入表单提交
+    elements.sanguoPanel?.addEventListener('submit', (e) => {
+        const form = e.target?.closest?.('[data-sanguo-input-form]');
+        if (!form) return;
+        e.preventDefault();
+        const input = form.querySelector('[data-sanguo-name-input]');
+        handleSanguoSubmitName(input?.value);
     });
     // 键盘 Space / Enter 推进
     document.addEventListener('keydown', sanguoKeyboardHandler);

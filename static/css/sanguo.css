@@ -387,6 +387,93 @@
 }
 
 /* ============================================================
+ * C5 仿古纸主角姓名输入框
+ *  - 04_UI_SPEC §7.4 暗示了仿古纸 + 毛笔字效果
+ *  - 用 KaiTi/楷体 web 字体 + 虚线下划线营造书写感
+ *  - 不弹 modal，inline 显示在 dialogue-box 下方
+ * ============================================================ */
+
+.sanguo-input-form {
+    pointer-events: auto;
+    margin-top: 1.05rem;
+    padding: 1rem 1.2rem 0.95rem;
+    display: grid;
+    gap: 0.55rem;
+    background: linear-gradient(
+        180deg,
+        rgba(245, 230, 200, 0.05) 0%,
+        rgba(245, 230, 200, 0.08) 100%
+    );
+    border: 1px solid var(--sanguo-amber-faint);
+    border-radius: 2px;
+    max-width: 32rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+
+.sanguo-input-label {
+    color: var(--sanguo-amber-dim);
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+}
+
+.sanguo-input {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px dashed var(--sanguo-amber-dim);
+    color: var(--sanguo-text-narration);
+    font-family: 'KaiTi', '楷体', 'STKaiti', 'Noto Serif SC', serif;
+    font-size: 1.25rem;
+    padding: 0.5rem 0.15rem;
+    width: 100%;
+    outline: none;
+    letter-spacing: 0.1em;
+    transition: border-color 0.25s;
+}
+
+.sanguo-input:focus {
+    border-bottom-color: var(--sanguo-amber-bright);
+    border-bottom-style: solid;
+}
+
+.sanguo-input::placeholder {
+    color: rgba(154, 154, 138, 0.55);
+    font-style: italic;
+}
+
+.sanguo-input-row {
+    display: flex;
+    gap: 0.7rem;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 0.2rem;
+}
+
+.sanguo-input-hint {
+    flex: 1;
+    color: var(--sanguo-text-inner);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+}
+
+.sanguo-input-submit {
+    background: transparent;
+    border: 1px solid var(--sanguo-amber-faint);
+    color: var(--sanguo-amber);
+    padding: 0.4rem 1.3rem;
+    font-family: inherit;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.sanguo-input-submit:hover {
+    background: rgba(212, 165, 87, 0.1);
+    border-color: var(--sanguo-amber);
+    color: var(--sanguo-amber-bright);
+}
+
+/* ============================================================
  * 入口卡片视觉强化（不与公开课 .ruju-* 冲突）
  *  - 让首页入口看起来"立起来"
  *  - 应用在 .ruju-entry-card 上，但作为补充而非覆盖

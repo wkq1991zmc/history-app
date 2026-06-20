@@ -159,7 +159,7 @@
       "type": "narration",
       "awaits_input": "protagonist_name",
       "lines": [
-        { "type": "narration", "text": "（玩家可自取主角姓名，或默认\"无名\"）" }
+        { "type": "narration", "text": "他张了张嘴，想了想，该如何报出自己的名字。", "pace": "slow" }
       ],
       "next": "campfire_free_talk"
     },
