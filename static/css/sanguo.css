@@ -33,7 +33,9 @@
     line-height: 1.7;
 }
 
-/* 背景图层（chapter/scene level background_image） */
+/* 背景图层（chapter/scene level background_image）
+ * 轻微 brightness 上调让暗调画面里的桃树/烟柱/剪影更可见，
+ * 不破坏 04b 视觉锚的"黄昏+铁灰+留白"调性 */
 .sanguo-bg {
     position: absolute;
     inset: 0;
@@ -41,20 +43,23 @@
     background-position: center;
     background-repeat: no-repeat;
     transition: opacity 1.2s ease;
+    filter: brightness(1.18) contrast(1.04);
     z-index: 1;
 }
 
-/* 暗化叠层：保证字幕在任何背景上可读
- * 04_UI_SPEC §7.2: "背景画面在文字下方有一层极淡的暗化叠层" */
+/* 暗化叠层：04_UI_SPEC §7.2 "极淡的暗化叠层"
+ * 上半部分完全透明（保留黄昏 / 铁灰天空 / 远山层次），
+ * 仅在下半部分（字幕区）渐变压暗保证文字可读 */
 .sanguo-shade {
     position: absolute;
     inset: 0;
     background: linear-gradient(
         180deg,
-        rgba(10, 9, 7, 0.18) 0%,
-        rgba(10, 9, 7, 0.30) 40%,
-        rgba(10, 9, 7, 0.72) 78%,
-        rgba(10, 9, 7, 0.86) 100%
+        transparent 0%,
+        transparent 50%,
+        rgba(10, 9, 7, 0.20) 70%,
+        rgba(10, 9, 7, 0.55) 86%,
+        rgba(10, 9, 7, 0.78) 100%
     );
     pointer-events: none;
     z-index: 2;

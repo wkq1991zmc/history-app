@@ -1381,6 +1381,12 @@ async function enterStoryPanel(storyId) {
         return;
     }
     showTimeTravel();
+    // 进入全屏沉浸：隐藏侧栏 nav + hero 区 + 入口卡片
+    // ruju-mode + career-mode + ruju-playing 是阶段二删除驿路无名时漏掉的复用
+    // 等价模式，需要在 sanguo-panel 进入时复现
+    setRujuMode(true);
+    setCareerMode(true);
+    elements.timeTravelContent?.classList.add('ruju-playing');
     elements.travelStartPanel?.classList.add('hidden');
     elements.travelPlayPanel?.classList.add('hidden');
     elements.travelVisualPanel?.classList.add('hidden');
@@ -1394,6 +1400,10 @@ function exitStoryPanel() {
     sanguoClearTyping();
     elements.sanguoPanel?.classList.add('hidden');
     elements.travelStartPanel?.classList.remove('hidden');
+    // 退出沉浸：恢复侧栏 + hero
+    setRujuMode(false);
+    setCareerMode(false);
+    elements.timeTravelContent?.classList.remove('ruju-playing');
 }
 
 /**
