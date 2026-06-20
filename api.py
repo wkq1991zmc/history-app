@@ -3817,6 +3817,20 @@ class StorySessionStartRequest(BaseModel):
     load_session_id: Optional[str] = None
 
 
+class StorySessionAdvanceRequest(BaseModel):
+    """推进到下一个 scene。choice_id 为玩家做出的选择 id（narration_with_choice 节点）。
+    场景 id 切换由前端基于 chapter json 计算后回传。"""
+    from_scene: str
+    next_scene: str
+    choice_id: Optional[str] = None
+    next_chapter: Optional[str] = None  # 章节切换时填入下一章 id
+
+
+class StorySessionSetNameRequest(BaseModel):
+    """玩家在 awaits_input='protagonist_name' 节点设置主角姓名。"""
+    name: str
+
+
 @app.get("/story/list")
 async def story_list():
     """列出可入局的故事（manifest 摘要）。"""
@@ -3915,6 +3929,89 @@ async def story_session_start(
         "current_scene": entry_scene,
         "protagonist_name": "",
         "resumed": False,
+    }
+
+
+def _get_story_session(story_id: str, session_id: str) -> Dict:
+    """共享校验：故事存在 + session 存在 + session 归属本故事。"""
+    if story_id not in STORIES:
+        raise HTTPException(status_code=404, detail=f"故事不存在: {story_id}")
+    session = story_sessions.get(session_id)
+    if not session or session.get("story_id") != story_id:
+        raise HTTPException(status_code=404, detail="会话不存在或已过期")
+    return session
+
+
+@app.get("/story/{story_id}/session/{session_id}")
+async def story_session_get(story_id: str, session_id: str):
+    """获取当前 session 状态。用于刷新页面后恢复进度。"""
+    session = _get_story_session(story_id, session_id)
+    return {
+        "success": True,
+        "session_id": session_id,
+        "story_id": story_id,
+        "current_chapter": session.get("current_chapter", ""),
+        "current_scene": session.get("current_scene", ""),
+        "protagonist_name": session.get("protagonist_name", ""),
+        "identity": session.get("identity", ""),
+        "choices_made": session.get("choices_made", []),
+        "secrets_unlocked": session.get("secrets_unlocked", []),
+    }
+
+
+@app.post("/story/{story_id}/session/{session_id}/advance")
+async def story_session_advance(
+    story_id: str,
+    session_id: str,
+    req: StorySessionAdvanceRequest,
+):
+    """推进 scene。前端基于 chapter json 已计算出 next_scene，调用此 endpoint
+    让后端记录选择并更新当前位置。
+    """
+    session = _get_story_session(story_id, session_id)
+
+    # 记录选择历史（narration_with_choice 节点）
+    if req.choice_id:
+        choices = session.setdefault("choices_made", [])
+        choices.append({
+            "from_scene": req.from_scene,
+            "choice_id": req.choice_id,
+            "next_scene": req.next_scene,
+            "chapter": session.get("current_chapter", ""),
+            "ts": time.time(),
+        })
+
+    # 章节切换
+    if req.next_chapter:
+        # 加载下一章并跳到 entry_scene
+        next_chapter_data = _load_chapter(story_id, req.next_chapter)
+        if not next_chapter_data:
+            raise HTTPException(status_code=404, detail=f"下一章不存在或正在撰写中: {req.next_chapter}")
+        session["current_chapter"] = req.next_chapter
+        session["current_scene"] = next_chapter_data.get("entry_scene", "") or req.next_scene
+    else:
+        session["current_scene"] = req.next_scene
+
+    return {
+        "success": True,
+        "current_chapter": session["current_chapter"],
+        "current_scene": session["current_scene"],
+    }
+
+
+@app.post("/story/{story_id}/session/{session_id}/set_name")
+async def story_session_set_name(
+    story_id: str,
+    session_id: str,
+    req: StorySessionSetNameRequest,
+):
+    """设置主角姓名（awaits_input='protagonist_name' 节点提交后调用）。"""
+    session = _get_story_session(story_id, session_id)
+    name = req.name.strip()[:24] if req.name else ""
+    session["protagonist_name"] = name or "无名"
+    return {
+        "success": True,
+        "protagonist_name": session["protagonist_name"],
     }
 
 
