@@ -816,3 +816,50 @@
         padding: 0 1.2rem 4rem;
     }
 }
+
+/* ======== 开发模式 dev 跳转 panel（仅 ?dev=1 时渲染） ======== */
+.dev-jump-panel {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    background: rgba(20, 18, 14, 0.92);
+    border: 1px solid #4a3a1f;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: #d4a557;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: ui-monospace, Consolas, monospace;
+    max-width: 260px;
+}
+.dev-jump-panel .dev-jump-header {
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+.dev-jump-panel select,
+.dev-jump-panel button {
+    background: #1a1612;
+    color: #e8d5b0;
+    border: 1px solid #4a3a1f;
+    padding: 3px 6px;
+    font-family: inherit;
+    font-size: 11px;
+    border-radius: 2px;
+    cursor: pointer;
+}
+.dev-jump-panel select { max-width: 240px; }
+.dev-jump-panel button {
+    background: #4a3a1f;
+    color: #f0e8d8;
+    font-weight: bold;
+}
+.dev-jump-panel button:hover { background: #6a5530; }
+.dev-jump-panel .dev-jump-hint {
+    font-size: 9px;
+    color: #7a6a4a;
+    margin-top: 2px;
+}

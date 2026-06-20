@@ -1394,6 +1394,96 @@ function exitStoryPanel() {
     elements.sanguoPanel?.classList.add('hidden');
 }
 
+// ======== 开发模式：dev 跳转 panel ========
+// 仅在 URL 带 ?dev=1 时启用，正式玩家访问 / 完全看不到。
+// 用途：开发测试时一键跳到任意 chapter + scene，避免每次从序章走 20+ 步。
+
+function isDevMode() {
+    try { return new URLSearchParams(window.location.search).get('dev') === '1'; }
+    catch (e) { return false; }
+}
+
+async function setupDevJumpPanel() {
+    if (!isDevMode()) return;
+    const storyId = 'sanguo';
+    const manifest = await fetchStoryManifest(storyId);
+    if (!manifest) return;
+
+    // 预拉所有非 stub 章节，建 chapter_id → { title, scenes } 映射
+    const chapterMap = {};
+    for (const ch of manifest.chapters || []) {
+        if (ch.status === 'stub') continue;
+        const data = await fetchStoryChapter(storyId, ch.id);
+        if (data) chapterMap[ch.id] = { title: data.title || '', scenes: data.scenes || [] };
+    }
+    if (Object.keys(chapterMap).length === 0) return;
+
+    // 渲染固定位 panel 到 body
+    const panel = document.createElement('div');
+    panel.className = 'dev-jump-panel';
+    panel.innerHTML = `
+        <div class="dev-jump-header">DEV 跳转</div>
+        <select data-dev-chapter></select>
+        <select data-dev-scene></select>
+        <button type="button" data-dev-jump-btn>跳转</button>
+        <div class="dev-jump-hint">仅 ?dev=1 时可见</div>
+    `;
+    document.body.appendChild(panel);
+
+    const chapSel = panel.querySelector('[data-dev-chapter]');
+    const sceneSel = panel.querySelector('[data-dev-scene]');
+
+    Object.entries(chapterMap).forEach(([cid, info]) => {
+        const opt = document.createElement('option');
+        opt.value = cid;
+        opt.textContent = `${cid} · ${info.title}`;
+        chapSel.appendChild(opt);
+    });
+
+    function refreshSceneSelect() {
+        sceneSel.innerHTML = '';
+        const cid = chapSel.value;
+        (chapterMap[cid]?.scenes || []).forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.scene_id;
+            opt.textContent = `${s.scene_id} (${s.type})`;
+            sceneSel.appendChild(opt);
+        });
+    }
+    chapSel.addEventListener('change', refreshSceneSelect);
+    refreshSceneSelect();
+
+    panel.querySelector('[data-dev-jump-btn]').addEventListener('click', async () => {
+        const cid = chapSel.value;
+        const sid = sceneSel.value;
+        if (!cid || !sid) return;
+        await devJumpAndEnter(storyId, cid, sid);
+    });
+}
+
+async function devJumpAndEnter(storyId, chapterId, sceneId) {
+    const manifest = await fetchStoryManifest(storyId);
+    if (!manifest) { alert('manifest 加载失败'); return; }
+    // 每次跳转新建 session（避免污染之前的对话历史 / 轮数计数）
+    const sessionInfo = await startStorySession(storyId);
+    if (!sessionInfo) { alert('session 创建失败'); return; }
+    const res = await apiPost(
+        `/story/${encodeURIComponent(storyId)}/session/${encodeURIComponent(sessionInfo.session_id)}/dev_jump`,
+        { chapter_id: chapterId, scene_id: sceneId }
+    );
+    if (!res?.success) { alert('dev_jump 失败: ' + (res?.error || '未知')); return; }
+    const chapter = await fetchStoryChapter(storyId, chapterId);
+    if (!chapter) { alert('章节加载失败'); return; }
+    // 同步 sessionData（mutate 同一对象，state.story.sessionData 跟着变）
+    sessionInfo.current_chapter = chapterId;
+    sessionInfo.current_scene = sceneId;
+    if (res.protagonist_name) sessionInfo.protagonist_name = res.protagonist_name;
+    showTimeTravel();
+    elements.sanguoPanel?.classList.remove('hidden');
+    renderSanguoPanelShell(manifest, sessionInfo, chapter);
+    startSanguoScene();
+}
+
 /**
  * 渲染 sanguo-panel 持久结构：
  *  - 背景层 / 暗化叠层 / 顶栏 / 场景区
@@ -1446,8 +1536,26 @@ function sanguoClearTyping() {
 function startTypingCurrentLine() {
     sanguoClearTyping();
     const scene = getCurrentScene();
-    const line = scene?.lines?.[state.story.lineIndex];
-    if (!scene || !line) return;
+    if (!scene) return;
+    const lines = scene.lines || [];
+    const line = lines[state.story.lineIndex];
+
+    // 阶段五 fix：AI 节点 (companion_free_talk / historical_limited_talk)
+    // 当整个 lines 数组为空（如 xunyu_limited_talk），跳过打字直接渲染
+    // talk_actions，否则按钮死锁 + DOM 残留上一 scene 内容
+    if (!line && lines.length === 0 && (scene.type === 'companion_free_talk' || scene.type === 'historical_limited_talk')) {
+        const dialogueBox = elements.sanguoPanel?.querySelector('[data-sanguo-dialogue]');
+        const textEl = elements.sanguoPanel?.querySelector('[data-sanguo-text]');
+        const speakerEl = elements.sanguoPanel?.querySelector('[data-sanguo-speaker]');
+        const btnEl = elements.sanguoPanel?.querySelector('[data-sanguo-action="advance"]');
+        if (textEl) textEl.textContent = '';
+        if (speakerEl) { speakerEl.innerHTML = ''; speakerEl.hidden = true; }
+        if (btnEl) btnEl.hidden = true;
+        if (dialogueBox) dialogueBox.classList.remove('is-typing');
+        renderSanguoTalkActions(scene);
+        return;
+    }
+    if (!line) return;
     const dialogueBox = elements.sanguoPanel?.querySelector('[data-sanguo-dialogue]');
     const textEl = elements.sanguoPanel?.querySelector('[data-sanguo-text]');
     const speakerEl = elements.sanguoPanel?.querySelector('[data-sanguo-speaker]');
@@ -1591,8 +1699,10 @@ async function advanceSanguoSceneByType(scene) {
             return;
         case 'companion_free_talk':
         case 'historical_limited_talk':
-            // C6 实现 AI 节点占位
-            alert(`场景类型 ${scene.type} 由 C6 实现（in-character 占位）。当前 scene=${scene.scene_id}`);
+            // 阶段五已实装：进入时 startTypingCurrentLine 末尾自动渲染 talk_actions。
+            // 走到这里说明 lines 数组打完了，玩家点"推进"——回到 talk_actions 让其继续
+            // 与 AI 对话或点 skip 推进。
+            renderSanguoTalkActions(scene);
             return;
         case 'chapter_end':
             // C6 实现章节切换
@@ -2280,6 +2390,8 @@ async function init() {
     loadTravelScenes();
     // 拉故事列表 + 应用入口文案（公开课模式由 applyStoryEntryCopy 自动跳过）
     fetchStoryList().then(() => applyStoryEntryCopy()).catch(() => {});
+    // 开发模式（?dev=1）：渲染右下角 dev 跳转面板
+    setupDevJumpPanel().catch((e) => console.error('dev jump panel setup failed', e));
     // 1. 获取导航目录
     const res = await apiGet('/events_list');
     if(res && res.success) {

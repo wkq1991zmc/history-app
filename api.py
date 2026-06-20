@@ -4028,6 +4028,49 @@ async def story_session_set_name(
     }
 
 
+class StoryDevJumpRequest(BaseModel):
+    """开发跳转：强制 set session 到指定 chapter/scene。仅供本地测试，不应在生产环境暴露。"""
+    chapter_id: str
+    scene_id: str
+
+
+@app.post("/story/{story_id}/session/{session_id}/dev_jump")
+async def story_session_dev_jump(
+    story_id: str,
+    session_id: str,
+    req: StoryDevJumpRequest,
+):
+    """开发跳转：强制把 session 推到任意 chapter + scene。
+
+    用于本地开发测试——避免每次测某个对话节点都要从序章走 20+ 步。
+    会自动给空的 protagonist_name / identity 设默认值（"测试者" / "寒门士子"），
+    保证身份相关选项（如洛阳"出示邺城文书"，requires 寒门士子）可用。
+
+    前端仅在 URL ?dev=1 时显示触发 UI；endpoint 本身不做 dev mode 鉴权，
+    适合本地开发。生产部署若启用须额外加权限控制。
+    """
+    session = _get_story_session(story_id, session_id)
+    chapter_data = _load_chapter(story_id, req.chapter_id)
+    if not chapter_data:
+        raise HTTPException(status_code=404, detail=f"章节不存在: {req.chapter_id}")
+    scene = _find_scene_in_chapter(chapter_data, req.scene_id)
+    if not scene:
+        raise HTTPException(status_code=404, detail=f"场景不存在: {req.scene_id} (in {req.chapter_id})")
+    session["current_chapter"] = req.chapter_id
+    session["current_scene"] = req.scene_id
+    if not session.get("protagonist_name"):
+        session["protagonist_name"] = "测试者"
+    if not session.get("identity"):
+        session["identity"] = "寒门士子"
+    return {
+        "success": True,
+        "current_chapter": req.chapter_id,
+        "current_scene": req.scene_id,
+        "protagonist_name": session["protagonist_name"],
+        "identity": session["identity"],
+    }
+
+
 class StoryCompanionTalkRequest(BaseModel):
     """阶段五实现：阿萤自由对话流式请求。"""
     session_id: str
