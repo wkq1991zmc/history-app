@@ -6,11 +6,22 @@
     {
       "scene_id": "lane",
       "type": "narration",
-      "background_image": "/static/images/sanguo/00-lane-v1.png",
+      "background_image": "/static/images/sanguo/00-prologue-zhuojun-road.png",
       "lines": [
-        { "type": "narration", "text": "中平元年，三月。", "pace": "slow" },
-        { "type": "narration", "text": "涿郡的春天来得迟，桃花刚开。", "pace": "slow" },
-        { "type": "narration", "text": "一条被踩烂的乡道。远处有烟柱，三四根，弯弯地立在田野尽头。一个少年背着行囊独自走着，鞋底裂了一道口子，脚趾露在外面。" }
+        {
+          "type": "narration",
+          "text": "中平元年，三月。",
+          "pace": "slow"
+        },
+        {
+          "type": "narration",
+          "text": "涿郡的春天来得迟，桃花刚开。",
+          "pace": "slow"
+        },
+        {
+          "type": "narration",
+          "text": "一条被踩烂的乡道。远处有烟柱，三四根，弯弯地立在田野尽头。一个少年背着行囊独自走着，鞋底裂了一道口子，脚趾露在外面。"
+        }
       ],
       "next": "huai_tree"
     },
@@ -18,79 +29,225 @@
       "scene_id": "huai_tree",
       "type": "narration_with_choice",
       "lines": [
-        { "type": "narration", "text": "路旁一棵歪脖子槐树下，蜷着一个老妇人，怀里抱着一个孩子。" },
-        { "type": "dialogue", "speaker": "老妇人", "stage_direction": "声音几乎听不见", "text": "……水……" },
-        { "type": "narration", "text": "少年停下脚步。" }
+        {
+          "type": "narration",
+          "text": "路旁一棵歪脖子槐树下，蜷着一个老妇人，怀里抱着一个孩子。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "老妇人",
+          "stage_direction": "声音几乎听不见",
+          "text": "……水……"
+        },
+        {
+          "type": "narration",
+          "text": "少年停下脚步。"
+        }
       ],
       "choices": [
-        { "id": "give_water", "text": "把剩下半囊水递给她", "next": "branch_give_water", "pending": true },
-        { "id": "ignore",     "text": "假装没听见，继续走", "next": "branch_ignore",     "pending": true },
-        { "id": "ask",        "text": "蹲下，问她从哪里来", "next": "grandma_words" }
-      ]
+        {
+          "id": "give_water",
+          "text": "把剩下半囊水递给她",
+          "next": "branch_give_water",
+          "pending": true
+        },
+        {
+          "id": "ignore",
+          "text": "假装没听见，继续走",
+          "next": "branch_ignore",
+          "pending": true
+        },
+        {
+          "id": "ask",
+          "text": "蹲下，问她从哪里来",
+          "next": "grandma_words"
+        }
+      ],
+      "background_image": "/static/images/sanguo/00-prologue-zhuojun-road.png"
     },
     {
       "scene_id": "grandma_words",
       "type": "narration",
       "lines": [
-        { "type": "dialogue", "speaker": "少年", "text": "婆婆，您从哪儿来？" },
-        { "type": "dialogue", "speaker": "老妇人", "stage_direction": "嘴唇干裂得像树皮", "text": "邺城……邺城西边，村子……烧了……" },
-        { "type": "dialogue", "speaker": "少年", "text": "谁烧的？" },
-        { "type": "dialogue", "speaker": "老妇人", "text": "黄布……他们头上裹着黄布……见人就杀，见粮就抢……我儿子，他追出来想拦……" },
-        { "type": "narration", "text": "她说不下去了。怀里的孩子一动不动。少年这才注意到，那孩子的脸是青的，已经青了很久了。" },
-        { "type": "inner_voice", "speaker": "少年", "text": "……他早就死了。婆婆抱着的，是个早就死了的孩子。" }
+        {
+          "type": "dialogue",
+          "speaker": "少年",
+          "text": "婆婆，您从哪儿来？"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "老妇人",
+          "stage_direction": "嘴唇干裂得像树皮",
+          "text": "邺城……邺城西边，村子……烧了……"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "少年",
+          "text": "谁烧的？"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "老妇人",
+          "text": "黄布……他们头上裹着黄布……见人就杀，见粮就抢……我儿子，他追出来想拦……"
+        },
+        {
+          "type": "narration",
+          "text": "她说不下去了。怀里的孩子一动不动。少年这才注意到，那孩子的脸是青的，已经青了很久了。"
+        },
+        {
+          "type": "inner_voice",
+          "speaker": "少年",
+          "text": "……他早就死了。婆婆抱着的，是个早就死了的孩子。"
+        }
       ],
-      "next": "water_bag"
+      "next": "water_bag",
+      "background_image": "/static/images/sanguo/00-prologue-zhuojun-road.png"
     },
     {
       "scene_id": "water_bag",
       "type": "narration",
       "lines": [
-        { "type": "narration", "text": "少年默默把水囊放在她脚边，起身。老妇人没有抬头。" },
-        { "type": "dialogue", "speaker": "老妇人", "stage_direction": "喃喃", "text": "前面……前面有桃花林……听说，有人……在那儿招人……" }
+        {
+          "type": "narration",
+          "text": "少年默默把水囊放在她脚边，起身。老妇人没有抬头。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "老妇人",
+          "stage_direction": "喃喃",
+          "text": "前面……前面有桃花林……听说，有人……在那儿招人……"
+        }
       ],
-      "next": "zhuoxian_market"
+      "next": "zhuoxian_market",
+      "background_image": "/static/images/sanguo/00-prologue-zhuojun-road.png"
     },
     {
       "scene_id": "zhuoxian_market",
       "type": "narration",
       "lines": [
-        { "type": "narration", "text": "少年走到涿县城东的市口。集市冷清，烧饼摊只剩半个空架子，菜摊上堆着蔫掉的萝卜。" },
-        { "type": "narration", "text": "人群聚在一面墙根，墙上贴着一张新告示——朱砂印，墨字还没干透。一个穿短褐的吏员正大声念着：" },
-        { "type": "dialogue", "speaker": "吏员", "text": "……涿郡都尉邹靖，奉皇甫嵩将军令，募义兵讨张角黄巾贼！来者皆补县卒！每月粟三斗，赏钱五百！……" },
-        { "type": "narration", "text": "告示牌前，三个男人挨着草鞋摊吃酒。" },
-        { "type": "narration", "text": "一个赤面长须，沉默地撕着干肉。" },
-        { "type": "narration", "text": "一个豹头环眼，声若洪钟，举着粗陶碗在笑。" },
-        { "type": "narration", "text": "一个面色白净，耳垂极长，背对着这边，正在说什么。" }
+        {
+          "type": "narration",
+          "text": "少年走到涿县城东的市口。集市冷清，烧饼摊只剩半个空架子，菜摊上堆着蔫掉的萝卜。"
+        },
+        {
+          "type": "narration",
+          "text": "人群聚在一面墙根，墙上贴着一张新告示——朱砂印，墨字还没干透。一个穿短褐的吏员正大声念着："
+        },
+        {
+          "type": "dialogue",
+          "speaker": "吏员",
+          "text": "……涿郡都尉邹靖，奉皇甫嵩将军令，募义兵讨张角黄巾贼！来者皆补县卒！每月粟三斗，赏钱五百！……"
+        },
+        {
+          "type": "narration",
+          "text": "告示牌前，三个男人挨着草鞋摊吃酒。"
+        },
+        {
+          "type": "narration",
+          "text": "一个赤面长须，沉默地撕着干肉。"
+        },
+        {
+          "type": "narration",
+          "text": "一个豹头环眼，声若洪钟，举着粗陶碗在笑。"
+        },
+        {
+          "type": "narration",
+          "text": "一个面色白净，耳垂极长，背对着这边，正在说什么。"
+        }
       ],
-      "next": "peddler"
+      "next": "peddler",
+      "background_image": "/static/images/sanguo/00-prologue-zhuoxian-market-recruit-notice.png"
     },
     {
       "scene_id": "peddler",
       "type": "narration",
       "lines": [
-        { "type": "narration", "text": "少年想走近，被一个挑着担子的货郎伸手拦住。" },
-        { "type": "dialogue", "speaker": "货郎", "text": "小兄弟，别过去。" },
-        { "type": "dialogue", "speaker": "少年", "text": "他们……在做什么？" },
-        { "type": "dialogue", "speaker": "货郎", "stage_direction": "压低声音", "text": "听说要去投军。" },
-        { "type": "dialogue", "speaker": "少年", "text": "什么人投军？" },
-        { "type": "dialogue", "speaker": "货郎", "text": "一个卖草鞋的，一个杀猪的，还有那个白脸的——听说是从涿县来的，自称中山靖王之后。" },
-        { "type": "dialogue", "speaker": "少年", "text": "……中山靖王？" },
-        { "type": "dialogue", "speaker": "货郎", "stage_direction": "笑了一声", "text": "就这。这年头，杀猪的都想当英雄，卖草鞋的都说自己是皇家血脉。" },
-        { "type": "narration", "text": "货郎挑着担子走远了。" },
-        { "type": "narration", "text": "少年又看了一眼那三个吃酒的人。那白脸的转了一下身，少年只瞥见他的侧脸——眼睛很长，看着告示墙，没有什么表情。" },
-        { "type": "narration", "text": "少年站了一会儿，转身，朝相反的方向走去。" }
+        {
+          "type": "narration",
+          "text": "少年想走近，被一个挑着担子的货郎伸手拦住。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "货郎",
+          "text": "小兄弟，别过去。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "少年",
+          "text": "他们……在做什么？"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "货郎",
+          "stage_direction": "压低声音",
+          "text": "听说要去投军。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "少年",
+          "text": "什么人投军？"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "货郎",
+          "text": "一个卖草鞋的，一个杀猪的，还有那个白脸的——听说是从涿县来的，自称中山靖王之后。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "少年",
+          "text": "……中山靖王？"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "货郎",
+          "stage_direction": "笑了一声",
+          "text": "就这。这年头，杀猪的都想当英雄，卖草鞋的都说自己是皇家血脉。"
+        },
+        {
+          "type": "narration",
+          "text": "货郎挑着担子走远了。"
+        },
+        {
+          "type": "narration",
+          "text": "少年又看了一眼那三个吃酒的人。那白脸的转了一下身，少年只瞥见他的侧脸——眼睛很长，看着告示墙，没有什么表情。"
+        },
+        {
+          "type": "narration",
+          "text": "少年站了一会儿，转身，朝相反的方向走去。"
+        }
       ],
-      "next": "midway_subtitle"
+      "next": "midway_subtitle",
+      "background_image": "/static/images/sanguo/00-prologue-zhuoxian-market-recruit-notice.png"
     },
     {
       "scene_id": "midway_subtitle",
       "type": "narration",
       "lines": [
-        { "type": "narration", "display_style": "fullscreen_subtitle", "text": "这一年，是中平元年。" },
-        { "type": "narration", "display_style": "fullscreen_subtitle", "text": "这一年，张角举起了黄旗。" },
-        { "type": "narration", "display_style": "fullscreen_subtitle", "text": "这一年，涿县市口前，有一个卖草鞋的，想去做点事。" },
-        { "type": "narration", "display_style": "fullscreen_subtitle", "text": "没有人知道他会去哪里。" },
-        { "type": "narration", "display_style": "fullscreen_subtitle", "text": "也没有人，会记得你。" }
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "这一年，是中平元年。"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "这一年，张角举起了黄旗。"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "这一年，涿县市口前，有一个卖草鞋的，想去做点事。"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "没有人知道他会去哪里。"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "也没有人，会记得你。"
+        }
       ],
       "next": "earth_temple_outside"
     },
@@ -98,76 +255,229 @@
       "scene_id": "earth_temple_outside",
       "type": "narration",
       "lines": [
-        { "type": "narration", "text": "少年朝相反的方向走了大半天。日头渐沉。路边有一座土地庙，半边屋顶塌了，神像的脸不见了。" },
-        { "type": "narration", "text": "少年钻了进去。" },
-        { "type": "narration", "text": "庙里有一堆冷掉的灰，灰里埋着两块没烧完的红薯皮。" },
-        { "type": "inner_voice", "speaker": "少年", "text": "……有人来过。今天来过。" },
-        { "type": "narration", "text": "他刚要蹲下去看，颈后忽然一凉。" },
-        { "type": "narration", "text": "一柄柴刀，缺了口的，抵在他脖子上。" }
+        {
+          "type": "narration",
+          "text": "少年朝相反的方向走了大半天。日头渐沉。路边有一座土地庙，半边屋顶塌了，神像的脸不见了。"
+        },
+        {
+          "type": "narration",
+          "text": "少年钻了进去。"
+        },
+        {
+          "type": "narration",
+          "text": "庙里有一堆冷掉的灰，灰里埋着两块没烧完的红薯皮。"
+        },
+        {
+          "type": "inner_voice",
+          "speaker": "少年",
+          "text": "……有人来过。今天来过。"
+        },
+        {
+          "type": "narration",
+          "text": "他刚要蹲下去看，颈后忽然一凉。"
+        },
+        {
+          "type": "narration",
+          "text": "一柄柴刀，缺了口的，抵在他脖子上。"
+        }
       ],
-      "next": "ayinghuo_first_meet"
+      "next": "ayinghuo_first_meet",
+      "background_image": "/static/images/sanguo/00-prologue-earth-temple-inside-empty.png"
     },
     {
       "scene_id": "ayinghuo_first_meet",
       "type": "narration_with_choice",
       "lines": [
-        { "type": "dialogue", "speaker": "身后的声音", "stage_direction": "沙哑，是个女孩", "text": "你的米袋里有什么。" },
-        { "type": "dialogue", "speaker": "少年", "stage_direction": "一动不敢动", "text": "……几块干饼。" },
-        { "type": "dialogue", "speaker": "女孩", "text": "扔出去。" },
-        { "type": "narration", "text": "少年慢慢解下行囊，扔到地上。柴刀又往他脖子里按了一分。" },
-        { "type": "dialogue", "speaker": "女孩", "text": "刀呢。" },
-        { "type": "dialogue", "speaker": "少年", "text": "……我没刀。" },
-        { "type": "dialogue", "speaker": "女孩", "text": "腰里那是什么。" },
-        { "type": "dialogue", "speaker": "少年", "text": "……笔。" },
-        { "type": "narration", "text": "一阵沉默。柴刀的力道松了一点点。" },
-        { "type": "dialogue", "speaker": "女孩", "text": "……笔？" },
-        { "type": "dialogue", "speaker": "少年", "text": "嗯。" },
-        { "type": "dialogue", "speaker": "女孩", "text": "你他娘的乱世里背笔？" },
-        { "type": "narration", "text": "少年这才敢慢慢转过头去。是个跟他差不多大的姑娘，脸上一道泥，一道血，看不清模样，只有一双眼睛极亮，像两点不肯熄的火星。她左手握着柴刀，右手藏在背后——少年瞥见那只手在抖。" }
+        {
+          "type": "dialogue",
+          "speaker": "身后的声音",
+          "stage_direction": "沙哑，是个女孩",
+          "text": "你的米袋里有什么。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "少年",
+          "stage_direction": "一动不敢动",
+          "text": "……几块干饼。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "女孩",
+          "text": "扔出去。"
+        },
+        {
+          "type": "narration",
+          "text": "少年慢慢解下行囊，扔到地上。柴刀又往他脖子里按了一分。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "女孩",
+          "text": "刀呢。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "少年",
+          "text": "……我没刀。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "女孩",
+          "text": "腰里那是什么。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "少年",
+          "text": "……笔。"
+        },
+        {
+          "type": "narration",
+          "text": "一阵沉默。柴刀的力道松了一点点。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "女孩",
+          "text": "……笔？"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "少年",
+          "text": "嗯。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "女孩",
+          "text": "……乱世里背笔？"
+        },
+        {
+          "type": "narration",
+          "text": "少年这才敢慢慢转过头去。是个跟他差不多大的姑娘，脸上一道泥，一道血，看不清模样，只有一双眼睛极亮，像两点不肯熄的火星。她左手握着柴刀，右手藏在背后——少年瞥见那只手在抖。"
+        }
       ],
       "choices": [
-        { "id": "you_are_hurt", "text": "你受伤了。",           "next": "branch_you_are_hurt", "pending": true },
-        { "id": "take_bread",   "text": "饼你拿去，我走。",       "next": "branch_take_bread",   "pending": true },
-        { "id": "recognize",    "text": "你是从邺城西边来的？",   "next": "recognize_kin" }
-      ]
+        {
+          "id": "you_are_hurt",
+          "text": "你受伤了。",
+          "next": "branch_you_are_hurt",
+          "pending": true
+        },
+        {
+          "id": "take_bread",
+          "text": "饼你拿去，我走。",
+          "next": "branch_take_bread",
+          "pending": true
+        },
+        {
+          "id": "recognize",
+          "text": "你是从邺城西边来的？",
+          "next": "recognize_kin"
+        }
+      ],
+      "background_image": "/static/images/sanguo/00-prologue-earth-temple-aying-first-look.png.png"
     },
     {
       "scene_id": "recognize_kin",
       "type": "narration",
       "lines": [
-        { "type": "dialogue", "speaker": "少年", "text": "你是从邺城西边来的？" },
-        { "type": "narration", "text": "女孩瞳孔猛地一缩。柴刀又抬了起来。" },
-        { "type": "dialogue", "speaker": "女孩", "text": "你怎么知道。" },
-        { "type": "dialogue", "speaker": "少年", "text": "……今天路上，我碰见一个婆婆。她说她们村被黄巾烧了。她抱着一个孩子，孩子已经……" },
-        { "type": "narration", "text": "他说不下去了。" },
-        { "type": "dialogue", "speaker": "少年", "text": "……她说前面有桃花林。" },
-        { "type": "narration", "text": "女孩握刀的手垂下来了。她在庙门口站了一会儿，忽然蹲下，背过身去。少年听见她在哭——不是哇哇的哭，是那种压在喉咙里、像被人掐着脖子的哭。" },
-        { "type": "narration", "text": "哭了很久。庙外的天彻底黑了。" },
-        { "type": "dialogue", "speaker": "女孩", "stage_direction": "背对着他，声音闷闷的", "text": "……那婆婆是我奶奶。" },
-        { "type": "narration", "text": "少年没有说话。" },
-        { "type": "dialogue", "speaker": "女孩", "text": "那孩子是我弟弟。" },
-        { "type": "narration", "text": "少年没有说话。他在地上坐下，把那块干饼掰成两半，放在女孩身后。" },
-        { "type": "narration", "text": "又过了很久，女孩转过身，拿起了那半块饼。她吃得很慢，每嚼一下都像在用力咽什么别的东西。" },
-        { "type": "dialogue", "speaker": "女孩", "text": "……我叫阿萤。" },
-        { "type": "dialogue", "speaker": "少年", "text": "……" },
-        { "type": "dialogue", "speaker": "阿萤", "text": "你呢。" }
+        {
+          "type": "dialogue",
+          "speaker": "少年",
+          "text": "你是从邺城西边来的？"
+        },
+        {
+          "type": "narration",
+          "text": "女孩瞳孔猛地一缩。柴刀又抬了起来。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "女孩",
+          "text": "你怎么知道。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "少年",
+          "text": "……今天路上，我碰见一个婆婆。她说她们村被黄巾烧了。她抱着一个孩子，孩子已经……"
+        },
+        {
+          "type": "narration",
+          "text": "他说不下去了。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "少年",
+          "text": "……她说前面有桃花林。"
+        },
+        {
+          "type": "narration",
+          "text": "女孩握刀的手垂下来了。她在庙门口站了一会儿，忽然蹲下，背过身去。少年听见她在哭——不是哇哇的哭，是那种压在喉咙里、像被人掐着脖子的哭。"
+        },
+        {
+          "type": "narration",
+          "text": "哭了很久。庙外的天彻底黑了。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "女孩",
+          "stage_direction": "背对着他，声音闷闷的",
+          "text": "……那婆婆是我奶奶。"
+        },
+        {
+          "type": "narration",
+          "text": "少年没有说话。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "女孩",
+          "text": "那孩子是我弟弟。"
+        },
+        {
+          "type": "narration",
+          "text": "少年没有说话。他在地上坐下，把那块干饼掰成两半，放在女孩身后。"
+        },
+        {
+          "type": "narration",
+          "text": "又过了很久，女孩转过身，拿起了那半块饼。她吃得很慢，每嚼一下都像在用力咽什么别的东西。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "女孩",
+          "text": "……我叫阿萤。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "少年",
+          "text": "……"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "阿萤",
+          "text": "你呢。"
+        }
       ],
-      "next": "input_protagonist_name"
+      "next": "input_protagonist_name",
+      "background_image": "/static/images/sanguo/00-prologue-earth-temple-aying-first-look.png.png"
     },
     {
       "scene_id": "input_protagonist_name",
       "type": "narration",
       "awaits_input": "protagonist_name",
       "lines": [
-        { "type": "narration", "text": "他张了张嘴，想了想，该如何报出自己的名字。", "pace": "slow" }
+        {
+          "type": "narration",
+          "text": "他张了张嘴，想了想，该如何报出自己的名字。",
+          "pace": "slow"
+        }
       ],
-      "next": "campfire_free_talk"
+      "next": "campfire_free_talk",
+      "background_image": "/static/images/sanguo/00-prologue-earth-temple-aying-first-look.png.png"
     },
     {
       "scene_id": "campfire_free_talk",
       "type": "companion_free_talk",
       "lines": [
-        { "type": "narration", "text": "夜深了。两人在土地庙里点起一小堆火。火光照得神像没脸的那一面忽明忽暗。阿萤把柴刀放在膝盖上，没有再藏。她吃完了饼，正用手指一点一点把碎屑从衣襟上捡起来吃。" }
+        {
+          "type": "narration",
+          "text": "夜深了。两人在土地庙里点起一小堆火。火光照得神像没脸的那一面忽明忽暗。阿萤把柴刀放在膝盖上，没有再藏。她吃完了饼，正用手指一点一点把碎屑从衣襟上捡起来吃。"
+        }
       ],
       "companion_state_card": {
         "character": "阿萤",
@@ -195,39 +505,121 @@
           "玩家点击\"继续\""
         ]
       },
-      "next": "morning_identity_choice"
+      "next": "morning_identity_choice",
+      "background_image": "/static/images/sanguo/00-prologue-earth-temple-firelight-talk.png"
     },
     {
       "scene_id": "morning_identity_choice",
       "type": "narration_with_choice",
       "lines": [
-        { "type": "narration", "text": "天还没亮，少年被一阵哭声惊醒。" },
-        { "type": "narration", "text": "他冲出庙门，看见路边的草丛里，一个穿着官差袍子的男人趴在地上，腿被砍断了一截，正一手撑地往前爬。他身后追着两个裹黄布的人，提着刀。" },
-        { "type": "narration", "text": "官差看见少年，眼睛一亮。" },
-        { "type": "dialogue", "speaker": "官差", "stage_direction": "嘶哑", "text": "……救……救命……我是邺城来的……我袍子里有……有给洛阳的文书……" },
-        { "type": "narration", "text": "那两个黄巾兵也看见了少年，停下脚步，互相看了一眼，露出笑容。一个朝少年走来，另一个继续逼近官差。" },
-        { "type": "dialogue", "speaker": "阿萤", "stage_direction": "从庙里冲出来，压低声音", "text": "别管他！跑！" },
-        { "type": "narration", "text": "少年的心跳得飞快。他看了一眼自己空空的手，又看了一眼阿萤腰间的柴刀，又看了一眼地上的官差。三步之外的黄巾兵已经举起了刀。" }
+        {
+          "type": "narration",
+          "text": "天还没亮，少年被一阵哭声惊醒。"
+        },
+        {
+          "type": "narration",
+          "text": "他冲出庙门，看见路边的草丛里，一个穿着官差袍子的男人趴在地上，腿被砍断了一截，正一手撑地往前爬。他身后追着两个裹黄布的人，提着刀。"
+        },
+        {
+          "type": "narration",
+          "text": "官差看见少年，眼睛一亮。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "官差",
+          "stage_direction": "嘶哑",
+          "text": "……救……救命……我是邺城来的……我袍子里有……有给洛阳的文书……"
+        },
+        {
+          "type": "narration",
+          "text": "那两个黄巾兵也看见了少年，停下脚步，互相看了一眼，露出笑容。一个朝少年走来，另一个继续逼近官差。"
+        },
+        {
+          "type": "dialogue",
+          "speaker": "阿萤",
+          "stage_direction": "从庙里冲出来，压低声音",
+          "text": "别管他！跑！"
+        },
+        {
+          "type": "narration",
+          "text": "少年的心跳得飞快。他看了一眼自己空空的手，又看了一眼阿萤腰间的柴刀，又看了一眼地上的官差。三步之外的黄巾兵已经举起了刀。"
+        }
       ],
       "choices": [
-        { "id": "stick",   "text": "抓起庙里的木棍冲上去",         "identity_branch": "游侠剑客", "next": "branch_swordsman",  "pending": true },
-        { "id": "flee",    "text": "拉着阿萤就跑，但带走文书",       "identity_branch": "寒门士子", "next": "chapter_end" },
-        { "id": "trick",   "text": "大喊\"前面有官兵来了！\"",      "identity_branch": "商队子弟", "next": "branch_merchant",   "pending": true },
-        { "id": "rob",     "text": "抢黄巾兵的水和粮",               "identity_branch": "流民医徒", "next": "branch_medic",      "pending": true }
-      ]
+        {
+          "id": "stick",
+          "text": "抓起庙里的木棍冲上去",
+          "identity_branch": "游侠剑客",
+          "next": "branch_swordsman",
+          "pending": true
+        },
+        {
+          "id": "flee",
+          "text": "拉着阿萤就跑，但带走文书",
+          "identity_branch": "寒门士子",
+          "next": "chapter_end"
+        },
+        {
+          "id": "trick",
+          "text": "大喊\"前面有官兵来了！\"",
+          "identity_branch": "商队子弟",
+          "next": "branch_merchant",
+          "pending": true
+        },
+        {
+          "id": "rob",
+          "text": "抢黄巾兵的水和粮",
+          "identity_branch": "流民医徒",
+          "next": "branch_medic",
+          "pending": true
+        }
+      ],
+      "background_image": "/static/images/sanguo/00-prologue-morning-temple-officer-rescue.png"
     },
     {
       "scene_id": "chapter_end",
       "type": "chapter_end",
       "lines": [
-        { "type": "narration", "display_style": "fullscreen_subtitle", "text": "中平元年，三月。" },
-        { "type": "narration", "display_style": "fullscreen_subtitle", "text": "黄巾军起，天下大乱。" },
-        { "type": "narration", "display_style": "fullscreen_subtitle", "text": "这一年，洛阳城里，皇帝还在饮酒。" },
-        { "type": "narration", "display_style": "fullscreen_subtitle", "text": "这一年，涿县市口前，有一个卖草鞋的，去投了军。" },
-        { "type": "narration", "display_style": "fullscreen_subtitle", "text": "这一年，土地庙里，一个少年和一个少女，决定结伴朝洛阳走。" },
-        { "type": "narration", "display_style": "fullscreen_subtitle", "text": "他们不知道，洛阳已经在等着他们了。" },
-        { "type": "narration", "display_style": "fullscreen_subtitle", "text": "洛阳，也在等着另一个人——" },
-        { "type": "narration", "display_style": "fullscreen_subtitle", "text": "那个人，叫董卓。" }
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "中平元年，三月。"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "黄巾军起，天下大乱。"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "这一年，洛阳城里，皇帝还在饮酒。"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "这一年，涿县市口前，有一个卖草鞋的，去投了军。"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "这一年，土地庙里，一个少年和一个少女，决定结伴朝洛阳走。"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "他们不知道，洛阳已经在等着他们了。"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "洛阳，也在等着另一个人——"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "那个人，叫董卓。"
+        }
       ],
       "next_chapter": "02_luoyang"
     }
