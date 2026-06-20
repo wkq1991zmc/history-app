@@ -92,6 +92,12 @@
 | `dialogue` | 角色对白 | `speaker`, `text` | `stage_direction`（括号内动作描述），`speaker_role`（如"老妇人"额外标签） |
 | `inner_voice` | 主角心声 | `text` | 渲染为浅灰斜体 |
 
+**所有 line type 共享的可选字段**：
+
+| 字段 | 取值 | 作用 |
+|---|---|---|
+| `pace` | `"slow"` / `"normal"` / `"fast"` | 流式打字速度（slow≈60-80ms/字，normal≈35-40ms/字，fast≈28ms/字）。**未标注时默认 normal**。用于重要句子放慢、快速对话加快 |
+
 ### `choices` 数组
 
 每个 choice 是一个对象：

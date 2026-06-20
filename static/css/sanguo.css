@@ -1,0 +1,281 @@
+/* ======== 三国篇 UI ========
+ * 与公开课/旧入局共用的 .ruju-* CSS 类完全物理隔离。
+ * 设计哲学：电影 × 古籍
+ * 参考：docs/04_UI_SPEC.md §7
+ *      docs/04b_VISUAL_STYLE_GUIDE.md（视觉锚 v1·黄昏调性）
+ *      docs/UI_REFERENCE_SNIPPETS.md（字幕样式片段）
+ */
+
+:root {
+    /* 04_UI_SPEC §7.1 哲学色调 */
+    --sanguo-bg-black: #0a0907;
+    --sanguo-text-narration: #f0e8d8;      /* 旁白浅暖白 */
+    --sanguo-text-ayinghuo: #e8d5b0;       /* 阿萤略带暖色（玩家潜意识可感知） */
+    --sanguo-text-dialogue: #f4ddb0;       /* 普通角色对白 */
+    --sanguo-text-inner: #9a9a8a;          /* 主角心声浅灰 */
+    --sanguo-amber: #d4a557;               /* 煤油灯橙黄 */
+    --sanguo-amber-bright: #e8b865;
+    --sanguo-amber-dim: rgba(212, 165, 87, 0.6);
+    --sanguo-amber-faint: rgba(212, 165, 87, 0.3);
+}
+
+/* ============================================================
+ * 主 panel：覆盖整个 #time-travel-content
+ * ============================================================ */
+
+.sanguo-panel {
+    position: absolute;
+    inset: 0;
+    background: var(--sanguo-bg-black);
+    overflow: hidden;
+    font-family: 'Noto Serif SC', 'Songti SC', 'STSong', serif;
+    color: var(--sanguo-text-narration);
+    line-height: 1.7;
+}
+
+/* 背景图层（chapter/scene level background_image） */
+.sanguo-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: opacity 1.2s ease;
+    z-index: 1;
+}
+
+/* 暗化叠层：保证字幕在任何背景上可读
+ * 04_UI_SPEC §7.2: "背景画面在文字下方有一层极淡的暗化叠层" */
+.sanguo-shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        180deg,
+        rgba(10, 9, 7, 0.18) 0%,
+        rgba(10, 9, 7, 0.30) 40%,
+        rgba(10, 9, 7, 0.72) 78%,
+        rgba(10, 9, 7, 0.86) 100%
+    );
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* ============================================================
+ * 顶栏：04_UI_SPEC §7.2 半透明
+ *  - 左侧：站名 / 时辰
+ *  - 右侧：卷 / 言 / 乐 / 声 四图标
+ * ============================================================ */
+
+.sanguo-topbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 1.05rem 2rem 1rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    background: linear-gradient(
+        180deg,
+        rgba(10, 9, 7, 0.75) 0%,
+        rgba(10, 9, 7, 0.40) 60%,
+        transparent 100%
+    );
+    pointer-events: none;
+    z-index: 30;
+}
+
+.sanguo-topbar > * {
+    pointer-events: auto;
+}
+
+.sanguo-topbar-title {
+    color: var(--sanguo-amber);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    font-size: 0.92rem;
+}
+
+.sanguo-topbar-title em {
+    font-style: normal;
+    color: var(--sanguo-amber-dim);
+    margin-left: 0.6rem;
+    font-weight: 500;
+}
+
+.sanguo-topbar-icons {
+    display: flex;
+    gap: 1.2rem;
+}
+
+.sanguo-topbar-icon {
+    background: transparent;
+    border: 0;
+    color: var(--sanguo-amber-dim);
+    font-family: inherit;
+    font-size: 0.95rem;
+    cursor: pointer;
+    padding: 0.25rem 0.55rem;
+    letter-spacing: 0.06em;
+    transition: color 0.2s;
+}
+
+.sanguo-topbar-icon:hover:not(:disabled) {
+    color: var(--sanguo-amber-bright);
+}
+
+.sanguo-topbar-icon:disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+}
+
+/* ============================================================
+ * 场景渲染容器（C3 字幕渲染）
+ *  - 04_UI_SPEC §7.2: 文字区域位于屏幕下方约 1/3 处
+ * ============================================================ */
+
+.sanguo-scene {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    align-items: end;
+    justify-items: center;
+    padding: 0 clamp(2rem, 7vw, 8.75rem) clamp(5.5rem, 13vh, 8.5rem);
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* ============================================================
+ * 占位壳子（C2 阶段 - 等 C3 替换为字幕渲染）
+ * ============================================================ */
+
+.sanguo-shell-placeholder {
+    pointer-events: auto;
+    width: min(40rem, calc(100vw - 4rem));
+    text-align: left;
+    color: var(--sanguo-text-narration);
+    text-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.95),
+        0 0 18px rgba(0, 0, 0, 0.8);
+}
+
+.sanguo-shell-placeholder p {
+    margin: 0 0 0.6rem 0;
+    font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+    color: var(--sanguo-amber-dim);
+    letter-spacing: 0.05em;
+}
+
+.sanguo-shell-placeholder b {
+    color: var(--sanguo-amber);
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.08em;
+}
+
+.sanguo-shell-actions {
+    margin-top: 1.6rem;
+    display: flex;
+    gap: 1rem;
+}
+
+.sanguo-exit-btn {
+    background: transparent;
+    border: 1px solid var(--sanguo-amber-faint);
+    color: var(--sanguo-amber);
+    padding: 0.5rem 1.5rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.sanguo-exit-btn:hover {
+    background: rgba(212, 165, 87, 0.08);
+    border-color: var(--sanguo-amber);
+}
+
+/* ============================================================
+ * 入口卡片视觉强化（不与公开课 .ruju-* 冲突）
+ *  - 让首页入口看起来"立起来"
+ *  - 应用在 .ruju-entry-card 上，但作为补充而非覆盖
+ *  - 公开课模式由 updateClassroomDemoVisibility 控制，
+ *    classroom-cases 显示时本类的强化要让位
+ * ============================================================ */
+
+#time-travel-content:not(.hidden):not(.ruju-playing):not(.law-classroom-demo) .ruju-entry-card {
+    /* 三国篇模式下的入口卡片：更"古籍封面"的质感 */
+    background: linear-gradient(
+        180deg,
+        rgba(20, 16, 12, 0.6) 0%,
+        rgba(10, 9, 7, 0.85) 100%
+    );
+    border: 1px solid var(--sanguo-amber-faint);
+    box-shadow:
+        0 12px 36px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(212, 165, 87, 0.18);
+}
+
+#time-travel-content:not(.hidden):not(.ruju-playing):not(.law-classroom-demo) .ruju-entry-card h2 {
+    color: var(--sanguo-amber);
+    letter-spacing: 0.06em;
+    font-weight: 700;
+}
+
+#time-travel-content:not(.hidden):not(.ruju-playing):not(.law-classroom-demo) .ruju-card-emblem {
+    color: var(--sanguo-amber);
+    border-color: var(--sanguo-amber-faint);
+}
+
+#time-travel-content:not(.hidden):not(.ruju-playing):not(.law-classroom-demo) .ruju-event-chip {
+    background: rgba(212, 165, 87, 0.08);
+    border-color: var(--sanguo-amber-faint);
+    color: var(--sanguo-text-narration);
+}
+
+#time-travel-content:not(.hidden):not(.ruju-playing):not(.law-classroom-demo) .ruju-event-chip b {
+    color: var(--sanguo-amber-bright);
+}
+
+#time-travel-content:not(.hidden):not(.ruju-playing):not(.law-classroom-demo) #travel-start-btn {
+    background: linear-gradient(180deg, #c62828, #8a1818);
+    color: #f7e6c8;
+    border: 1px solid rgba(212, 165, 87, 0.35);
+    padding: 0.7rem 2rem;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.2s;
+}
+
+#time-travel-content:not(.hidden):not(.ruju-playing):not(.law-classroom-demo) #travel-start-btn:hover {
+    filter: brightness(1.15);
+}
+
+#time-travel-content:not(.hidden):not(.ruju-playing):not(.law-classroom-demo) #ruju-hero-title {
+    color: var(--sanguo-amber);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+#time-travel-content:not(.hidden):not(.ruju-playing):not(.law-classroom-demo) #ruju-hero-copy {
+    color: var(--sanguo-text-narration);
+    opacity: 0.85;
+}
+
+/* ============================================================
+ * 移动端适配
+ * ============================================================ */
+
+@media (max-width: 720px) {
+    .sanguo-topbar {
+        padding: 0.7rem 1rem;
+    }
+    .sanguo-topbar-icons {
+        gap: 0.8rem;
+    }
+    .sanguo-scene {
+        padding: 0 1.2rem 4rem;
+    }
+}

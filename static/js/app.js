@@ -362,7 +362,9 @@ const state = {
         currentStoryId: null,
         currentManifest: null,     // /story/<id>/manifest 返回的完整 manifest
         sessionId: null,
-        sessionData: null          // /story/<id>/session/start 返回的 session 信息
+        sessionData: null,         // /story/<id>/session/start 返回的 session 信息
+        currentChapter: null,      // /story/<id>/chapter/<cid> 返回的完整章节数据
+        sceneIndex: null           // {scene_id: scene} 索引，便于 next 跳转
     },
     isLoading: false
 };
@@ -1308,6 +1310,29 @@ async function startStorySession(storyId, loadSessionId = null) {
     return null;
 }
 
+async function fetchStoryChapter(storyId, chapterId) {
+    if (!storyId || !chapterId) return null;
+    const res = await apiGet(`/story/${encodeURIComponent(storyId)}/chapter/${encodeURIComponent(chapterId)}`);
+    if (res?.success && res.chapter) {
+        state.story.currentChapter = res.chapter;
+        // 建立 scene 索引便于 next 跳转
+        const idx = {};
+        (res.chapter.scenes || []).forEach(s => { if (s.scene_id) idx[s.scene_id] = s; });
+        state.story.sceneIndex = idx;
+        return res.chapter;
+    }
+    return null;
+}
+
+function getCurrentScene() {
+    const sceneId = state.story.sessionData?.current_scene;
+    return state.story.sceneIndex?.[sceneId] || null;
+}
+
+function getSceneBackgroundUrl(scene, chapter) {
+    return scene?.background_image || chapter?.background_image || '';
+}
+
 function applyStoryEntryCopy() {
     // 公开课模式由 updateClassroomDemoVisibility 处理，本函数不动
     if (isLawClassroomDemo()) return;
@@ -1339,13 +1364,18 @@ async function enterStoryPanel(storyId) {
         alert('无法开启故事会话');
         return;
     }
+    const chapter = await fetchStoryChapter(storyId, sessionInfo.current_chapter);
+    if (!chapter) {
+        alert('无法加载章节数据');
+        return;
+    }
     showTimeTravel();
     elements.travelStartPanel?.classList.add('hidden');
     elements.travelPlayPanel?.classList.add('hidden');
     elements.travelVisualPanel?.classList.add('hidden');
     elements.careerPrototypePanel?.classList.add('hidden');
     elements.sanguoPanel?.classList.remove('hidden');
-    renderSanguoPanelStub(manifest, sessionInfo);
+    renderSanguoPanelShell(manifest, sessionInfo, chapter);
 }
 
 function exitStoryPanel() {
@@ -1353,28 +1383,46 @@ function exitStoryPanel() {
     elements.travelStartPanel?.classList.remove('hidden');
 }
 
-function renderSanguoPanelStub(manifest, sessionInfo) {
+/**
+ * 渲染 sanguo-panel 基础壳子（C2）：
+ *  - 背景层（取当前 scene 或 chapter 的 background_image）
+ *  - 暗化叠层
+ *  - 顶栏（站名/章节 + 卷/言/乐/声 四图标占位）
+ *  - 场景容器（C3 字幕渲染）
+ *  - 临时占位提示（C3 会替换为字幕）
+ */
+function renderSanguoPanelShell(manifest, sessionInfo, chapter) {
     if (!elements.sanguoPanel) return;
-    // 仅 commit 4 占位渲染：确认数据流打通，剧情场景渲染在阶段四 UI 实现
-    const chapters = (manifest.chapters || [])
-        .map(c => `<li><b>${escapeHtml(c.id)}</b>｜${escapeHtml(c.title)}｜${escapeHtml(c.year)}｜<em>${escapeHtml(c.status)}</em></li>`)
-        .join('');
+    const scene = getCurrentScene();
+    const bgUrl = getSceneBackgroundUrl(scene, chapter);
+    const stationTitle = chapter?.title || '';
+    const sceneId = sessionInfo?.current_scene || '';
+    const lineCount = scene?.lines?.length || 0;
+    const sceneType = scene?.type || '?';
+
     elements.sanguoPanel.innerHTML = `
-        <div class="sanguo-stub" style="padding: 3rem 2rem; max-width: 44rem; margin: 0 auto; color: #f0e8d8; font-family: 'Noto Serif SC', serif; line-height: 1.7;">
-            <h2 style="color: #d4a557; margin-bottom: 0.6rem;">${escapeHtml(manifest.title || '')}</h2>
-            <p style="opacity: 0.8; margin-bottom: 1.4rem;">${escapeHtml(manifest.slogan || '')}</p>
-            <hr style="border: 0; border-top: 1px solid rgba(212, 165, 87, 0.3); margin: 1.2rem 0;">
-            <p>当前会话：<code>${escapeHtml(sessionInfo.session_id)}</code></p>
-            <p>当前章节：<code>${escapeHtml(sessionInfo.current_chapter)}</code></p>
-            <p>当前场景：<code>${escapeHtml(sessionInfo.current_scene)}</code></p>
-            <hr style="border: 0; border-top: 1px solid rgba(212, 165, 87, 0.3); margin: 1.2rem 0;">
-            <p style="opacity: 0.7;">章节索引（schema_version ${escapeHtml(manifest.schema_version || '?')}）：</p>
-            <ul style="list-style: none; padding-left: 0; font-size: 0.9rem;">${chapters}</ul>
-            <hr style="border: 0; border-top: 1px solid rgba(212, 165, 87, 0.3); margin: 1.2rem 0;">
-            <p style="opacity: 0.6; font-size: 0.9rem;">◇ 阶段三 Commit 4 占位：数据流已打通。剧情场景渲染、AI 对话界面、印章式选择等 UI 由阶段四从零实现。</p>
-            <p style="margin-top: 1.5rem;">
-                <button type="button" data-story-action="exit-story" style="background: transparent; border: 1px solid #d4a557; color: #d4a557; padding: 0.5rem 1.4rem; font-family: inherit; cursor: pointer;">返回入局首页</button>
-            </p>
+        <div class="sanguo-bg" style="${bgUrl ? `background-image: url('${escapeAttr(bgUrl)}')` : ''}"></div>
+        <div class="sanguo-shade"></div>
+        <div class="sanguo-topbar">
+            <div class="sanguo-topbar-title">${escapeHtml(stationTitle)}<em>${escapeHtml(scene?.scene_id || '')}</em></div>
+            <div class="sanguo-topbar-icons">
+                <button type="button" class="sanguo-topbar-icon" disabled title="笔记本（阶段四 P1 实现）">卷</button>
+                <button type="button" class="sanguo-topbar-icon" disabled title="自由对话（阶段五接入）">言</button>
+                <button type="button" class="sanguo-topbar-icon" disabled title="背景音乐（阶段四 P2）">乐</button>
+                <button type="button" class="sanguo-topbar-icon" disabled title="角色朗读（不做）">声</button>
+            </div>
+        </div>
+        <div class="sanguo-scene">
+            <div class="sanguo-shell-placeholder">
+                <p>◇ 阶段四 Commit 2 · 基础壳子已就位</p>
+                <b>${escapeHtml(manifest.title || '')}</b>
+                <p style="margin-top: 0.8rem;">章节：${escapeHtml(chapter?.title || sessionInfo.current_chapter)}</p>
+                <p>场景：<code>${escapeHtml(sceneId)}</code>（type=${escapeHtml(sceneType)}，${lineCount} 行）</p>
+                <p style="margin-top: 0.8rem; opacity: 0.55; font-size: 0.85rem;">背景已加载。C3 将在此区域实现字幕流式打字 + 旁白/对白/心声三层文字 + pace 控制。</p>
+                <div class="sanguo-shell-actions">
+                    <button type="button" data-story-action="exit-story" class="sanguo-exit-btn">返回入局首页</button>
+                </div>
+            </div>
         </div>
     `;
 }
