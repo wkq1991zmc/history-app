@@ -24,13 +24,23 @@
  * ============================================================ */
 
 .sanguo-panel {
-    position: absolute;
+    /* fixed + 最高 z-index：直接覆盖整个浏览器视口
+     * 不依赖父容器（#time-travel-content）的高度
+     * 不被旧 ruju-mode/career-mode 布局规则影响 */
+    position: fixed;
     inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
     background: var(--sanguo-bg-black);
     overflow: hidden;
     font-family: 'Noto Serif SC', 'Songti SC', 'STSong', serif;
     color: var(--sanguo-text-narration);
     line-height: 1.7;
+}
+
+.sanguo-panel.hidden {
+    display: none;
 }
 
 /* 背景图层（chapter/scene level background_image）
