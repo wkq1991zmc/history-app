@@ -592,6 +592,148 @@
 }
 
 /* ============================================================
+ * C7 笔记本 ("卷") - 04_UI_SPEC §7.6 简化版
+ *  - 顶栏卷按钮点开 modal
+ *  - modal 显示主角姓名 + 已访问场景列表（按章节分组）
+ *  - 阶段四 P1 简化：单页古籍样式，不做翻页 / 不分日录人印地图心事四标签
+ * ============================================================ */
+
+.sanguo-notebook-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10010;
+    background: rgba(10, 9, 7, 0.82);
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+    pointer-events: auto;
+    animation: sanguo-notebook-in 0.3s ease;
+}
+
+@keyframes sanguo-notebook-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.sanguo-notebook-content {
+    position: relative;
+    background: linear-gradient(
+        180deg,
+        rgba(28, 22, 16, 0.95) 0%,
+        rgba(18, 14, 10, 0.97) 100%
+    );
+    border: 1px solid var(--sanguo-amber-faint);
+    box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(212, 165, 87, 0.15);
+    width: min(44rem, calc(100vw - 4rem));
+    max-height: min(80vh, 36rem);
+    overflow: auto;
+    padding: 2.2rem 2.4rem;
+    font-family: 'Noto Serif SC', 'Songti SC', serif;
+    color: var(--sanguo-text-narration);
+}
+
+.sanguo-notebook-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--sanguo-amber-faint);
+    padding-bottom: 0.9rem;
+    margin-bottom: 1.4rem;
+}
+
+.sanguo-notebook-header h2 {
+    color: var(--sanguo-amber);
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: 0.18em;
+    margin: 0;
+}
+
+.sanguo-notebook-close {
+    background: transparent;
+    border: 0;
+    color: var(--sanguo-amber-dim);
+    font-size: 1.4rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.25rem 0.55rem;
+    transition: color 0.2s;
+}
+
+.sanguo-notebook-close:hover {
+    color: var(--sanguo-amber-bright);
+}
+
+.sanguo-notebook-section {
+    margin-bottom: 1.4rem;
+}
+
+.sanguo-notebook-section h3 {
+    color: var(--sanguo-amber-bright);
+    font-size: 0.95rem;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    margin: 0 0 0.55rem 0;
+    border-left: 2px solid var(--sanguo-amber);
+    padding-left: 0.6rem;
+}
+
+.sanguo-notebook-section p {
+    margin: 0.25rem 0;
+    color: var(--sanguo-text-narration);
+    line-height: 1.65;
+    font-size: 0.92rem;
+}
+
+.sanguo-notebook-section .sanguo-notebook-meta {
+    color: var(--sanguo-amber-dim);
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+}
+
+.sanguo-notebook-trail {
+    list-style: none;
+    padding-left: 0;
+    margin: 0.4rem 0;
+}
+
+.sanguo-notebook-trail li {
+    padding: 0.35rem 0;
+    border-bottom: 1px dashed rgba(212, 165, 87, 0.18);
+    font-size: 0.88rem;
+    line-height: 1.55;
+}
+
+.sanguo-notebook-trail li:last-child {
+    border-bottom: 0;
+}
+
+.sanguo-notebook-trail .sanguo-trail-chapter {
+    color: var(--sanguo-amber);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    margin-right: 0.6rem;
+}
+
+.sanguo-notebook-trail .sanguo-trail-scene {
+    color: var(--sanguo-text-narration);
+}
+
+.sanguo-notebook-trail .sanguo-trail-choice {
+    color: var(--sanguo-amber-bright);
+    font-style: italic;
+    margin-left: 0.4rem;
+}
+
+.sanguo-notebook-empty {
+    color: var(--sanguo-text-inner);
+    font-style: italic;
+    font-size: 0.88rem;
+}
+
+/* ============================================================
  * 入口卡片视觉强化（不与公开课 .ruju-* 冲突）
  *  - 让首页入口看起来"立起来"
  *  - 应用在 .ruju-entry-card 上，但作为补充而非覆盖

@@ -1412,7 +1412,7 @@ function renderSanguoPanelShell(manifest, sessionInfo, chapter) {
         <div class="sanguo-topbar">
             <div class="sanguo-topbar-title" data-sanguo-topbar-title>${escapeHtml(stationTitle)}</div>
             <div class="sanguo-topbar-icons">
-                <button type="button" class="sanguo-topbar-icon" disabled title="笔记本（阶段四 P1）">卷</button>
+                <button type="button" class="sanguo-topbar-icon" data-sanguo-action="open-notebook" title="笔记本（卷）">卷</button>
                 <button type="button" class="sanguo-topbar-icon" disabled title="自由对话（阶段五）">言</button>
                 <button type="button" class="sanguo-topbar-icon" disabled title="背景音乐（阶段四 P2）">乐</button>
                 <button type="button" class="sanguo-topbar-icon" data-story-action="exit-story" title="返回入局首页" aria-label="返回入局首页">×</button>
@@ -1855,6 +1855,80 @@ async function handleSanguoNextChapter() {
     await sanguoAdvanceToScene(scene.scene_id, scene.scene_id, scene.next_chapter);
 }
 
+// C7: 笔记本（卷）—— P1 简化版
+async function openSanguoNotebook() {
+    const storyId = state.story.currentStoryId;
+    const sessionId = state.story.sessionId;
+    if (!storyId || !sessionId) return;
+    // 拉最新 session 状态（包含 choices_made / protagonist_name / identity / secrets_unlocked）
+    const res = await apiGet(`/story/${encodeURIComponent(storyId)}/session/${encodeURIComponent(sessionId)}`);
+    if (!res?.success) { alert('无法加载会话状态'); return; }
+    renderSanguoNotebook(res);
+}
+
+function renderSanguoNotebook(sessionState) {
+    closeSanguoNotebook();
+    const manifest = state.story.currentManifest;
+    const chapterMap = {};
+    (manifest?.chapters || []).forEach(c => { if (c.id) chapterMap[c.id] = c; });
+
+    const protagonistName = sessionState.protagonist_name || '（尚未取名）';
+    const identity = sessionState.identity || '（尚未分支）';
+    const secretsUnlocked = sessionState.secrets_unlocked || [];
+
+    const trailItems = (sessionState.choices_made || []).map(entry => {
+        const ch = chapterMap[entry.chapter];
+        const chTitle = ch?.title || entry.chapter || '';
+        const choice = entry.choice_id ? `（选了：${escapeHtml(entry.choice_id)}）` : '';
+        return `<li>
+            <span class="sanguo-trail-chapter">${escapeHtml(chTitle)}</span>
+            <span class="sanguo-trail-scene">${escapeHtml(entry.from_scene)} → ${escapeHtml(entry.next_scene)}</span>
+            <span class="sanguo-trail-choice">${choice}</span>
+        </li>`;
+    }).join('');
+
+    const trailSection = trailItems
+        ? `<ul class="sanguo-notebook-trail">${trailItems}</ul>`
+        : `<p class="sanguo-notebook-empty">尚未走过任何分叉路口。</p>`;
+
+    const secretsSection = secretsUnlocked.length
+        ? `<ul class="sanguo-notebook-trail">${secretsUnlocked.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul>`
+        : `<p class="sanguo-notebook-empty">尚无秘密揭开。</p>`;
+
+    const modal = document.createElement('div');
+    modal.className = 'sanguo-notebook-modal';
+    modal.dataset.sanguoNotebook = '1';
+    modal.innerHTML = `
+        <div class="sanguo-notebook-content">
+            <div class="sanguo-notebook-header">
+                <h2>卷 · 笔记</h2>
+                <button type="button" class="sanguo-notebook-close" data-sanguo-action="close-notebook" aria-label="关闭笔记本">×</button>
+            </div>
+            <div class="sanguo-notebook-section">
+                <h3>身份</h3>
+                <p>姓名：<b>${escapeHtml(protagonistName)}</b></p>
+                <p>身份：<span class="sanguo-notebook-meta">${escapeHtml(identity)}</span></p>
+            </div>
+            <div class="sanguo-notebook-section">
+                <h3>足迹</h3>
+                ${trailSection}
+            </div>
+            <div class="sanguo-notebook-section">
+                <h3>已揭开的事</h3>
+                ${secretsSection}
+            </div>
+            <div class="sanguo-notebook-section">
+                <p class="sanguo-notebook-meta">◇ 笔记本 P1 简化版。完整版（日录 / 人印 / 地图 / 心事 四标签 + 翻页效果）待后续迭代。</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function closeSanguoNotebook() {
+    document.querySelectorAll('[data-sanguo-notebook]').forEach(n => n.remove());
+}
+
 // C5: 主角姓名输入
 function renderSanguoNameInput(scene) {
     const choicesEl = elements.sanguoPanel?.querySelector('[data-sanguo-choices]');
@@ -2013,8 +2087,13 @@ async function init() {
     }
     bindHistoricalRpgEntry();
     elements.homeStartBtn?.addEventListener('click', enterFromHome);
-    // sanguo-panel 的事件委托：退出 + 推进 + 印章选项 + 言/史 + 章节切换
+    // sanguo-panel 的事件委托：退出 + 推进 + 印章选项 + 言/史 + 章节切换 + 笔记本
     elements.sanguoPanel?.addEventListener('click', (e) => {
+        if (e.target?.closest?.('[data-sanguo-action="open-notebook"]')) {
+            e.preventDefault();
+            openSanguoNotebook();
+            return;
+        }
         if (e.target?.closest?.('[data-sanguo-action="advance"]')) {
             e.preventDefault();
             advanceSanguoLine();
@@ -2068,6 +2147,26 @@ async function init() {
     });
     // 键盘 Space / Enter 推进
     document.addEventListener('keydown', sanguoKeyboardHandler);
+    // C7: 笔记本 modal 是 body 直接子级，click 委托独立监听
+    document.body.addEventListener('click', (e) => {
+        if (e.target?.closest?.('[data-sanguo-action="close-notebook"]')) {
+            e.preventDefault();
+            closeSanguoNotebook();
+            return;
+        }
+        // 点击 modal 黑色背景部分也关闭
+        const modal = e.target?.closest?.('[data-sanguo-notebook]');
+        if (modal && e.target === modal) {
+            closeSanguoNotebook();
+        }
+    });
+    // ESC 关闭笔记本
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.querySelector('[data-sanguo-notebook]')) {
+            e.preventDefault();
+            closeSanguoNotebook();
+        }
+    });
     updateClassroomDemoVisibility();
     loadTravelScenes();
     // 拉故事列表 + 应用入口文案（公开课模式由 applyStoryEntryCopy 自动跳过）
