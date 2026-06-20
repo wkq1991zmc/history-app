@@ -126,9 +126,26 @@
   "wont_say": ["弟弟是她亲手闷死的", "她其实也不想活了"],
   "current_hints_allowed": ["我已经三天没合眼了"],
   "rounds_limit": null,                                    // null = 不限轮数
-  "secrets_unlockable": []                                 // 可在本节点揭开的秘密 id（秘密一锁第三站、秘密二锁第五站，详见 docs/01_STORY_BIBLE.md §4.3）
+  "secrets_hint_allowed": ["secret_brother"],              // 本节点 AI 可"漏一点点"的秘密 id 列表
+  "secrets_reveal_allowed": []                             // 本节点 AI 可"完整揭开"的秘密 id 列表
 }
 ```
+
+#### `secrets_hint_allowed` / `secrets_reveal_allowed` 字段语义
+
+两个字段都是 `string[]`，取值来自 `docs/02_CHARACTERS.md` §5.2 "秘密 id 权威清单"（当前两个 id：`secret_brother` / `secret_mirror`）。
+
+| 字段 | 含义 |
+|---|---|
+| `secrets_hint_allowed` | 本节点 AI 可以"漏一点点"——通过侧面描写、迟疑、半句话暗示，但**不可正面陈述秘密内容** |
+| `secrets_reveal_allowed` | 本节点 AI 可以让阿萤**完整说出**该秘密——仅锁定章节内特定节点开放 |
+
+**规则**：
+- 秘密 id **必须先在 hint_allowed**，才能在某些节点进一步加入 reveal_allowed（hint 是 reveal 的前置）
+- 空数组 `[]` 表示"什么都不能漏 / 不能揭"
+- 三道检查（详见 [`docs/PHASE5_PLAN.md`](../../docs/PHASE5_PLAN.md) §3）会在生成回复后扫描秘密关键 phrase——若命中且 secret_id 不在 `secrets_reveal_allowed` 列表 → 重试或 fallback
+
+详见 [`docs/02_CHARACTERS.md`](../../docs/02_CHARACTERS.md) §5.2 与 [`docs/03_AI_SYSTEM.md`](../../docs/03_AI_SYSTEM.md) §6.2.1。
 
 ### `historical_figure` schema（`historical_distant_view` 或 `historical_limited_talk` 节点）
 

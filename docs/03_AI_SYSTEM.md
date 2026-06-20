@@ -57,6 +57,39 @@
 - 必须有"硬约束检查"：模型生成的回复如果包含未来事件预言、违反人设、暴露未到时间的秘密 → 重新生成
 - 对话保存到该玩家的存档中，影响后续状态
 
+### §6.2.1 秘密揭开机制（hint vs reveal）
+
+阿萤的两个秘密（[`02_CHARACTERS.md`](02_CHARACTERS.md) §5.2.1 权威清单）通过状态卡两个字段控制 AI 行为：
+
+- `secrets_hint_allowed: string[]` —— 本节点 AI 可"漏一点点"的秘密 id
+- `secrets_reveal_allowed: string[]` —— 本节点 AI 可"完整揭开"的秘密 id
+
+**prompt 注入（第一道防线）**：
+
+把这两个字段翻译为 system prompt 的明确指令，例如：
+
+```
+本对话允许：
+- 暗示以下秘密（不要正面陈述，只能侧面提及或半句话）：
+  · secret_brother：你已经三天没合眼了；你看着熟睡的弟弟会颤抖；提到火光会失神
+- 完整说出以下秘密（玩家若引导到位，可以让阿萤说出来）：
+  · （本节点暂无）
+
+绝不允许：
+- 提及任何不在 secrets_hint_allowed / secrets_reveal_allowed 列表中的秘密
+- 反预言、反人设、知识越界（同 §6.3 三道检查）
+```
+
+**规则系统校验（第二道防线）**：
+
+每个 secret id 在代码中维护一个 "key phrase set"（如 `secret_brother → ["捂死了弟弟", "亲手闷死", "我害死了"]`）。生成完整回复后扫描：
+- 若命中某 phrase + secret_id 在 `secrets_reveal_allowed` → 通过
+- 若命中某 phrase + secret_id 不在 `secrets_reveal_allowed` → 重试（最多 3 次）→ 仍命中 → fallback_lines
+
+**hint 是 reveal 的前置**——一个 secret 必须先在多个章节状态卡中累积 hint，最终在锁定章节内的具体 companion_free_talk 节点开放 reveal。这是叙事节奏要求，不是技术约束。
+
+详细子任务拆分见 [`docs/PHASE5_PLAN.md`](PHASE5_PLAN.md) §3。
+
 ---
 
 ## 6.3 第三层：历史人物受限对话

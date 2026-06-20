@@ -46,7 +46,22 @@
 - **两个秘密**（参考 [`01_STORY_BIBLE.md`](01_STORY_BIBLE.md) §4.3，此处不复述）
   - **触发节点由剧本锁定**：秘密一**只能在第三站徐州**揭开，秘密二**只能在第五站河北**揭开。其他章节即使玩家关心度累积到任意高，也不能触发。
   - **触发条件由 AI 判定**：在锁定章节内，AI 根据玩家累积关心度 + 当前情境压力，决定"这一刻是否合适漏出来"。
-  - 这是阶段五实现 AI 系统时的关键约束：状态卡里"两个秘密的当前隐藏状态"字段必须明确"本章节是否可揭开"。
+  - 阶段五实现见 [`docs/PHASE5_PLAN.md`](PHASE5_PLAN.md) §2 与 [`docs/03_AI_SYSTEM.md`](03_AI_SYSTEM.md) §6.2.1。具体 schema 字段见下文 §5.2.1。
+
+#### §5.2.1 秘密 id 权威清单
+
+阶段五状态卡 schema（`companion_state_card.secrets_hint_allowed` / `secrets_reveal_allowed`）使用以下 secret id。**任何新增 / 修改必须先改本表**。
+
+| secret id | 完整含义 | 锁定章节（reveal_allowed 开放范围）| hint_allowed 全程范围 |
+|---|---|---|---|
+| `secret_brother` | 弟弟死于她手——黄巾来袭，她为防孩子哭声暴露躲藏的人，亲手捂死了亲弟弟 | **第三站徐州 `04_xuzhou`** 关键 companion_free_talk 节点 | 序章后所有 companion_free_talk |
+| `secret_mirror` | 她在洛阳看见董卓时第一反应不是恨，是"原来这种人长这样"——她害怕自己有朝一日也会变成那种人 | **第五站河北 `06_hebei`** 关键 companion_free_talk 节点 | 第一站洛阳之后所有 companion_free_talk |
+
+**字段语义**（详见 [`data/stories/README.md`](../data/stories/README.md) "companion_state_card schema"）：
+- `secrets_hint_allowed`：本节点 AI 可"漏一点点"（侧面、半句话），但不可正面陈述
+- `secrets_reveal_allowed`：本节点 AI 可让阿萤"完整说出"该秘密
+
+**规则**：hint 是 reveal 的前置——一个 secret 必须先在多个章节积累 hint，才能在锁定章节内具体节点解锁 reveal。这模拟"长期铺垫 → 最终爆发"的叙事节奏。
 - **她不会主动说的事**：
   - 弟弟的死因
   - 她对自己的恐惧

@@ -499,11 +499,14 @@
           "我已经三天没合眼了"
         ],
         "rounds_limit": null,
-        "secrets_unlockable": [],
         "exit_conditions": [
           "玩家说\"睡吧\"或类似含义",
           "玩家点击\"继续\""
-        ]
+        ],
+        "secrets_hint_allowed": [
+          "secret_brother"
+        ],
+        "secrets_reveal_allowed": []
       },
       "next": "morning_identity_choice",
       "background_image": "/static/images/sanguo/00-prologue-earth-temple-firelight-talk.png"

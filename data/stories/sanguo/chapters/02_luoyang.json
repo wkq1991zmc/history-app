@@ -398,10 +398,14 @@
           "我最近三个月开始失眠"
         ],
         "rounds_limit": null,
-        "secrets_unlockable": [],
         "exit_conditions": [
           "玩家点击\"继续\"推进剧情"
-        ]
+        ],
+        "secrets_hint_allowed": [
+          "secret_brother",
+          "secret_mirror"
+        ],
+        "secrets_reveal_allowed": []
       },
       "next": "knock_at_door",
       "background_image": "/static/images/sanguo/02-luoyang-inn-midnight-talk.png"
