@@ -7,16 +7,15 @@
 
 ## 一、视觉锚定（Visual Anchor）
 
-**锚定图**：序章 · 画面 1 "乡道" · 黄昏版本
+**锚定图**：`static/images/sanguo/00-prologue-zhuojun-road.png`（序章涿郡乡道·统一开场图，2026-06-21 升级，**替代旧 `00-lane-v1.png`**）
 
 **画面特征**：
-- 一棵歪脖子老桃树占据画面左侧，桃花稀疏点点
-- 一条蜿蜒的烂泥土路从画面中央延伸至远方
-- 路面有水洼，倒映天光
-- 远方三根烟柱在天际线后方升起
-- 一个孤独少年背影在路中央，比例极小
+- 涿郡春日乡道（同时覆盖 lane / 槐树下系列 4 个 scene 的共用物理设定）
+- 烂泥土路从画面延伸至远方，远方有烟柱
+- 桃花稀疏点点 / 道旁可有歪脖子树
+- 人物比例极小（剪影远景）
 - 天空铁灰色，地平线泛黄昏暖橙
-- 远山层次丰富，大气透视感强
+- 大气透视感强，景深层次清晰
 
 ---
 
@@ -158,17 +157,95 @@ No text, no logos, no subtitles, no watermark, no people facing camera.
 
 ## 五、生图工作流
 
-每次生新场景图时：
+### 5.1 单张图生图操作（每张图层面）
 
 1. **先确认是否符合本文档"绝不要"清单**——如果场景需要违反，先和策划 Claude 讨论
-2. **按模板填入三段描述**，保持其余部分完全一致
-3. **生成 3-4 张**，挑最接近视觉锚的一张
-4. **常见问题**：
+2. **按模板填入三段描述**（前景/中景/远景），保持其余部分完全一致
+3. **生成 3-4 张**，挑最接近视觉锚（`00-lane-v1.png`）的一张
+4. **常见问题速查**：
    - 人物太大 → 加 `extremely tiny figure in distance, less than 3% of frame`
    - 太亮太美 → 加 `bleak, somber, no romantic lighting, overcast`
    - 像油画/插画 → 加 `photorealistic, sharp detail, real photograph quality`
    - 缺少黄昏暖光 → 强调 `warm amber glow on horizon line`
    - 人物有脸 → 加 `back view only, face not visible, anonymous silhouette`
+
+### 5.2 章节级生图 SOP（每章一轮）
+
+每写完一章 `docs/chapters/XX.md` → 翻译为 `data/stories/sanguo/chapters/XX.json` 后，按以下流程批量补图。**单一真源是 `SCENE_IMAGE_MAP.md`，JSON 的 `background_image` 永远从 MAP 派生。**
+
+```
+策划写完一章 docs/chapters/XX.md
+        ↓
+Claude Code 翻译为 JSON（含 6 种 scene type）
+        ↓
+Claude Code 扫 scene list 按规则分类 A/B/C
+        ↓
+┌───────────────┬───────────────┬───────────────┐
+│  A 真新设定   │  B 同场景延伸 │  C 字幕/overlay│
+│  → 新图       │  → 扩 MAP     │  → 黑底/复用   │
+└───────────────┴───────────────┴───────────────┘
+        ↓                ↓                ↓
+Claude 给文件名 +    Claude 直接在     字幕场景留空；
+该图对应的剧情段     SCENE_IMAGE_MAP   输入框 overlay
+描述（中文，         新增 scene_id     扩 MAP 复用前
+不写 prompt）        到旧图条目下       一 scene 图
+        ↓
+主理人按剧情描述自行与 GPT Image 2.0 对话生图
+（可参考 §四英文模板 + §5.1 调优 tips）
+→ 选最像视觉锚那张 → 存到 static/images/sanguo/
+        ↓
+Claude Code 更新 SCENE_IMAGE_MAP.md + 同步两章 chapter JSON
+        ↓
+主理人浏览器逐 scene 审核
+        ↓
+commit（一章一图 commit 独立提交便于回退）
+```
+
+### 5.3 分类规则（A/B/C）
+
+| 组 | 判定 | 处理 |
+|---|---|---|
+| **A** | 真·新物理设定（地点 / 时间段 / 关键视觉元素与现有图都不同） | **生新图**。Claude Code 给文件名 + 完整 prompt |
+| **B** | 与某张已有图同物理场景（同一城门 / 同一客栈大堂 / 同一土地庙夜），剧情张力差异不足以撑独立画面 | **扩 SCENE_IMAGE_MAP**：把新 scene_id 加到旧图的"建议对应"列表 |
+| **C** | 全屏字幕（章末/章中过场）/ 输入弹框 overlay | 字幕场景留空（黑底大字 = VN 标准）；输入弹框扩 MAP 复用前 scene 图 |
+
+**判定边界拿不准时的默认**：按 B 处理（扩 MAP 复用）。理由：04b §二 风格规范要求人物极小、远景为主，特写本身违反风格；除非场景的地理 / 时间 / 关键道具与已有图明确不同，否则不生新图。
+
+### 5.4 文件命名规则
+
+```
+{章节id}-{地点}-{动作/状态描述}.png
+```
+
+- 章节 id 用两位数前缀：`00-prologue-` / `02-luoyang-` / `03-changan-` ...
+- 地点 / 状态用英文连字符短语，**4-6 词以内**
+- 例：
+  - ✅ `00-prologue-zhuoxian-market-recruit-notice.png`
+  - ✅ `02-luoyang-xunyu-leaves-into-mist.png`
+  - ❌ `aying_crying_scene.png`（缺章节前缀、缺地点、用下划线）
+  - ❌ `02-luoyang-very-emotional-moment-of-the-protagonist.png`（描述太长太抽象）
+
+**双 `.png.png` 后缀的历史图保留原名**（生成时工具自动加后缀，保留以避免破坏 git 历史），新图按规范单 `.png`。
+
+### 5.5 SCENE_IMAGE_MAP.md 同步要求（不可省）
+
+每次 A 组新图加入 + B 组扩 MAP，**必须立刻同步 `SCENE_IMAGE_MAP.md`**。MAP 是单一真源：
+- 新增 A 组图 → MAP 加一个 `### 文件名.png` 条目（含剧情场景 / 建议对应 scene_id 列表 / 画面说明 / 使用建议四节）
+- B 组扩展 → 在旧图的"建议对应"列表里加新 scene_id
+- 同时更新 chapter JSON 的 `background_image` 字段
+
+**禁止只改 JSON 不改 MAP**——会导致后续接手 AI 不知道为什么这个 scene 是这张图，无法判断能否复用。
+
+### 5.6 主理人 / Claude Code 分工
+
+| 谁 | 做什么 |
+|---|---|
+| **主理人** | 收 Claude 给的"图清单（文件名 + 该图对应的剧情段中文描述）" → 自行与 GPT Image 2.0 对话生图 → 挑图 → 存盘 → 浏览器审核 |
+| **Claude Code** | A/B/C 分类 + 给文件名 + 给剧情段描述（中文）+ 更新 MAP + 更新 JSON + commit |
+
+主理人**不需要**自己分类 scene、不需要手动改 MAP/JSON。**只做两件事：按 Claude 给的剧情描述去生图 + 浏览器审核。**
+
+**Claude Code 不写英文 prompt**——主理人会自己跟 GPT 对话决定如何把剧情翻译成图像参数（§四英文模板和 §5.1 常见问题速查可参考但不强制）。这样未来扩展朝代/调性时，提示词的灵活性留给主理人 + GPT，Claude Code 只负责把握"哪段剧情需要图、对应什么 scene、文件名怎么命名"。
 
 ---
 
@@ -183,3 +260,6 @@ No text, no logos, no subtitles, no watermark, no people facing camera.
 ## 版本记录
 
 - v1.0（2026-06-19）：主理人确认"序章·乡道·黄昏版"为视觉锚，本文档初版。
+- v1.1（2026-06-20）：§5 扩展为完整章节级生图 SOP（A/B/C 分类规则 + 文件命名规则 + SCENE_IMAGE_MAP 同步要求 + 主理人/Claude Code 分工）。配套首次按此 SOP 处理的两章是 00_prologue 与 02_luoyang。
+- v1.2（2026-06-20）：调整 §5.2 + §5.6 分工——Claude Code 只给"文件名 + 剧情段中文描述"，**不写英文 prompt**。提示词由主理人与 GPT 对话决定，§四英文模板降级为可选参考。理由：未来扩展朝代/调性时，提示词灵活性留给主理人 + GPT。
+- v1.3（2026-06-21）：视觉锚由 `00-lane-v1.png` 升级为 `00-prologue-zhuojun-road.png`（序章前 4 个 scene 共用统一开场图）。旧 lane-v1 与 huai-tree-water-swaddle 不再被引用（文件保留在 static/images/sanguo/ 作为历史素材）。同时新增 `00-prologue-earth-temple-inside-empty.png` 修正"阿萤未出场而误用 first-look 图"的偏差。
