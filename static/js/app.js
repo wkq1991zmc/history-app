@@ -1672,8 +1672,17 @@ function renderSanguoTalkActions(scene) {
     } else if (scene.type === 'historical_limited_talk') {
         const ch = scene.historical_figure?.name || '';
         mark = '史';
-        const rounds = scene.historical_figure?.knowledge_card?.rounds_limit;
-        hint = `与${ch}对话${rounds ? `（${rounds} 轮）` : ''}`;
+        const limit = scene.historical_figure?.knowledge_card?.rounds_limit;
+        // 阶段五 5.5：若本 scene 已发生过对话，显示"剩余 X/Y"；首次显示"X 轮"
+        const stat = (state.story.historicalRound || {})[scene.scene_id];
+        let roundHint = '';
+        if (stat && typeof stat.round === 'number' && stat.rounds_limit) {
+            const remaining = Math.max(0, stat.rounds_limit - stat.round);
+            roundHint = `（剩余 ${remaining}/${stat.rounds_limit}）`;
+        } else if (limit) {
+            roundHint = `（${limit} 轮）`;
+        }
+        hint = `与${ch}对话${roundHint}`;
         skipText = '告辞';
     }
     choicesEl.innerHTML = `
@@ -1704,7 +1713,6 @@ function openSanguoTalkInput(scene) {
             <label class="sanguo-input-label">${escapeHtml(promptText)}</label>
             <input class="sanguo-input" type="text" maxlength="80" data-sanguo-talk-input autocomplete="off" spellcheck="false">
             <div class="sanguo-input-row">
-                <span class="sanguo-input-hint">阶段五接入百炼后将由 AI 实时生成回复</span>
                 <button type="button" class="sanguo-input-submit" data-sanguo-talk-action="cancel">取消</button>
                 <button type="submit" class="sanguo-input-submit">说</button>
             </div>
@@ -1713,32 +1721,112 @@ function openSanguoTalkInput(scene) {
     setTimeout(() => choicesEl.querySelector('[data-sanguo-talk-input]')?.focus(), 80);
 }
 
-function handleSanguoTalkSubmit() {
+// 阶段五 5.5：handleSanguoTalkSubmit 接入真实 SSE 流（替代占位 in-character）
+async function handleSanguoTalkSubmit(message) {
     const scene = getCurrentScene();
     if (!scene) return;
-    // 占位 in-character 回复（阶段五接百炼后替换）
-    let lines = [];
-    if (scene.type === 'companion_free_talk') {
-        const speaker = scene.companion_state_card?.character || '阿萤';
-        lines = [
-            { type: 'dialogue', speaker, text: '……', pace: 'slow' },
-            { type: 'dialogue', speaker, text: '嗯。', pace: 'slow' }
-        ];
-    } else if (scene.type === 'historical_limited_talk') {
-        const speaker = scene.historical_figure?.name || '历史人物';
-        const fallbacks = scene.historical_figure?.knowledge_card?.fallback_lines || [];
-        const text = fallbacks[0] || '此事容后再议。';
-        lines = [{
-            type: 'dialogue',
-            speaker,
-            text,
-            stage_direction: '拈须不语，半晌方道',
-            pace: 'slow'
-        }];
+    const msg = (message || '').trim();
+    if (!msg) return;
+
+    const storyId = state.story.currentStoryId;
+    const sessionId = state.story.sessionId;
+    const isCompanion = scene.type === 'companion_free_talk';
+    const endpoint = `/story/${encodeURIComponent(storyId)}/${isCompanion ? 'companion' : 'historical'}/talk_stream`;
+    const fallbackSpeakerLabel = isCompanion
+        ? (scene.companion_state_card?.character || '阿萤')
+        : (scene.historical_figure?.name || '历史人物');
+
+    // 准备 UI：清空对话区，准备接收 SSE 流式字符
+    sanguoClearTyping();
+    const dialogueBox = elements.sanguoPanel?.querySelector('[data-sanguo-dialogue]');
+    const textEl = elements.sanguoPanel?.querySelector('[data-sanguo-text]');
+    const speakerEl = elements.sanguoPanel?.querySelector('[data-sanguo-speaker]');
+    const choicesEl = elements.sanguoPanel?.querySelector('[data-sanguo-choices]');
+    const btnEl = elements.sanguoPanel?.querySelector('[data-sanguo-action="advance"]');
+    if (!dialogueBox || !textEl) return;
+
+    if (choicesEl) {
+        // loading 指示：点点点（message_start 后清空）
+        choicesEl.innerHTML = '<div class="sanguo-talk-loading">…</div>';
+        choicesEl.hidden = false;
     }
-    state.story.injectedLines = lines;
-    state.story.injectedLineIndex = 0;
-    renderNextInjectedLine();
+    if (btnEl) btnEl.hidden = true;
+    if (speakerEl) { speakerEl.textContent = ''; speakerEl.hidden = true; }
+    textEl.textContent = '';
+    dialogueBox.hidden = false;
+
+    let endedAfterThis = false;
+    let usedFallback = false;
+    let gotAnyDelta = false;
+
+    try {
+        const resp = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                session_id: sessionId,
+                message: msg,
+                scene_id: scene.scene_id,
+            }),
+        });
+        if (!resp.ok || !resp.body) {
+            textEl.textContent = '（与服务器对话失败，请稍后重试）';
+            await new Promise(r => setTimeout(r, 1500));
+            renderSanguoTalkActions(scene);
+            return;
+        }
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buf = '';
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            let idx;
+            while ((idx = buf.indexOf('\n\n')) >= 0) {
+                const chunk = buf.slice(0, idx);
+                buf = buf.slice(idx + 2);
+                if (!chunk.startsWith('data:')) continue;
+                const jsonStr = chunk.slice(5).trim();
+                if (!jsonStr) continue;
+                let evt;
+                try { evt = JSON.parse(jsonStr); } catch { continue; }
+                if (evt.type === 'message_start') {
+                    if (choicesEl) { choicesEl.innerHTML = ''; choicesEl.hidden = true; }
+                    if (speakerEl) {
+                        speakerEl.textContent = `—— ${evt.speaker || fallbackSpeakerLabel}`;
+                        speakerEl.hidden = false;
+                    }
+                } else if (evt.type === 'delta') {
+                    textEl.textContent += evt.delta || '';
+                    gotAnyDelta = true;
+                } else if (evt.type === 'done') {
+                    endedAfterThis = !!evt.ended;
+                    usedFallback = !!evt.used_fallback;
+                    if (typeof evt.round === 'number') {
+                        const map = state.story.historicalRound || (state.story.historicalRound = {});
+                        map[scene.scene_id] = { round: evt.round, rounds_limit: evt.rounds_limit };
+                    }
+                } else if (evt.type === 'error') {
+                    textEl.textContent = `（${evt.message || '出错'}）`;
+                }
+            }
+        }
+    } catch (err) {
+        console.error('talk_stream error', err);
+        if (!gotAnyDelta) textEl.textContent = '（网络中断）';
+    }
+
+    // 给玩家读完时间
+    await new Promise(r => setTimeout(r, 700));
+
+    if (endedAfterThis && scene.next) {
+        // 历史人物轮数耗尽 → 自动 advance 到下一 scene
+        await sanguoAdvanceToScene(scene.scene_id, scene.next);
+    } else {
+        // 回到 talk_actions（companion 无限轮 / historical 还有轮）
+        renderSanguoTalkActions(scene);
+    }
 }
 
 function renderNextInjectedLine() {
@@ -2162,7 +2250,8 @@ async function init() {
         const talkForm = e.target?.closest?.('[data-sanguo-talk-form]');
         if (talkForm) {
             e.preventDefault();
-            handleSanguoTalkSubmit();
+            const input = talkForm.querySelector('[data-sanguo-talk-input]');
+            handleSanguoTalkSubmit(input?.value);
         }
     });
     // 键盘 Space / Enter 推进
