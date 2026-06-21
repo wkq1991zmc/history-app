@@ -1,8 +1,58 @@
 {
   "chapter_id": "00_prologue",
   "title": "序章·涿郡",
-  "entry_scene": "lane",
+  "entry_scene": "intro",
   "scenes": [
+    {
+      "scene_id": "intro",
+      "type": "narration",
+      "is_intro": true,
+      "lines": [
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "中平元年。",
+          "pace": "slow"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "大汉立国，已三百余年。",
+          "pace": "slow"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "朝堂之上，外戚与宦官相互倾轧。",
+          "pace": "slow"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "朝堂之下，旱、蝗、瘟、饥，连年不绝。",
+          "pace": "slow"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "颍川有人，名张角，已立\"太平道\"十余年。",
+          "pace": "slow"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "徒众，数十万。",
+          "pace": "slow"
+        },
+        {
+          "type": "narration",
+          "display_style": "fullscreen_subtitle",
+          "text": "天下，将要烧起来了。",
+          "pace": "slow"
+        }
+      ],
+      "next": "lane"
+    },
     {
       "scene_id": "lane",
       "type": "narration",

@@ -1508,6 +1508,11 @@ function renderSanguoPanelShell(manifest, sessionInfo, chapter) {
                 <button type="button" class="sanguo-topbar-icon" data-story-action="exit-story" title="返回入局首页" aria-label="返回入局首页">×</button>
             </div>
         </div>
+        <button type="button" class="sanguo-intro-skip" data-sanguo-action="skip-intro" hidden>跳过 ⌐</button>
+        <div class="sanguo-intro-overlay" data-sanguo-intro hidden>
+            <div class="sanguo-intro-text" data-sanguo-intro-text></div>
+            <button type="button" class="sanguo-intro-continue" data-sanguo-action="intro-continue" hidden>继续 ⌐</button>
+        </div>
         <div class="sanguo-scene">
             <div class="sanguo-dialogue-box" data-sanguo-dialogue>
                 <div class="sanguo-speaker" data-sanguo-speaker hidden></div>
@@ -1517,6 +1522,11 @@ function renderSanguoPanelShell(manifest, sessionInfo, chapter) {
             </div>
         </div>
     `;
+    // 初始化 bg 状态：让 syncSanguoBackground 后续被调时不会被误判为
+    // first render（intro scene 没图、未触发 syncSanguoBackground →
+    // 下一个 scene advance 时 fade 流程会跳过，bg 直接闪入）
+    const initBgEl = elements.sanguoPanel.querySelector('[data-sanguo-bg]');
+    if (initBgEl) initBgEl.dataset.currentUrl = bgUrl ? `url('${bgUrl}')` : '';
 }
 
 function startSanguoScene() {
@@ -1524,8 +1534,91 @@ function startSanguoScene() {
     startTypingCurrentLine();
 }
 
+// 前言：连续慢打到屏幕中心，结束后显示继续按钮（is_intro 场景专用）
+async function startSanguoIntroSequence(scene) {
+    // 隐藏标准 dialogue-box（intro 不用底部对话框）
+    const dialogueBox = elements.sanguoPanel?.querySelector('[data-sanguo-dialogue]');
+    if (dialogueBox) dialogueBox.hidden = true;
+
+    const overlay = elements.sanguoPanel?.querySelector('[data-sanguo-intro]');
+    const textEl = elements.sanguoPanel?.querySelector('[data-sanguo-intro-text]');
+    const contBtn = elements.sanguoPanel?.querySelector('[data-sanguo-action="intro-continue"]');
+    if (!overlay || !textEl || !contBtn) return;
+
+    overlay.hidden = false;
+    overlay.style.opacity = '1';
+    textEl.textContent = '';
+    contBtn.hidden = true;
+
+    state.story.typing = true;
+    state.story.typingToken += 1;
+    const token = state.story.typingToken;
+
+    const lines = scene.lines || [];
+    const charDelay = SANGUO_PACE_MS['slow'];   // 约 70ms / 字
+    const lineBreakPause = 700;                 // 行间停顿
+
+    let combined = '';
+    for (let li = 0; li < lines.length; li++) {
+        if (token !== state.story.typingToken) return;  // 被 sanguoClearTyping 中断（如玩家点跳过）
+        const text = String(lines[li].text || '');
+        for (let ci = 0; ci < text.length; ci++) {
+            if (token !== state.story.typingToken) return;
+            combined += text[ci];
+            textEl.textContent = combined;
+            await new Promise(r => setTimeout(r, charDelay));
+        }
+        if (li < lines.length - 1) {
+            combined += '\n';
+            textEl.textContent = combined;
+            await new Promise(r => setTimeout(r, lineBreakPause));
+        }
+    }
+
+    if (token !== state.story.typingToken) return;
+    state.story.typing = false;
+    contBtn.hidden = false;  // 全部打完才显示"继续"按钮
+}
+
+async function handleSanguoIntroContinue() {
+    const scene = getCurrentScene();
+    if (!scene?.next) return;
+    // 防止重复触发
+    if (state.story.introTransitioning) return;
+    state.story.introTransitioning = true;
+
+    const overlay = elements.sanguoPanel?.querySelector('[data-sanguo-intro]');
+    const skipBtn = elements.sanguoPanel?.querySelector('[data-sanguo-action="skip-intro"]');
+    // 截断 typing（如玩家在打字中点跳过）
+    sanguoClearTyping();
+
+    // 1. intro overlay 渐出（0.7s）—— 屏幕逐渐变成黑色
+    if (overlay) overlay.style.opacity = '0';
+    if (skipBtn) skipBtn.hidden = true;
+    // 半 fade 时启动 advance，让 bg fade in 与 overlay fade out 衔接
+    await new Promise(r => setTimeout(r, 350));
+
+    // 2. advance 到 next scene（sanguoAdvanceToScene 内 syncSanguoBackground
+    //    会触发 bg fade-in：从空（黑）→ lane 图）
+    await sanguoAdvanceToScene(scene.scene_id, scene.next);
+
+    // 3. overlay 彻底关掉（之后非 intro scene 不需要这个层）
+    setTimeout(() => {
+        if (overlay) {
+            overlay.hidden = true;
+            overlay.style.opacity = '';
+        }
+        state.story.introTransitioning = false;
+    }, 700);
+}
+
 function sanguoClearTyping() {
     state.story.typingToken += 1;
+    // 同时清掉 intro 自动 advance 待发任务（避免玩家点跳过/继续后还触发）
+    if (state.story.introAutoAdvanceTimer) {
+        window.clearTimeout(state.story.introAutoAdvanceTimer);
+        state.story.introAutoAdvanceTimer = null;
+    }
     if (state.story.typingTimer) {
         window.clearTimeout(state.story.typingTimer);
         state.story.typingTimer = null;
@@ -1537,6 +1630,23 @@ function startTypingCurrentLine() {
     sanguoClearTyping();
     const scene = getCurrentScene();
     if (!scene) return;
+
+    // intro 模式：走独立渲染流程（中心字幕 + 连续慢打 + 继续按钮）
+    const skipBtn = elements.sanguoPanel?.querySelector('[data-sanguo-action="skip-intro"]');
+    if (skipBtn) skipBtn.hidden = !scene.is_intro;
+    if (scene.is_intro) {
+        startSanguoIntroSequence(scene);
+        return;
+    }
+    // 非 intro：确保 dialogue-box 可见（intro 时被隐藏）+ intro overlay 关掉
+    const dialogueBoxEl = elements.sanguoPanel?.querySelector('[data-sanguo-dialogue]');
+    if (dialogueBoxEl) dialogueBoxEl.hidden = false;
+    const introOverlay = elements.sanguoPanel?.querySelector('[data-sanguo-intro]');
+    if (introOverlay && !introOverlay.hidden) {
+        introOverlay.hidden = true;
+        introOverlay.style.opacity = '';
+    }
+
     const lines = scene.lines || [];
     const line = lines[state.story.lineIndex];
 
@@ -1650,6 +1760,8 @@ function finishTypingDOM() {
         renderSanguoTalkActions(scene);
         return;
     }
+    // 前言（is_intro）：独立渲染流程在 startSanguoIntroSequence 内处理，
+    // 不会进入此函数（startTypingCurrentLine 在 intro 分支直接 return）
     // C6: 末行 + chapter_end → 渲染章节切换按钮
     if (isLast && scene?.type === 'chapter_end') {
         btnEl.hidden = true;
@@ -2206,14 +2318,15 @@ function syncSanguoBackground() {
         return;
     }
 
-    // 淡出到黑（opacity 0）→ 700ms 后换图 → 淡入（opacity 1）
+    // 淡出到黑（opacity 0）→ 1.2s 后换图 → 淡入（opacity 1）
+    // CSS .sanguo-bg transition 与此 setTimeout 必须匹配
     if (bgEl._fadeTimer) clearTimeout(bgEl._fadeTimer);
     bgEl.style.opacity = '0';
     bgEl._fadeTimer = setTimeout(() => {
         bgEl.style.backgroundImage = nextCss;
         bgEl.style.opacity = '1';
         bgEl._fadeTimer = null;
-    }, 700);
+    }, 1200);
 }
 
 function syncSanguoTopbar() {
@@ -2321,6 +2434,13 @@ async function init() {
         if (choiceBtn) {
             e.preventDefault();
             handleSanguoChoice(choiceBtn.dataset.sanguoChoiceId);
+            return;
+        }
+        // 前言：跳过按钮 / 继续按钮（同一处理）
+        if (e.target?.closest?.('[data-sanguo-action="skip-intro"]') ||
+            e.target?.closest?.('[data-sanguo-action="intro-continue"]')) {
+            e.preventDefault();
+            handleSanguoIntroContinue();
             return;
         }
         // C6: AI 节点的 talk action
